@@ -1,4 +1,4 @@
-import { CalendarClock, Mail, MapPin, ShieldCheck, Store, UserRound } from "lucide-react";
+import { CalendarClock, Mail, ShieldCheck, Store, UserRound } from "lucide-react";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { ProfileEditor } from "@/components/profile/profile-editor";
 import { PageHeader } from "@/components/ui/page-header";
@@ -24,8 +24,6 @@ export default async function ProfilePage() {
     { label: "Nome completo", value: courier.name, icon: UserRound },
     { label: "E-mail de acesso", value: user.email, icon: Mail },
     { label: "CNPJ de acesso", value: formatCnpj(courier.cnpj), icon: Store },
-    { label: "Praça", value: courier.plaza || "Não informada", icon: MapPin },
-    { label: "Subpraça", value: courier.subPlaza || "Não informada", icon: MapPin },
   ];
 
   return (
@@ -58,7 +56,7 @@ export default async function ProfilePage() {
               </div>
             ))}
           </dl>
-          <p className="mt-5 text-pretty text-xs leading-5 text-slate-500">Praça, subpraça, nome operacional e CNPJ são validados pelas guias da planilha mensal. Se algum deles estiver incorreto, fale com a equipe administrativa.</p>
+          <p className="mt-5 text-pretty text-xs leading-5 text-slate-500">O nome operacional e o CNPJ são validados pelas guias da planilha mensal. Se algum deles estiver incorreto, fale com a equipe administrativa.</p>
         </section>
 
         <div className="space-y-6">

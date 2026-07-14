@@ -4,6 +4,7 @@ export {
   destroyCurrentSession,
   getCurrentUser,
   hashSessionToken,
+  refreshCurrentSession,
   requireAdmin,
   requirePageAdmin,
   requirePageUser,

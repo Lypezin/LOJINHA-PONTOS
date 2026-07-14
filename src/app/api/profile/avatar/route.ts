@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import sharp from "sharp";
 import { getRequestIpHash } from "@/lib/auth/audit";
 import { isTrustedPostOrigin } from "@/lib/auth/origin";
 import { requireUser } from "@/lib/auth/session";
@@ -6,7 +7,9 @@ import { db } from "@/lib/db";
 import { DomainError } from "@/lib/domain-error";
 import { apiError } from "@/lib/http";
 
-const MAX_AVATAR_BYTES = 1_500_000;
+const MAX_AVATAR_BYTES = 5_000_000;
+const MAX_STORED_AVATAR_BYTES = 1_500_000;
+const MAX_AVATAR_DIMENSION = 1024;
 const ALLOWED_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 function hasValidSignature(bytes: Uint8Array, mimeType: string) {
@@ -51,8 +54,8 @@ export async function PUT(request: Request) {
     }
     const user = await requireUser();
     const contentLength = Number(request.headers.get("content-length") ?? 0);
-    if (Number.isFinite(contentLength) && contentLength > MAX_AVATAR_BYTES + 64_000) {
-      throw new DomainError("A foto deve ter no máximo 1,5 MB.", "AVATAR_TOO_LARGE", 413);
+    if (Number.isFinite(contentLength) && contentLength > MAX_AVATAR_BYTES + 128_000) {
+      throw new DomainError("A foto deve ter no máximo 5 MB.", "AVATAR_TOO_LARGE", 413);
     }
     const form = await request.formData();
     const file = form.get("avatar");
@@ -63,17 +66,41 @@ export async function PUT(request: Request) {
       throw new DomainError("Use uma imagem JPG, PNG ou WebP.", "AVATAR_TYPE_INVALID", 422);
     }
     if (file.size < 32 || file.size > MAX_AVATAR_BYTES) {
-      throw new DomainError("A foto deve ter no máximo 1,5 MB.", "AVATAR_SIZE_INVALID", 422);
+      throw new DomainError("A foto deve ter no máximo 5 MB.", "AVATAR_SIZE_INVALID", 422);
     }
     const bytes = new Uint8Array(await file.arrayBuffer());
     if (!hasValidSignature(bytes, file.type)) {
       throw new DomainError("O arquivo enviado não é uma imagem válida.", "AVATAR_CONTENT_INVALID", 422);
     }
+    let optimized = await sharp(bytes, { limitInputPixels: 40_000_000 })
+      .rotate()
+      .resize({
+        width: MAX_AVATAR_DIMENSION,
+        height: MAX_AVATAR_DIMENSION,
+        fit: "inside",
+        withoutEnlargement: true,
+      })
+      .webp({ quality: 82, effort: 4 })
+      .toBuffer()
+      .catch(() => null);
+    if (!optimized) {
+      throw new DomainError("O arquivo enviado não é uma imagem válida.", "AVATAR_CONTENT_INVALID", 422);
+    }
+    if (optimized.byteLength > MAX_STORED_AVATAR_BYTES) {
+      optimized = await sharp(bytes, { limitInputPixels: 40_000_000 })
+        .rotate()
+        .resize({ width: MAX_AVATAR_DIMENSION, height: MAX_AVATAR_DIMENSION, fit: "inside", withoutEnlargement: true })
+        .webp({ quality: 64, effort: 5 })
+        .toBuffer();
+    }
+    if (optimized.byteLength > MAX_STORED_AVATAR_BYTES) {
+      throw new DomainError("Não foi possível compactar a foto. Escolha outra imagem.", "AVATAR_OPTIMIZATION_FAILED", 422);
+    }
     const now = new Date();
     await db.$transaction([
       db.user.update({
         where: { id: user.id },
-        data: { avatarData: bytes, avatarMimeType: file.type, avatarUpdatedAt: now },
+        data: { avatarData: Uint8Array.from(optimized), avatarMimeType: "image/webp", avatarUpdatedAt: now },
       }),
       db.auditLog.create({
         data: {
@@ -81,7 +108,7 @@ export async function PUT(request: Request) {
           action: "PROFILE_AVATAR_UPDATED",
           entityType: "User",
           entityId: user.id,
-          metadata: { mimeType: file.type, bytes: file.size },
+          metadata: { sourceMimeType: file.type, sourceBytes: file.size, storedMimeType: "image/webp", storedBytes: optimized.byteLength },
           ipHash: getRequestIpHash(request),
         },
       }),

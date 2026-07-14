@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { SessionKeeper } from "@/components/auth/session-keeper";
 import { CourierShell } from "@/components/protected/courier-shell";
 import { getCurrentAccount } from "@/features/points/period";
 import { requirePageUser } from "@/lib/auth/session";
@@ -15,6 +16,7 @@ export default async function CourierLayout({ children }: { children: React.Reac
       balance={account?.balancePoints ?? 0}
       avatarVersion={user.avatarUpdatedAt?.getTime() ?? null}
     >
+      <SessionKeeper />
       {children}
     </CourierShell>
   );

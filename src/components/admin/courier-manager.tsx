@@ -21,8 +21,6 @@ export type AdminCourier = {
   cnpj: string | null;
   status: CourierStatus;
   cnpjMatchStatus: MatchStatus;
-  plaza: string | null;
-  subPlaza: string | null;
   email: string | null;
   lastImportedAt: string | null;
   balance: number;
@@ -42,14 +40,14 @@ function courierLabel(status: CourierStatus) {
 
 function EditCourierDialog({ courier, onSaved }: { courier: AdminCourier; onSaved: () => void }) {
   const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState({ name: courier.name, cnpj: courier.cnpj ?? "", status: courier.status, plaza: courier.plaza ?? "", subPlaza: courier.subPlaza ?? "" });
+  const [draft, setDraft] = useState({ name: courier.name, cnpj: courier.cnpj ?? "", status: courier.status });
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
 
   function handleOpen(next: boolean) {
     setOpen(next);
     if (next) {
-      setDraft({ name: courier.name, cnpj: courier.cnpj ?? "", status: courier.status, plaza: courier.plaza ?? "", subPlaza: courier.subPlaza ?? "" });
+      setDraft({ name: courier.name, cnpj: courier.cnpj ?? "", status: courier.status });
       setError("");
     }
   }
@@ -62,7 +60,7 @@ function EditCourierDialog({ courier, onSaved }: { courier: AdminCourier; onSave
       const response = await fetch(`/api/admin/couriers/${courier.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...draft, cnpj: draft.cnpj || null, plaza: draft.plaza || null, subPlaza: draft.subPlaza || null }),
+        body: JSON.stringify({ ...draft, cnpj: draft.cnpj || null }),
       });
       const data = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(data.error || "Não foi possível atualizar o entregador.");
@@ -85,7 +83,6 @@ function EditCourierDialog({ courier, onSaved }: { courier: AdminCourier; onSave
           <form onSubmit={save} className="mt-6 space-y-4">
             <div><label htmlFor={`courier-name-${courier.id}`} className="mb-1.5 block text-sm font-bold">Nome completo</label><input id={`courier-name-${courier.id}`} className={fieldClass} value={draft.name} minLength={2} required onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))} /></div>
             <div><label htmlFor={`courier-cnpj-${courier.id}`} className="mb-1.5 block text-sm font-bold">CNPJ</label><input id={`courier-cnpj-${courier.id}`} className={`${fieldClass} tabular-nums`} value={draft.cnpj} inputMode="numeric" onChange={(event) => setDraft((current) => ({ ...current, cnpj: event.target.value }))} placeholder="00.000.000/0000-00" /></div>
-            <div className="grid gap-4 sm:grid-cols-2"><div><label htmlFor={`courier-plaza-${courier.id}`} className="mb-1.5 block text-sm font-bold">Praça</label><input id={`courier-plaza-${courier.id}`} className={fieldClass} value={draft.plaza} onChange={(event) => setDraft((current) => ({ ...current, plaza: event.target.value }))} /></div><div><label htmlFor={`courier-subplaza-${courier.id}`} className="mb-1.5 block text-sm font-bold">Subpraça</label><input id={`courier-subplaza-${courier.id}`} className={fieldClass} value={draft.subPlaza} onChange={(event) => setDraft((current) => ({ ...current, subPlaza: event.target.value }))} /></div></div>
             <div><label htmlFor={`courier-status-${courier.id}`} className="mb-1.5 block text-sm font-bold">Status do cadastro</label><select id={`courier-status-${courier.id}`} className={fieldClass} value={draft.status} onChange={(event) => setDraft((current) => ({ ...current, status: event.target.value as CourierStatus }))}><option value="PENDING">Pendente</option><option value="ACTIVE">Ativo</option><option value="INACTIVE">Inativo</option></select></div>
             {error ? <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-800" role="alert">{error}</p> : null}
             <div className="flex flex-col-reverse gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:justify-end"><Dialog.Close asChild><Button variant="secondary" disabled={pending}>Cancelar</Button></Dialog.Close><Button type="submit" disabled={pending}>{pending ? "Salvando…" : "Salvar alterações"}</Button></div>
@@ -178,7 +175,7 @@ export function CourierManager({ couriers, total, page, query, status }: { couri
           {couriers.map((courier) => (
             <article key={courier.id} className="rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm">
               <div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0"><h2 className="line-clamp-2 text-balance text-lg font-extrabold text-[var(--brand-navy)]">{courier.name}</h2><p className="mt-1 truncate text-sm text-slate-600">{courier.email || "Ainda sem conta de acesso"}</p></div><StatusBadge tone={courierTone(courier.status)}>{courierLabel(courier.status)}</StatusBadge></div>
-              <dl className="mt-5 grid gap-3 rounded-2xl bg-slate-50 p-4 text-sm sm:grid-cols-3"><div><dt className="text-xs font-semibold text-slate-500">CNPJ</dt><dd className="mt-1 font-bold tabular-nums text-[var(--brand-navy)]">{formatCnpj(courier.cnpj)}</dd></div><div><dt className="text-xs font-semibold text-slate-500">Praça</dt><dd className="mt-1 font-bold text-[var(--brand-navy)]">{courier.plaza || "Não informada"}</dd></div><div><dt className="text-xs font-semibold text-slate-500">Conciliação</dt><dd className="mt-1 font-bold text-[var(--brand-navy)]">{matchLabels[courier.cnpjMatchStatus]}</dd></div></dl>
+              <dl className="mt-5 grid gap-3 rounded-2xl bg-slate-50 p-4 text-sm sm:grid-cols-2"><div><dt className="text-xs font-semibold text-slate-500">CNPJ</dt><dd className="mt-1 font-bold tabular-nums text-[var(--brand-navy)]">{formatCnpj(courier.cnpj)}</dd></div><div><dt className="text-xs font-semibold text-slate-500">Conciliação</dt><dd className="mt-1 font-bold text-[var(--brand-navy)]">{matchLabels[courier.cnpjMatchStatus]}</dd></div></dl>
               <div className="mt-4 grid grid-cols-3 gap-2"><div className="rounded-xl border border-slate-200 p-3"><p className="text-xs text-slate-500">Saldo</p><p className="mt-1 font-extrabold tabular-nums text-[var(--brand-navy)]">{formatPoints(courier.balance)}</p></div><div className="rounded-xl border border-slate-200 p-3"><p className="text-xs text-slate-500">Importados</p><p className="mt-1 font-extrabold tabular-nums text-[var(--brand-navy)]">{formatPoints(courier.importedPoints)}</p></div><div className="rounded-xl border border-slate-200 p-3"><p className="text-xs text-slate-500">Usados</p><p className="mt-1 font-extrabold tabular-nums text-[var(--brand-navy)]">{formatPoints(courier.redeemedPoints)}</p></div></div>
               {courier.lastImportedAt ? <p className="mt-3 text-xs tabular-nums text-slate-500">Atualizado pela planilha em {formatDate(courier.lastImportedAt)}</p> : null}
               <div className="mt-5 flex flex-wrap justify-end gap-2"><EditCourierDialog courier={courier} onSaved={refresh} /><AdjustPointsDialog courier={courier} onSaved={refresh} /></div>

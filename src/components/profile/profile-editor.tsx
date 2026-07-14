@@ -4,6 +4,7 @@ import { Camera, CheckCircle2, Save, Trash2, UserRound } from "lucide-react";
 import { type ChangeEvent, type FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { MAX_AVATAR_INPUT_BYTES, optimizeAvatar } from "@/lib/avatar-client";
 import { initials } from "@/lib/format";
 
 const fieldClass = "min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-[var(--brand-navy)] outline-none placeholder:text-slate-400 focus:border-[var(--brand-blue)] focus:ring-4 focus:ring-blue-100";
@@ -48,7 +49,7 @@ export function ProfileEditor({
     if (previewUrl) URL.revokeObjectURL(previewUrl);
   }, [previewUrl]);
 
-  function choosePhoto(event: ChangeEvent<HTMLInputElement>) {
+  async function choosePhoto(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0] ?? null;
     setError("");
     setPhotoMessage("");
@@ -58,13 +59,24 @@ export function ProfileEditor({
       event.target.value = "";
       return;
     }
-    if (file.size > 1_500_000) {
-      setError("A foto deve ter no máximo 1,5 MB.");
+    if (file.size > MAX_AVATAR_INPUT_BYTES) {
+      setError("A foto deve ter no máximo 5 MB.");
       event.target.value = "";
       return;
     }
-    setSelectedFile(file);
-    setPreviewUrl(URL.createObjectURL(file));
+    setPhotoPending(true);
+    try {
+      const optimized = await optimizeAvatar(file);
+      setSelectedFile(optimized);
+      setPreviewUrl(URL.createObjectURL(optimized));
+      const reduction = Math.max(0, Math.round((1 - optimized.size / file.size) * 100));
+      setPhotoMessage(reduction > 0 ? `Foto otimizada: ${reduction}% menor.` : "Foto preparada para envio.");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Não foi possível preparar a foto.");
+      event.target.value = "";
+    } finally {
+      setPhotoPending(false);
+    }
   }
 
   async function uploadPhoto() {
@@ -164,11 +176,11 @@ export function ProfileEditor({
       <div className="grid gap-8 p-5 sm:p-7 lg:grid-cols-[19rem_1fr]">
         <div>
           <h3 className="font-extrabold text-[var(--brand-navy)]">Foto de perfil</h3>
-          <p className="mt-1 text-xs leading-5 text-slate-500">JPG, PNG ou WebP de até 1,5 MB. Prefira uma foto quadrada.</p>
-          <input ref={inputRef} id="profile-photo" type="file" accept="image/jpeg,image/png,image/webp" onChange={choosePhoto} className="sr-only" />
+          <p className="mt-1 text-xs leading-5 text-slate-500">JPG, PNG ou WebP de até 5 MB. A imagem será reduzida e compactada automaticamente.</p>
+          <input ref={inputRef} id="profile-photo" type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => void choosePhoto(event)} className="sr-only" />
           <div className="mt-4 flex flex-wrap gap-2">
             <Button variant="secondary" onClick={() => inputRef.current?.click()} disabled={photoPending}>
-              <Camera className="size-4" aria-hidden="true" />Escolher foto
+              <Camera className="size-4" aria-hidden="true" />{photoPending ? "Otimizando…" : "Escolher foto"}
             </Button>
             {selectedFile ? (
               <Button onClick={uploadPhoto} disabled={photoPending}>

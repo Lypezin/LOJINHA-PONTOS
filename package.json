@@ -14,6 +14,7 @@
     "smoke:redemption": "tsx --env-file=.env.local scripts/smoke-redemption.ts",
     "smoke:import": "tsx --env-file=.env.local scripts/smoke-import.ts",
     "repair:import": "tsx --env-file=.env.local scripts/repair-import-omissions.ts",
+    "repair:text": "tsx --env-file=.env.local scripts/repair-text-encoding.ts",
     "import:excel": "tsx --env-file=.env.local scripts/import-excel.ts",
     "import:cnpj-guide": "tsx --env-file=.env.local scripts/import-cnpj-guide.ts",
     "verify:data": "tsx --env-file=.env.local scripts/verify-data.ts",
@@ -36,6 +37,7 @@
     "next": "^16.0.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "sharp": "^0.34.5",
     "tailwind-merge": "^3.3.1",
     "zod": "^4.1.5"
   },

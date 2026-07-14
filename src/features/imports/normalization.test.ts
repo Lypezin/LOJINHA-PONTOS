@@ -8,6 +8,7 @@ import {
   normalizeHeader,
   normalizeName,
   parseNonNegativeInteger,
+  repairTextEncoding,
 } from "@/features/imports/normalization";
 
 describe("import normalization", () => {
@@ -16,6 +17,12 @@ describe("import normalization", () => {
     expect(normalizeHeader("Número de Pedidos Áceitos")).toBe(
       "numero_de_pedidos_aceitos",
     );
+  });
+
+  it("repara acentos que foram interpretados como Windows-1252", () => {
+    expect(repairTextEncoding("Jo\u00c3\u00a3o Gon\u00c3\u00a7alves")).toBe("João Gonçalves");
+    expect(repairTextEncoding("\u00c3\u201angela Matos")).toBe("Ângela Matos");
+    expect(repairTextEncoding("São Paulo")).toBe("São Paulo");
   });
 
   it("converts Excel column letters in both directions", () => {

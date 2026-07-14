@@ -14,6 +14,7 @@ import {
   normalizeUuid,
   onlyDigits,
   parseNonNegativeInteger,
+  repairTextEncoding,
 } from "@/features/imports/normalization";
 import type {
   CnpjSourceEntry,
@@ -307,7 +308,7 @@ interface MutableAggregate {
 }
 
 function textCell(value: CellValue): string {
-  return String(value ?? "").trim();
+  return repairTextEncoding(value).trim();
 }
 
 function countMatches(matches: ParsedImportWorkbook["cnpjMatches"]) {

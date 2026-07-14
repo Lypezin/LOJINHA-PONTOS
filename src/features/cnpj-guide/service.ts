@@ -1,7 +1,7 @@
 import { MatchStatus, Prisma } from "@prisma/client";
 
 import type { CnpjSourceEntry } from "@/features/imports/types";
-import { normalizeName } from "@/features/imports/normalization";
+import { normalizeName, repairTextEncoding } from "@/features/imports/normalization";
 import { isValidCnpj, normalizeCnpj } from "@/lib/auth/identity";
 import { db } from "@/lib/db";
 import { DomainError } from "@/lib/domain-error";
@@ -14,7 +14,7 @@ export interface SaveCnpjGuideInput {
 }
 
 function validatedInput(input: SaveCnpjGuideInput) {
-  const name = input.name.trim();
+  const name = repairTextEncoding(input.name).trim();
   const normalizedName = normalizeName(name);
   const cnpj = normalizeCnpj(input.cnpj);
   if (!normalizedName) {
