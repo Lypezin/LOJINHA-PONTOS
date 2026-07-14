@@ -121,7 +121,6 @@ model Courier {
   externalCourierId       String?                 @unique
   name                    String
   normalizedName          String
-  legacyCpf               String?                 @unique @map("cpf")
   cnpj                    String?                 @unique
   sourceCnpjName          String?
   cnpjMatchStatus         MatchStatus             @default(PENDING)
@@ -132,7 +131,6 @@ model Courier {
   tag                     String?
   source                  String?
   lastImportedAt          DateTime?
-  legacyCpfAddedAt        DateTime?               @map("cpfAddedAt")
   activationCodeHash      String?
   activationCodeExpiresAt DateTime?
   user                    User?

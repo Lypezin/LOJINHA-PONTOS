@@ -1,0 +1,5 @@
+DROP INDEX IF EXISTS "Courier_cpf_key";
+
+ALTER TABLE "Courier"
+  DROP COLUMN IF EXISTS "cpf",
+  DROP COLUMN IF EXISTS "cpfAddedAt";
