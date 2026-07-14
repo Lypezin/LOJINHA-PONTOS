@@ -2,7 +2,7 @@
 
 import * as AlertDialog from "@radix-ui/react-alert-dialog";
 import * as Dialog from "@radix-ui/react-dialog";
-import { Check, CircleDollarSign, Copy, KeyRound, Pencil, Search, UsersRound, X } from "lucide-react";
+import { CircleDollarSign, Pencil, Search, UsersRound, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
@@ -38,71 +38,6 @@ function courierTone(status: CourierStatus) {
 
 function courierLabel(status: CourierStatus) {
   return status === "ACTIVE" ? "Ativo" : status === "PENDING" ? "Pendente" : "Inativo";
-}
-
-function ActivationCodeDialog({ courier }: { courier: AdminCourier }) {
-  const [open, setOpen] = useState(false);
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState("");
-  const [result, setResult] = useState<{ code: string; expiresAt: string } | null>(null);
-  const [copied, setCopied] = useState(false);
-
-  function handleOpen(next: boolean) {
-    setOpen(next);
-    if (next) {
-      setError("");
-      setResult(null);
-      setCopied(false);
-    }
-  }
-
-  async function generate() {
-    setPending(true);
-    setError("");
-    try {
-      const response = await fetch(`/api/admin/couriers/${courier.id}/activation-code`, { method: "POST" });
-      const data = (await response.json()) as { code?: string; expiresAt?: string; error?: string };
-      if (!response.ok || !data.code || !data.expiresAt) throw new Error(data.error || "Não foi possível gerar o código.");
-      setResult({ code: data.code, expiresAt: data.expiresAt });
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Não foi possível gerar o código.");
-    } finally {
-      setPending(false);
-    }
-  }
-
-  async function copyCode() {
-    if (!result) return;
-    try {
-      await navigator.clipboard.writeText(result.code);
-      setCopied(true);
-    } catch {
-      setError("Não foi possível copiar automaticamente. Selecione o código e copie manualmente.");
-    }
-  }
-
-  return (
-    <Dialog.Root open={open} onOpenChange={handleOpen}>
-      <Dialog.Trigger asChild><Button variant="secondary" size="sm"><KeyRound className="size-4" aria-hidden="true" />Gerar código</Button></Dialog.Trigger>
-      <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-slate-950/50" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-[20px] bg-white p-6 shadow-xl focus:outline-none">
-          <div className="flex items-start justify-between gap-4"><div><p className="text-sm font-bold text-[var(--brand-blue)]">Liberação de cadastro</p><Dialog.Title className="mt-1 text-balance text-xl font-extrabold text-[var(--brand-navy)]">Código de {courier.name}</Dialog.Title></div><Dialog.Close asChild><button className="flex size-11 shrink-0 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100" aria-label="Fechar código de ativação"><X className="size-5" aria-hidden="true" /></button></Dialog.Close></div>
-          <Dialog.Description className="mt-3 text-pretty text-sm leading-6 text-slate-600">O entregador precisará informar este código junto com o CNPJ na tela de cadastro. Um novo código invalida o anterior.</Dialog.Description>
-          {result ? (
-            <div className="mt-6" aria-live="polite">
-              <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5 text-center"><p className="text-xs font-bold text-slate-600">Código de ativação</p><p className="mt-2 select-all text-3xl font-extrabold tabular-nums text-[var(--brand-blue-dark)]">{result.code}</p><p className="mt-2 text-xs tabular-nums text-slate-500">Válido até {formatDate(result.expiresAt)}</p></div>
-              <p className="mt-3 text-pretty text-xs leading-5 text-amber-900">Este valor é exibido somente agora. Copie antes de fechar.</p>
-              <Button className="mt-4 w-full" onClick={() => void copyCode()}>{copied ? <Check className="size-4" aria-hidden="true" /> : <Copy className="size-4" aria-hidden="true" />}{copied ? "Código copiado" : "Copiar código"}</Button>
-            </div>
-          ) : (
-            <Button className="mt-6 w-full" onClick={() => void generate()} disabled={pending}><KeyRound className="size-4" aria-hidden="true" />{pending ? "Gerando código…" : "Gerar código de uso único"}</Button>
-          )}
-          {error ? <p className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-800" role="alert">{error}</p> : null}
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
-  );
 }
 
 function EditCourierDialog({ courier, onSaved }: { courier: AdminCourier; onSaved: () => void }) {
@@ -246,7 +181,7 @@ export function CourierManager({ couriers, total, page, query, status }: { couri
               <dl className="mt-5 grid gap-3 rounded-2xl bg-slate-50 p-4 text-sm sm:grid-cols-3"><div><dt className="text-xs font-semibold text-slate-500">CNPJ</dt><dd className="mt-1 font-bold tabular-nums text-[var(--brand-navy)]">{formatCnpj(courier.cnpj)}</dd></div><div><dt className="text-xs font-semibold text-slate-500">Praça</dt><dd className="mt-1 font-bold text-[var(--brand-navy)]">{courier.plaza || "Não informada"}</dd></div><div><dt className="text-xs font-semibold text-slate-500">Conciliação</dt><dd className="mt-1 font-bold text-[var(--brand-navy)]">{matchLabels[courier.cnpjMatchStatus]}</dd></div></dl>
               <div className="mt-4 grid grid-cols-3 gap-2"><div className="rounded-xl border border-slate-200 p-3"><p className="text-xs text-slate-500">Saldo</p><p className="mt-1 font-extrabold tabular-nums text-[var(--brand-navy)]">{formatPoints(courier.balance)}</p></div><div className="rounded-xl border border-slate-200 p-3"><p className="text-xs text-slate-500">Importados</p><p className="mt-1 font-extrabold tabular-nums text-[var(--brand-navy)]">{formatPoints(courier.importedPoints)}</p></div><div className="rounded-xl border border-slate-200 p-3"><p className="text-xs text-slate-500">Usados</p><p className="mt-1 font-extrabold tabular-nums text-[var(--brand-navy)]">{formatPoints(courier.redeemedPoints)}</p></div></div>
               {courier.lastImportedAt ? <p className="mt-3 text-xs tabular-nums text-slate-500">Atualizado pela planilha em {formatDate(courier.lastImportedAt)}</p> : null}
-              <div className="mt-5 flex flex-wrap justify-end gap-2">{courier.cnpj && !courier.email ? <ActivationCodeDialog courier={courier} /> : null}<EditCourierDialog courier={courier} onSaved={refresh} /><AdjustPointsDialog courier={courier} onSaved={refresh} /></div>
+              <div className="mt-5 flex flex-wrap justify-end gap-2"><EditCourierDialog courier={courier} onSaved={refresh} /><AdjustPointsDialog courier={courier} onSaved={refresh} /></div>
             </article>
           ))}
           </div>

@@ -9,7 +9,6 @@ import {
   Eye,
   EyeOff,
   IdCard,
-  KeyRound,
   LoaderCircle,
   LockKeyhole,
   Mail,
@@ -248,7 +247,6 @@ export function LoginForm({ initialMessage }: { initialMessage?: string }) {
 export function RegisterForm() {
   const router = useRouter();
   const [cnpj, setCnpj] = useState("");
-  const [activationCode, setActivationCode] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
@@ -268,7 +266,7 @@ export function RegisterForm() {
 
     setPending(true);
     try {
-      const result = await postAuth("/api/auth/register", { cnpj, activationCode, email, password });
+      const result = await postAuth("/api/auth/register", { cnpj, email, password });
       if (!result.ok) {
         setMessage(result.message ?? "Não foi possível concluir o cadastro.");
         setFieldErrors(result.fieldErrors ?? {});
@@ -297,20 +295,7 @@ export function RegisterForm() {
         value={cnpj}
         onChange={(event) => setCnpj(formatCnpj(event.target.value))}
         error={fieldErrors.cnpj?.[0]}
-        hint="Use o mesmo CNPJ da guia DADOS CNPJ. Seu nome e seus pontos serão vinculados automaticamente."
-        disabled={pending}
-        required
-      />
-      <Field
-        label="Código de ativação"
-        icon={KeyRound}
-        name="activationCode"
-        autoComplete="one-time-code"
-        placeholder="Código fornecido pela empresa"
-        value={activationCode}
-        onChange={(event) => setActivationCode(event.target.value.toUpperCase())}
-        error={fieldErrors.activationCode?.[0]}
-        hint="Solicite este código ao responsável pela lojinha. Ele protege seu CNPJ contra cadastros indevidos."
+        hint="Use o mesmo CNPJ cadastrado pela empresa. Se ele estiver na base e ainda não tiver conta, seus dados e pontos serão vinculados automaticamente."
         disabled={pending}
         required
       />

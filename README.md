@@ -4,7 +4,7 @@ Aplicação full-stack para transformar a produção mensal dos entregadores em 
 
 ## O que já está coberto
 
-- Cadastro por CNPJ e código de ativação vinculado a um entregador previamente importado.
+- Cadastro por CNPJ vinculado a um entregador previamente importado e ainda sem conta.
 - Login por CNPJ ou e-mail, sessão segura em cookie `httpOnly` e logout.
 - Recuperação de senha por e-mail com token de uso único e validade de 1 hora.
 - Importação da guia `BANCO DE DADOS`, usando automaticamente a Guia de CNPJ permanente do sistema; `DADOS CNPJ` é um complemento opcional.
@@ -61,7 +61,7 @@ Cada arquivo é tratado como o retrato completo daquela competência. Reenviar e
 
 O identificador de acesso correto é o CNPJ. A coluna F da guia principal continua sendo o UUID usado para consolidar as linhas mensais. A base permanente fica em **Conciliação > Guia de CNPJ**, onde o administrador pode adicionar ou editar nome, CNPJ e o entregador vinculado. Depois da carga do `informativo.xlsx`, 1.356 entregadores ativos estão com CNPJ e 116 permanecem pendentes.
 
-Depois do vínculo, o administrador gera um código de ativação de uso único para o entregador. O cadastro exige CNPJ, código, e-mail e senha. Esse código é necessário porque CNPJs podem ser consultados publicamente e, sozinhos, não provam quem está criando a conta.
+Depois do vínculo, o entregador pode criar a própria conta informando CNPJ, e-mail e senha. O cadastro só é aceito quando o CNPJ já existe na base, o entregador não está inativo e ainda não possui uma conta vinculada.
 
 A análise completa e mascarada está em [`docs/analise-planilha.md`](docs/analise-planilha.md).
 

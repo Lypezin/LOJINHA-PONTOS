@@ -20,7 +20,7 @@ export async function POST(request: Request) {
   const parsed = await parseJsonBody(request, registerSchema);
   if (!parsed.success) return parsed.response;
 
-  const { cnpj, email, password, activationCode } = parsed.data;
+  const { cnpj, email, password } = parsed.data;
   const identityHash = hashForAudit(cnpj);
   let createdUserId: string | null = null;
   let createdUserRole: "ADMIN" | "COURIER" = "COURIER";
@@ -37,19 +37,11 @@ export async function POST(request: Request) {
         id: true,
         name: true,
         status: true,
-        activationCodeHash: true,
-        activationCodeExpiresAt: true,
         user: { select: { id: true } },
       },
     });
 
-    const activationValid = Boolean(
-      courier?.activationCodeHash &&
-      courier.activationCodeExpiresAt &&
-      courier.activationCodeExpiresAt > new Date() &&
-      courier.activationCodeHash === hashForAudit(`${courier.id}:${activationCode}`),
-    );
-    if (!courier || courier.user || courier.status === "INACTIVE" || !activationValid) {
+    if (!courier || courier.user || courier.status === "INACTIVE") {
       await writeAuditLog({
         request,
         action: "auth.registration_denied",
@@ -66,19 +58,11 @@ export async function POST(request: Request) {
           id: true,
           name: true,
           status: true,
-          activationCodeHash: true,
-          activationCodeExpiresAt: true,
           user: { select: { id: true } },
         },
       });
 
-      const stillValid = Boolean(
-        availableCourier?.activationCodeHash &&
-        availableCourier.activationCodeExpiresAt &&
-        availableCourier.activationCodeExpiresAt > new Date() &&
-        availableCourier.activationCodeHash === hashForAudit(`${availableCourier.id}:${activationCode}`),
-      );
-      if (!availableCourier || availableCourier.user || availableCourier.status === "INACTIVE" || !stillValid) {
+      if (!availableCourier || availableCourier.user || availableCourier.status === "INACTIVE") {
         throw new RegistrationDeniedError();
       }
 
@@ -93,11 +77,7 @@ export async function POST(request: Request) {
       });
       await transaction.courier.update({
         where: { id: availableCourier.id },
-        data: {
-          status: "ACTIVE",
-          activationCodeHash: null,
-          activationCodeExpiresAt: null,
-        },
+        data: { status: "ACTIVE" },
       });
       return created;
     });

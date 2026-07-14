@@ -19,12 +19,9 @@ export const registerSchema = z
       .string({ error: "Informe seu CNPJ." })
       .transform(normalizeCnpj)
       .refine(isValidCnpj, "Informe um CNPJ válido."),
-    activationCode: z
-      .string({ error: "Informe seu código de ativação." })
-      .trim()
-      .min(6, "Informe o código fornecido pela empresa.")
-      .max(20, "Código de ativação inválido.")
-      .transform((value) => value.toUpperCase()),
+    // Compatibilidade temporária com formulários antigos ainda abertos no navegador.
+    // O código não é mais necessário para concluir o cadastro.
+    activationCode: z.string().trim().max(20).optional(),
     email: emailSchema,
     password: passwordSchema,
   })
