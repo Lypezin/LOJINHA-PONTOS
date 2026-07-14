@@ -94,12 +94,15 @@ async function closeExpiredPeriods(now: Date, currentPeriodId: string) {
 
 export async function ensureCurrentPeriod(now = new Date()) {
   const definition = periodDefinition(periodKeyForDate(now));
-  const period = await db.monthlyPeriod.upsert({
+  let period = await db.monthlyPeriod.findUnique({
     where: { key: definition.key },
-    update: {},
-    create: definition,
   });
-  await closeExpiredPeriods(now, period.id);
+  if (!period) {
+    period = await db.monthlyPeriod.create({
+      data: definition,
+    });
+    await closeExpiredPeriods(now, period.id);
+  }
   return period;
 }
 

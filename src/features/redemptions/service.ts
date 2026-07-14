@@ -235,24 +235,43 @@ export async function updateRedemptionStatus(redemptionId: string, status: Redem
           }
 
           if (status === RedemptionStatus.CANCELED) {
-            await tx.product.update({
+            const product = await tx.product.findUnique({
               where: { id: redemption.productId },
+              select: { version: true },
+            });
+            if (!product) throw new DomainError("Produto não encontrado.", "NOT_FOUND", 404);
+
+            const productUpdate = await tx.product.updateMany({
+              where: { id: redemption.productId, version: product.version },
               data: { stockQuantity: { increment: redemption.quantity }, version: { increment: 1 } },
             });
+            if (productUpdate.count !== 1) {
+              throw new Prisma.PrismaClientKnownRequestError("Conflito de estoque no cancelamento", {
+                code: "P2034",
+                clientVersion: Prisma.prismaVersion.client,
+              });
+            }
+
             const account = await tx.pointAccount.findUnique({
               where: { courierId_periodId: { courierId: redemption.courierId, periodId: redemption.periodId } },
             });
             const refundable = account && redemption.period.status === "OPEN" && redemption.period.endsAt > new Date();
             if (account && refundable) {
               const balanceAfter = account.balancePoints + redemption.pointsSpent;
-              await tx.pointAccount.update({
-                where: { id: account.id },
+              const accountUpdate = await tx.pointAccount.updateMany({
+                where: { id: account.id, version: account.version },
                 data: {
                   redeemedPoints: { decrement: redemption.pointsSpent },
                   balancePoints: { increment: redemption.pointsSpent },
                   version: { increment: 1 },
                 },
               });
+              if (accountUpdate.count !== 1) {
+                throw new Prisma.PrismaClientKnownRequestError("Conflito de saldo no cancelamento", {
+                  code: "P2034",
+                  clientVersion: Prisma.prismaVersion.client,
+                });
+              }
               await tx.pointLedgerEntry.create({
                 data: {
                   accountId: account.id,

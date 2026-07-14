@@ -151,6 +151,8 @@ model Courier {
   @@index([cnpjMatchStatus])
   @@index([status])
   @@index([status, name])
+  @@index([plaza])
+  @@index([subPlaza])
 }
 
 model CnpjGuideEntry {
@@ -357,6 +359,7 @@ model Redemption {
   @@index([requestedAt])
   @@index([periodId, status])
   @@index([status, requestedAt])
+  @@index([courierId, periodId, productId])
 }
 
 model SystemSetting {

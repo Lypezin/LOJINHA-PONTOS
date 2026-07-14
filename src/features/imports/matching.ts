@@ -14,6 +14,7 @@ interface Candidate {
   sourceName: string;
   sourceKeys: string[];
   tokens: string[];
+  tokenSet: Set<string>;
 }
 
 function buildCandidates(entries: CnpjSourceEntry[]): Candidate[] {
@@ -25,27 +26,33 @@ function buildCandidates(entries: CnpjSourceEntry[]): Candidate[] {
       existing.sourceKeys.push(entry.sourceKey);
       continue;
     }
+    const tokens = significantNameTokens(entry.normalizedName);
     groups.set(key, {
       normalizedName: entry.normalizedName,
       cnpj: entry.cnpj,
       sourceName: entry.sourceName,
       sourceKeys: [entry.sourceKey],
-      tokens: significantNameTokens(entry.normalizedName),
+      tokens,
+      tokenSet: new Set(tokens),
     });
   }
   return [...groups.values()];
 }
 
-function allowsConservativeFuzzy(leftTokens: string[], rightTokens: string[]): boolean {
+function allowsConservativeFuzzy(
+  leftTokens: string[],
+  leftSet: Set<string>,
+  rightTokens: string[],
+  rightSet: Set<string>,
+): boolean {
   if (leftTokens.length < 2 || rightTokens.length < 2) return false;
 
   const sameFirst = leftTokens[0] === rightTokens[0];
   const sameLast = leftTokens.at(-1) === rightTokens.at(-1);
   if (sameFirst && sameLast) return true;
-  const rightSet = new Set(rightTokens);
   let intersection = 0;
-  for (const token of new Set(leftTokens)) if (rightSet.has(token)) intersection += 1;
-  return intersection / Math.max(new Set(leftTokens).size, rightSet.size) >= 0.75;
+  for (const token of leftSet) if (rightSet.has(token)) intersection += 1;
+  return intersection / Math.max(leftSet.size, rightSet.size) >= 0.75;
 }
 
 export function matchCouriersToCnpj(
@@ -92,9 +99,10 @@ export function matchCouriersToCnpj(
     }
 
     const courierTokens = significantNameTokens(courier.normalizedName);
+    const courierTokenSet = new Set(courierTokens);
     const scored = candidates
       .filter((candidate) =>
-        allowsConservativeFuzzy(courierTokens, candidate.tokens),
+        allowsConservativeFuzzy(courierTokens, courierTokenSet, candidate.tokens, candidate.tokenSet),
       )
       .map((candidate) => ({
         candidate,

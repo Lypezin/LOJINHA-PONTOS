@@ -35,16 +35,26 @@ const nextStatus: Partial<Record<RedemptionStatus, { status: RedemptionStatus; l
 
 const fieldClass = "min-h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm text-[var(--brand-navy)] outline-none focus:border-[var(--brand-blue)] focus:ring-4 focus:ring-blue-100";
 
-export function RedemptionManager({ redemptions, page, total }: { redemptions: AdminRedemption[]; page: number; total: number }) {
+export function RedemptionManager({
+  redemptions,
+  page,
+  total,
+  query,
+  status,
+}: {
+  redemptions: AdminRedemption[];
+  page: number;
+  total: number;
+  query: string;
+  status: "ALL" | RedemptionStatus;
+}) {
   const router = useRouter();
-  const [query, setQuery] = useState("");
-  const [status, setStatus] = useState<"ALL" | RedemptionStatus>("ALL");
   const [pendingId, setPendingId] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const filtered = useMemo(() => redemptions.filter((item) => {
-    const haystack = `${item.code} ${item.courierName} ${item.productName}`.toLocaleLowerCase("pt-BR");
-    return haystack.includes(query.trim().toLocaleLowerCase("pt-BR")) && (status === "ALL" || item.status === status);
-  }), [redemptions, query, status]);
+  const filtered = redemptions;
+
+  const pageSize = 50;
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
 
   async function update(id: string, value: RedemptionStatus) {
     setPendingId(id);
@@ -89,12 +99,15 @@ export function RedemptionManager({ redemptions, page, total }: { redemptions: A
     );
   }
 
+  const pageHref = (nextPage: number) => `/admin/resgates?page=${nextPage}${query ? `&q=${encodeURIComponent(query)}` : ""}${status !== "ALL" ? `&status=${status}` : ""}`;
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <label className="relative block max-w-lg flex-1"><span className="sr-only">Buscar resgate</span><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" aria-hidden="true" /><input className={`${fieldClass} w-full pl-10`} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar por código, entregador ou item" /></label>
-        <label><span className="sr-only">Filtrar por status</span><select className={`${fieldClass} w-full sm:w-52`} value={status} onChange={(event) => setStatus(event.target.value as "ALL" | RedemptionStatus)}><option value="ALL">Todos os status</option>{Object.entries(redemptionLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-      </div>
+      <form method="get" className="flex flex-col gap-3 sm:flex-row">
+        <label className="relative block max-w-lg flex-1"><span className="sr-only">Buscar resgate</span><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" aria-hidden="true" /><input name="q" className={`${fieldClass} w-full pl-10`} defaultValue={query} placeholder="Buscar por código, entregador ou item" /></label>
+        <label><span className="sr-only">Filtrar por status</span><select name="status" className={`${fieldClass} w-full sm:w-52`} defaultValue={status}><option value="ALL">Todos os status</option>{Object.entries(redemptionLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+        <Button type="submit" variant="secondary">Buscar</Button>
+      </form>
 
       {filtered.length ? (
         <>
@@ -111,12 +124,12 @@ export function RedemptionManager({ redemptions, page, total }: { redemptions: A
           </div>
         </>
       ) : (
-        <EmptyState icon={<PackageCheck className="size-6" />} title={redemptions.length ? "Nenhum resgate encontrado" : "A fila de resgates está vazia"} description={redemptions.length ? "Revise a busca ou o filtro selecionado." : "Novos pedidos aparecerão aqui para aprovação, preparo e entrega."} action={redemptions.length ? <Button variant="secondary" onClick={() => { setQuery(""); setStatus("ALL"); }}>Limpar filtros</Button> : undefined} />
+        <EmptyState icon={<PackageCheck className="size-6" />} title={query || status !== "ALL" ? "Nenhum resgate encontrado" : "A fila de resgates está vazia"} description={query || status !== "ALL" ? "Revise a busca ou o filtro selecionado." : "Novos pedidos aparecerão aqui para aprovação, preparo e entrega."} action={query || status !== "ALL" ? <Link href="/admin/resgates" className={buttonStyles({ variant: "secondary" })}>Limpar filtros</Link> : undefined} />
       )}
       {total > 50 ? (
         <nav className="flex flex-col items-center justify-between gap-3 rounded-[20px] border border-slate-200 bg-white p-4 sm:flex-row" aria-label="Páginas de resgates">
-          <p className="text-sm text-slate-600"><span className="font-extrabold tabular-nums text-[var(--brand-navy)]">{formatPoints(total)}</span> resgates • página <span className="font-bold tabular-nums">{page} de {Math.ceil(total / 50)}</span></p>
-          <div className="flex gap-2">{page > 1 ? <Link href={`/admin/resgates?page=${page - 1}`} className={buttonStyles({ variant: "secondary", size: "sm" })}>Anterior</Link> : <span className={buttonStyles({ variant: "secondary", size: "sm", className: "pointer-events-none opacity-50" })}>Anterior</span>}{page < Math.ceil(total / 50) ? <Link href={`/admin/resgates?page=${page + 1}`} className={buttonStyles({ variant: "secondary", size: "sm" })}>Próxima</Link> : <span className={buttonStyles({ variant: "secondary", size: "sm", className: "pointer-events-none opacity-50" })}>Próxima</span>}</div>
+          <p className="text-sm text-slate-600"><span className="font-extrabold tabular-nums text-[var(--brand-navy)]">{formatPoints(total)}</span> resgates • página <span className="font-bold tabular-nums">{page} de {pageCount}</span></p>
+          <div className="flex gap-2">{page > 1 ? <Link href={pageHref(page - 1)} className={buttonStyles({ variant: "secondary", size: "sm" })}>Anterior</Link> : <span className={buttonStyles({ variant: "secondary", size: "sm", className: "pointer-events-none opacity-50" })}>Anterior</span>}{page < pageCount ? <Link href={pageHref(page + 1)} className={buttonStyles({ variant: "secondary", size: "sm" })}>Próxima</Link> : <span className={buttonStyles({ variant: "secondary", size: "sm", className: "pointer-events-none opacity-50" })}>Próxima</span>}</div>
         </nav>
       ) : null}
     </div>
