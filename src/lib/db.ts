@@ -1,5 +1,8 @@
 import { Prisma, PrismaClient } from "@prisma/client";
 
+const SUPABASE_PROJECT_REF = "cpidpqnstchvcozijczf";
+const SUPABASE_TRANSACTION_POOLER = "aws-1-sa-east-1.pooler.supabase.com";
+
 const RETRYABLE_READ_OPERATIONS = new Set([
   "findUnique",
   "findUniqueOrThrow",
@@ -40,8 +43,41 @@ export async function retryDatabaseRead<T>(query: () => Promise<T>) {
   }
 }
 
+export function normalizeRuntimeDatabaseUrl(databaseUrl: string | undefined) {
+  if (!databaseUrl) return databaseUrl;
+
+  try {
+    const url = new URL(databaseUrl);
+    const hostname = url.hostname.toLowerCase();
+    const username = decodeURIComponent(url.username);
+    const directHostname = `db.${SUPABASE_PROJECT_REF}.supabase.co`;
+    const isProjectDirectUrl = hostname === directHostname;
+    const isProjectPoolerUrl =
+      hostname.endsWith(".pooler.supabase.com") &&
+      username === `postgres.${SUPABASE_PROJECT_REF}`;
+
+    if (!isProjectDirectUrl && !isProjectPoolerUrl) return databaseUrl;
+
+    url.username = `postgres.${SUPABASE_PROJECT_REF}`;
+    url.hostname = SUPABASE_TRANSACTION_POOLER;
+    url.port = "6543";
+    url.searchParams.set("sslmode", "require");
+    url.searchParams.set("pgbouncer", "true");
+    url.searchParams.set("connection_limit", "1");
+    url.searchParams.set("pool_timeout", "20");
+
+    return url.toString();
+  } catch {
+    return databaseUrl;
+  }
+}
+
 function createDatabaseClient(): PrismaClient {
-  return new PrismaClient({ errorFormat: "minimal" }).$extends({
+  const datasourceUrl = normalizeRuntimeDatabaseUrl(process.env.DATABASE_URL);
+  return new PrismaClient({
+    errorFormat: "minimal",
+    ...(datasourceUrl ? { datasourceUrl } : {}),
+  }).$extends({
     name: "retry-transient-reads",
     query: {
       async $allOperations({ operation, args, query }) {
