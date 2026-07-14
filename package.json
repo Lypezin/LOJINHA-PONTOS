@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "postinstall": "prisma generate",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -50,7 +51,7 @@
     "vitest": "^3.2.4"
   },
   "engines": {
-    "node": ">=20.12.0"
+    "node": "22.x"
   },
   "overrides": {
     "postcss": "^8.5.10",
