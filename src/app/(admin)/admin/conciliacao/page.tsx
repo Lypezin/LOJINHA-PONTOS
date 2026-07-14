@@ -15,7 +15,7 @@ export default async function AdminReconciliationPage({ searchParams }: { search
   const page = Number.isInteger(requestedPage) ? Math.min(Math.max(requestedPage, 1), pageCount) : 1;
   const [entries, couriers] = await Promise.all([
     db.cnpjRegistryEntry.findMany({ where: unresolvedWhere, orderBy: [{ matchStatus: "asc" }, { sourceName: "asc" }], skip: (page - 1) * 30, take: 30, select: { id: true, sourceName: true, cnpj: true, sourceRow: true, matchStatus: true, matchScore: true, notes: true } }),
-    db.courier.findMany({ where: { status: { not: "INACTIVE" } }, orderBy: { name: "asc" }, select: { id: true, name: true, cpf: true, cnpj: true, plaza: true } }),
+    db.courier.findMany({ where: { status: { not: "INACTIVE" } }, orderBy: { name: "asc" }, select: { id: true, name: true, cnpj: true, plaza: true } }),
   ]);
 
   return (

@@ -11,7 +11,7 @@ async function main() {
     select: { courierId: true, points: true, deltaPoints: true },
   });
   const courierIds = snapshots.map((snapshot) => snapshot.courierId);
-  const [accounts, ledger, negativeBalances, cpfPending, matchStatuses] = await Promise.all([
+  const [accounts, ledger, negativeBalances, cnpjPending, matchStatuses] = await Promise.all([
     db.pointAccount.findMany({
       where: { periodId: batch.periodId, courierId: { in: courierIds } },
       select: { importedPoints: true, balancePoints: true, redeemedPoints: true },
@@ -22,7 +22,7 @@ async function main() {
       _count: { id: true },
     }),
     db.pointAccount.count({ where: { balancePoints: { lt: 0 } } }),
-    db.courier.count({ where: { id: { in: courierIds }, cpf: null } }),
+    db.courier.count({ where: { id: { in: courierIds }, cnpj: null } }),
     db.courier.groupBy({
       by: ["cnpjMatchStatus"],
       where: { id: { in: courierIds } },
@@ -46,7 +46,7 @@ async function main() {
     points: snapshotPoints,
     ledgerDelta: ledger._sum.amount ?? 0,
     ledgerEntries: ledger._count.id,
-    couriersWithoutCpf: cpfPending,
+    couriersWithoutCnpj: cnpjPending,
     cnpjMatchStatuses: Object.fromEntries(matchStatuses.map((item) => [item.cnpjMatchStatus, item._count._all])),
     negativeBalances,
   });

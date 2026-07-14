@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { formatDate, formatPoints } from "@/lib/format";
-import { formatCnpj, formatCpf, matchLabels } from "@/lib/presentation";
+import { formatCnpj, matchLabels } from "@/lib/presentation";
 
 type CourierStatus = "PENDING" | "ACTIVE" | "INACTIVE";
 type MatchStatus = keyof typeof matchLabels;
@@ -17,7 +17,6 @@ type MatchStatus = keyof typeof matchLabels;
 export type AdminCourier = {
   id: string;
   name: string;
-  cpf: string | null;
   cnpj: string | null;
   status: CourierStatus;
   cnpjMatchStatus: MatchStatus;
@@ -88,7 +87,7 @@ function ActivationCodeDialog({ courier }: { courier: AdminCourier }) {
         <Dialog.Overlay className="fixed inset-0 z-40 bg-slate-950/50" />
         <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-[20px] bg-white p-6 shadow-xl focus:outline-none">
           <div className="flex items-start justify-between gap-4"><div><p className="text-sm font-bold text-[var(--brand-blue)]">Liberação de cadastro</p><Dialog.Title className="mt-1 text-balance text-xl font-extrabold text-[var(--brand-navy)]">Código de {courier.name}</Dialog.Title></div><Dialog.Close asChild><button className="flex size-11 shrink-0 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100" aria-label="Fechar código de ativação"><X className="size-5" aria-hidden="true" /></button></Dialog.Close></div>
-          <Dialog.Description className="mt-3 text-pretty text-sm leading-6 text-slate-600">O entregador precisará informar este código junto com o CPF na tela de cadastro. Um novo código invalida o anterior.</Dialog.Description>
+          <Dialog.Description className="mt-3 text-pretty text-sm leading-6 text-slate-600">O entregador precisará informar este código junto com o CNPJ na tela de cadastro. Um novo código invalida o anterior.</Dialog.Description>
           {result ? (
             <div className="mt-6" aria-live="polite">
               <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5 text-center"><p className="text-xs font-bold text-slate-600">Código de ativação</p><p className="mt-2 select-all text-3xl font-extrabold tabular-nums text-[var(--brand-blue-dark)]">{result.code}</p><p className="mt-2 text-xs tabular-nums text-slate-500">Válido até {formatDate(result.expiresAt)}</p></div>
@@ -107,14 +106,14 @@ function ActivationCodeDialog({ courier }: { courier: AdminCourier }) {
 
 function EditCourierDialog({ courier, onSaved }: { courier: AdminCourier; onSaved: () => void }) {
   const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState({ name: courier.name, cpf: courier.cpf ?? "", cnpj: courier.cnpj ?? "", status: courier.status, plaza: courier.plaza ?? "", subPlaza: courier.subPlaza ?? "" });
+  const [draft, setDraft] = useState({ name: courier.name, cnpj: courier.cnpj ?? "", status: courier.status, plaza: courier.plaza ?? "", subPlaza: courier.subPlaza ?? "" });
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
 
   function handleOpen(next: boolean) {
     setOpen(next);
     if (next) {
-      setDraft({ name: courier.name, cpf: courier.cpf ?? "", cnpj: courier.cnpj ?? "", status: courier.status, plaza: courier.plaza ?? "", subPlaza: courier.subPlaza ?? "" });
+      setDraft({ name: courier.name, cnpj: courier.cnpj ?? "", status: courier.status, plaza: courier.plaza ?? "", subPlaza: courier.subPlaza ?? "" });
       setError("");
     }
   }
@@ -127,7 +126,7 @@ function EditCourierDialog({ courier, onSaved }: { courier: AdminCourier; onSave
       const response = await fetch(`/api/admin/couriers/${courier.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...draft, cpf: draft.cpf || null, cnpj: draft.cnpj || null, plaza: draft.plaza || null, subPlaza: draft.subPlaza || null }),
+        body: JSON.stringify({ ...draft, cnpj: draft.cnpj || null, plaza: draft.plaza || null, subPlaza: draft.subPlaza || null }),
       });
       const data = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(data.error || "Não foi possível atualizar o entregador.");
@@ -149,7 +148,7 @@ function EditCourierDialog({ courier, onSaved }: { courier: AdminCourier; onSave
           <div className="flex items-start justify-between gap-4"><div><Dialog.Title className="text-balance text-xl font-extrabold text-[var(--brand-navy)]">Editar entregador</Dialog.Title><Dialog.Description className="mt-2 text-pretty text-sm leading-6 text-slate-600">Corrija os dados de cadastro usados no vínculo com a planilha.</Dialog.Description></div><Dialog.Close asChild><button className="flex size-11 shrink-0 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100" aria-label="Fechar edição"><X className="size-5" aria-hidden="true" /></button></Dialog.Close></div>
           <form onSubmit={save} className="mt-6 space-y-4">
             <div><label htmlFor={`courier-name-${courier.id}`} className="mb-1.5 block text-sm font-bold">Nome completo</label><input id={`courier-name-${courier.id}`} className={fieldClass} value={draft.name} minLength={2} required onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))} /></div>
-            <div className="grid gap-4 sm:grid-cols-2"><div><label htmlFor={`courier-cpf-${courier.id}`} className="mb-1.5 block text-sm font-bold">CPF</label><input id={`courier-cpf-${courier.id}`} className={`${fieldClass} tabular-nums`} value={draft.cpf} inputMode="numeric" onChange={(event) => setDraft((current) => ({ ...current, cpf: event.target.value }))} placeholder="000.000.000-00" /></div><div><label htmlFor={`courier-cnpj-${courier.id}`} className="mb-1.5 block text-sm font-bold">CNPJ</label><input id={`courier-cnpj-${courier.id}`} className={`${fieldClass} tabular-nums`} value={draft.cnpj} inputMode="numeric" onChange={(event) => setDraft((current) => ({ ...current, cnpj: event.target.value }))} placeholder="00.000.000/0000-00" /></div></div>
+            <div><label htmlFor={`courier-cnpj-${courier.id}`} className="mb-1.5 block text-sm font-bold">CNPJ</label><input id={`courier-cnpj-${courier.id}`} className={`${fieldClass} tabular-nums`} value={draft.cnpj} inputMode="numeric" onChange={(event) => setDraft((current) => ({ ...current, cnpj: event.target.value }))} placeholder="00.000.000/0000-00" /></div>
             <div className="grid gap-4 sm:grid-cols-2"><div><label htmlFor={`courier-plaza-${courier.id}`} className="mb-1.5 block text-sm font-bold">Praça</label><input id={`courier-plaza-${courier.id}`} className={fieldClass} value={draft.plaza} onChange={(event) => setDraft((current) => ({ ...current, plaza: event.target.value }))} /></div><div><label htmlFor={`courier-subplaza-${courier.id}`} className="mb-1.5 block text-sm font-bold">Subpraça</label><input id={`courier-subplaza-${courier.id}`} className={fieldClass} value={draft.subPlaza} onChange={(event) => setDraft((current) => ({ ...current, subPlaza: event.target.value }))} /></div></div>
             <div><label htmlFor={`courier-status-${courier.id}`} className="mb-1.5 block text-sm font-bold">Status do cadastro</label><select id={`courier-status-${courier.id}`} className={fieldClass} value={draft.status} onChange={(event) => setDraft((current) => ({ ...current, status: event.target.value as CourierStatus }))}><option value="PENDING">Pendente</option><option value="ACTIVE">Ativo</option><option value="INACTIVE">Inativo</option></select></div>
             {error ? <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-800" role="alert">{error}</p> : null}
@@ -233,7 +232,7 @@ export function CourierManager({ couriers }: { couriers: AdminCourier[] }) {
   const [status, setStatus] = useState<"ALL" | CourierStatus>("ALL");
   const [page, setPage] = useState(1);
   const filtered = useMemo(() => couriers.filter((courier) => {
-    const haystack = `${courier.name} ${courier.cpf ?? ""} ${courier.cnpj ?? ""} ${courier.email ?? ""}`.toLocaleLowerCase("pt-BR");
+    const haystack = `${courier.name} ${courier.cnpj ?? ""} ${courier.email ?? ""}`.toLocaleLowerCase("pt-BR");
     return haystack.includes(query.trim().toLocaleLowerCase("pt-BR")) && (status === "ALL" || courier.status === status);
   }), [couriers, query, status]);
   const pageSize = 20;
@@ -244,17 +243,17 @@ export function CourierManager({ couriers }: { couriers: AdminCourier[] }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row"><label className="relative block max-w-lg flex-1"><span className="sr-only">Buscar entregador</span><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" aria-hidden="true" /><input className={`${fieldClass} pl-10`} value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} placeholder="Buscar por nome, CPF, CNPJ ou e-mail" /></label><label><span className="sr-only">Filtrar cadastro por status</span><select className={`${fieldClass} sm:w-48`} value={status} onChange={(event) => { setStatus(event.target.value as "ALL" | CourierStatus); setPage(1); }}><option value="ALL">Todos os status</option><option value="ACTIVE">Ativos</option><option value="PENDING">Pendentes</option><option value="INACTIVE">Inativos</option></select></label></div>
+      <div className="flex flex-col gap-3 sm:flex-row"><label className="relative block max-w-lg flex-1"><span className="sr-only">Buscar entregador</span><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" aria-hidden="true" /><input className={`${fieldClass} pl-10`} value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} placeholder="Buscar por nome, CNPJ ou e-mail" /></label><label><span className="sr-only">Filtrar cadastro por status</span><select className={`${fieldClass} sm:w-48`} value={status} onChange={(event) => { setStatus(event.target.value as "ALL" | CourierStatus); setPage(1); }}><option value="ALL">Todos os status</option><option value="ACTIVE">Ativos</option><option value="PENDING">Pendentes</option><option value="INACTIVE">Inativos</option></select></label></div>
       {filtered.length ? (
         <>
           <div className="grid gap-4 xl:grid-cols-2">
           {visible.map((courier) => (
             <article key={courier.id} className="rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm">
               <div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0"><h2 className="line-clamp-2 text-balance text-lg font-extrabold text-[var(--brand-navy)]">{courier.name}</h2><p className="mt-1 truncate text-sm text-slate-600">{courier.email || "Ainda sem conta de acesso"}</p></div><StatusBadge tone={courierTone(courier.status)}>{courierLabel(courier.status)}</StatusBadge></div>
-              <dl className="mt-5 grid gap-3 rounded-2xl bg-slate-50 p-4 text-sm sm:grid-cols-2"><div><dt className="text-xs font-semibold text-slate-500">CPF</dt><dd className="mt-1 font-bold tabular-nums text-[var(--brand-navy)]">{formatCpf(courier.cpf)}</dd></div><div><dt className="text-xs font-semibold text-slate-500">CNPJ</dt><dd className="mt-1 font-bold tabular-nums text-[var(--brand-navy)]">{formatCnpj(courier.cnpj)}</dd></div><div><dt className="text-xs font-semibold text-slate-500">Praça</dt><dd className="mt-1 font-bold text-[var(--brand-navy)]">{courier.plaza || "Não informada"}</dd></div><div><dt className="text-xs font-semibold text-slate-500">Conciliação</dt><dd className="mt-1 font-bold text-[var(--brand-navy)]">{matchLabels[courier.cnpjMatchStatus]}</dd></div></dl>
+              <dl className="mt-5 grid gap-3 rounded-2xl bg-slate-50 p-4 text-sm sm:grid-cols-3"><div><dt className="text-xs font-semibold text-slate-500">CNPJ</dt><dd className="mt-1 font-bold tabular-nums text-[var(--brand-navy)]">{formatCnpj(courier.cnpj)}</dd></div><div><dt className="text-xs font-semibold text-slate-500">Praça</dt><dd className="mt-1 font-bold text-[var(--brand-navy)]">{courier.plaza || "Não informada"}</dd></div><div><dt className="text-xs font-semibold text-slate-500">Conciliação</dt><dd className="mt-1 font-bold text-[var(--brand-navy)]">{matchLabels[courier.cnpjMatchStatus]}</dd></div></dl>
               <div className="mt-4 grid grid-cols-3 gap-2"><div className="rounded-xl border border-slate-200 p-3"><p className="text-xs text-slate-500">Saldo</p><p className="mt-1 font-extrabold tabular-nums text-[var(--brand-navy)]">{formatPoints(courier.balance)}</p></div><div className="rounded-xl border border-slate-200 p-3"><p className="text-xs text-slate-500">Importados</p><p className="mt-1 font-extrabold tabular-nums text-[var(--brand-navy)]">{formatPoints(courier.importedPoints)}</p></div><div className="rounded-xl border border-slate-200 p-3"><p className="text-xs text-slate-500">Usados</p><p className="mt-1 font-extrabold tabular-nums text-[var(--brand-navy)]">{formatPoints(courier.redeemedPoints)}</p></div></div>
               {courier.lastImportedAt ? <p className="mt-3 text-xs tabular-nums text-slate-500">Atualizado pela planilha em {formatDate(courier.lastImportedAt)}</p> : null}
-              <div className="mt-5 flex flex-wrap justify-end gap-2">{courier.cpf && !courier.email ? <ActivationCodeDialog courier={courier} /> : null}<EditCourierDialog courier={courier} onSaved={refresh} /><AdjustPointsDialog courier={courier} onSaved={refresh} /></div>
+              <div className="mt-5 flex flex-wrap justify-end gap-2">{courier.cnpj && !courier.email ? <ActivationCodeDialog courier={courier} /> : null}<EditCourierDialog courier={courier} onSaved={refresh} /><AdjustPointsDialog courier={courier} onSaved={refresh} /></div>
             </article>
           ))}
           </div>

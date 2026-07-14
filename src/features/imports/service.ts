@@ -430,6 +430,32 @@ export async function commitImport({
           sourceName: null,
         });
       }
+      const proposedCnpjs = [...effectiveMatches.values()].flatMap((match) =>
+        match.kind === "EXACT" && match.cnpj ? [match.cnpj] : [],
+      );
+      const existingCnpjOwners = proposedCnpjs.length
+        ? await tx.courier.findMany({
+            where: { cnpj: { in: proposedCnpjs } },
+            select: { cnpj: true, externalCourierId: true },
+          })
+        : [];
+      const ownerByCnpj = new Map(
+        existingCnpjOwners.flatMap((owner) =>
+          owner.cnpj ? [[owner.cnpj, owner.externalCourierId] as const] : [],
+        ),
+      );
+      for (const [externalCourierId, match] of effectiveMatches) {
+        if (match.kind !== "EXACT" || !match.cnpj) continue;
+        const currentOwner = ownerByCnpj.get(match.cnpj);
+        if (!currentOwner || currentOwner === externalCourierId) continue;
+        manualMatchConflictCount += 1;
+        effectiveMatches.set(externalCourierId, {
+          ...match,
+          kind: "AMBIGUOUS",
+          cnpj: null,
+          sourceName: null,
+        });
+      }
       const effectiveParsed: ParsedImportWorkbook = manualMatchConflictCount
         ? { ...parsed, cnpjMatches: effectiveMatches }
         : parsed;
@@ -710,7 +736,7 @@ export async function commitImport({
           code: "CNPJ_AMBIGUOUS",
           severity: "warning",
           message:
-            "Correspondências automáticas conflitantes com decisões manuais ficaram pendentes.",
+            "Correspondências automáticas conflitantes com vínculos de CNPJ existentes ficaram pendentes.",
           count: manualMatchConflictCount,
         });
       }

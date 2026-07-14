@@ -16,7 +16,7 @@ import {
   Send,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { formatCpf } from "@/lib/auth/identity";
+import { formatCnpj } from "@/lib/auth/identity";
 
 type ApiResult = {
   ok?: boolean;
@@ -208,16 +208,16 @@ export function LoginForm({ initialMessage }: { initialMessage?: string }) {
       {initialMessage ? <FormMessage message={initialMessage} success /> : null}
       <FormMessage message={message} />
       <Field
-        label="E-mail ou CPF"
+        label="E-mail ou CNPJ"
         icon={IdCard}
         type="text"
         name="identifier"
         autoComplete="username"
-        placeholder="voce@exemplo.com ou 000.000.000-00"
+        placeholder="voce@exemplo.com ou 00.000.000/0000-00"
         value={identifier}
         onChange={(event) => {
           const value = event.target.value;
-          setIdentifier(/^[\d.\-\s]*$/.test(value) ? formatCpf(value) : value);
+          setIdentifier(/^[\d.\/\-\s]*$/.test(value) ? formatCnpj(value) : value);
         }}
         error={fieldErrors.identifier?.[0]}
         disabled={pending}
@@ -247,7 +247,7 @@ export function LoginForm({ initialMessage }: { initialMessage?: string }) {
 
 export function RegisterForm() {
   const router = useRouter();
-  const [cpf, setCpf] = useState("");
+  const [cnpj, setCnpj] = useState("");
   const [activationCode, setActivationCode] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -268,7 +268,7 @@ export function RegisterForm() {
 
     setPending(true);
     try {
-      const result = await postAuth("/api/auth/register", { cpf, activationCode, email, password });
+      const result = await postAuth("/api/auth/register", { cnpj, activationCode, email, password });
       if (!result.ok) {
         setMessage(result.message ?? "Não foi possível concluir o cadastro.");
         setFieldErrors(result.fieldErrors ?? {});
@@ -288,16 +288,16 @@ export function RegisterForm() {
     <form onSubmit={submit} className="space-y-5" noValidate>
       <FormMessage message={message} />
       <Field
-        label="CPF"
+        label="CNPJ"
         icon={IdCard}
-        name="cpf"
+        name="cnpj"
         inputMode="numeric"
         autoComplete="username"
-        placeholder="000.000.000-00"
-        value={cpf}
-        onChange={(event) => setCpf(formatCpf(event.target.value))}
-        error={fieldErrors.cpf?.[0]}
-        hint="Use o mesmo CPF cadastrado pela empresa. Seu nome será vinculado automaticamente."
+        placeholder="00.000.000/0000-00"
+        value={cnpj}
+        onChange={(event) => setCnpj(formatCnpj(event.target.value))}
+        error={fieldErrors.cnpj?.[0]}
+        hint="Use o mesmo CNPJ da guia DADOS CNPJ. Seu nome e seus pontos serão vinculados automaticamente."
         disabled={pending}
         required
       />
@@ -310,7 +310,7 @@ export function RegisterForm() {
         value={activationCode}
         onChange={(event) => setActivationCode(event.target.value.toUpperCase())}
         error={fieldErrors.activationCode?.[0]}
-        hint="Solicite este código ao responsável pela lojinha. Ele protege seu CPF contra cadastros indevidos."
+        hint="Solicite este código ao responsável pela lojinha. Ele protege seu CNPJ contra cadastros indevidos."
         disabled={pending}
         required
       />
@@ -351,7 +351,7 @@ export function RegisterForm() {
       />
       <SubmitButton pending={pending} idleText="Criar minha conta" pendingText="Criando conta" />
       <p className="text-pretty text-xs leading-5 text-[#52617A]">
-        Ao criar sua conta, seus pontos e seu nome serão ligados ao CPF informado.
+        Ao criar sua conta, seus pontos e seu nome serão ligados ao CNPJ informado.
       </p>
     </form>
   );

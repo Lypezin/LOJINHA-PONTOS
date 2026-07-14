@@ -10,7 +10,7 @@ export default function CadastroPage() {
     <AuthShell
       eyebrow="Primeiro acesso"
       title="Crie sua conta"
-      description="Informe seu CPF para conectarmos seu cadastro aos pontos enviados pela empresa."
+      description="Informe seu CNPJ para conectarmos seu cadastro ao nome e aos pontos enviados pela empresa."
       footer={
         <p>
           Já criou sua conta?{" "}

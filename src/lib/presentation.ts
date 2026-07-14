@@ -38,12 +38,6 @@ export const matchLabels = {
   NOT_FOUND: "Não encontrado",
 } as const;
 
-export function formatCpf(value?: string | null) {
-  if (!value) return "Não informado";
-  const digits = value.replace(/\D/g, "");
-  return digits.length === 11 ? digits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4") : value;
-}
-
 export function formatCnpj(value?: string | null) {
   if (!value) return "Não informado";
   const digits = value.replace(/\D/g, "");

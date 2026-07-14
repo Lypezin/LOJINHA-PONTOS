@@ -1,4 +1,4 @@
-import { CalendarClock, IdCard, Mail, MapPin, ShieldCheck, Store, UserRound } from "lucide-react";
+import { CalendarClock, Mail, MapPin, ShieldCheck, Store, UserRound } from "lucide-react";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -6,7 +6,7 @@ import { getCurrentAccount } from "@/features/points/period";
 import { requirePageUser } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { formatDate, formatPoints } from "@/lib/format";
-import { formatCnpj, formatCpf, monthLabel } from "@/lib/presentation";
+import { formatCnpj, monthLabel } from "@/lib/presentation";
 
 export const metadata = { title: "Meu perfil" };
 
@@ -22,8 +22,7 @@ export default async function ProfilePage() {
   const fields = [
     { label: "Nome completo", value: courier.name, icon: UserRound },
     { label: "E-mail de acesso", value: user.email, icon: Mail },
-    { label: "CPF", value: formatCpf(courier.cpf), icon: IdCard },
-    { label: "CNPJ vinculado", value: formatCnpj(courier.cnpj), icon: Store },
+    { label: "CNPJ de acesso", value: formatCnpj(courier.cnpj), icon: Store },
     { label: "Praça", value: courier.plaza || "Não informada", icon: MapPin },
     { label: "Subpraça", value: courier.subPlaza || "Não informada", icon: MapPin },
   ];
@@ -51,7 +50,7 @@ export default async function ProfilePage() {
               </div>
             ))}
           </dl>
-          <p className="mt-5 text-pretty text-xs leading-5 text-slate-500">Se algum dado estiver incorreto, fale com a equipe administrativa. Nome, CPF e CNPJ são validados pela planilha mensal.</p>
+          <p className="mt-5 text-pretty text-xs leading-5 text-slate-500">Se algum dado estiver incorreto, fale com a equipe administrativa. Nome e CNPJ são validados pelas guias da planilha mensal.</p>
         </section>
 
         <div className="space-y-6">

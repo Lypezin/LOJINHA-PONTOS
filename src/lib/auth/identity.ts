@@ -1,39 +1,25 @@
-const CPF_LENGTH = 11;
+import { digitsOnly, formatCnpj as formatDocumentCnpj, isValidCnpj as validateCnpj } from "@/lib/documents";
 
-export function normalizeCpf(value: string) {
-  return value.replace(/\D/g, "");
+export function normalizeCnpj(value: string) {
+  return digitsOnly(value);
 }
 
-export function formatCpf(value: string) {
-  const digits = normalizeCpf(value).slice(0, CPF_LENGTH);
-
-  return digits
-    .replace(/^(\d{3})(\d)/, "$1.$2")
-    .replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
-    .replace(/\.(\d{3})(\d)/, ".$1-$2");
+export function formatCnpj(value: string) {
+  const digits = normalizeCnpj(value).slice(0, 14);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 5) return digits.replace(/^(\d{2})(\d+)/, "$1.$2");
+  if (digits.length <= 8) return digits.replace(/^(\d{2})(\d{3})(\d+)/, "$1.$2.$3");
+  if (digits.length <= 12) return digits.replace(/^(\d{2})(\d{3})(\d{3})(\d+)/, "$1.$2.$3/$4");
+  return digits.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{1,2})/, "$1.$2.$3/$4-$5");
 }
 
-export function cpfStorageCandidates(value: string) {
-  const cpf = normalizeCpf(value);
-  return Array.from(new Set([cpf, formatCpf(cpf)]));
+export function cnpjStorageCandidates(value: string) {
+  const cnpj = normalizeCnpj(value);
+  return Array.from(new Set([cnpj, formatDocumentCnpj(cnpj)]));
 }
 
-export function isValidCpf(value: string) {
-  const cpf = normalizeCpf(value);
-
-  if (cpf.length !== CPF_LENGTH || /^(\d)\1{10}$/.test(cpf)) return false;
-
-  const calculateDigit = (length: number) => {
-    let sum = 0;
-    for (let index = 0; index < length; index += 1) {
-      sum += Number(cpf[index]) * (length + 1 - index);
-    }
-
-    const remainder = (sum * 10) % 11;
-    return remainder === 10 ? 0 : remainder;
-  };
-
-  return calculateDigit(9) === Number(cpf[9]) && calculateDigit(10) === Number(cpf[10]);
+export function isValidCnpj(value: string) {
+  return validateCnpj(value);
 }
 
 export function normalizeEmail(value: string) {

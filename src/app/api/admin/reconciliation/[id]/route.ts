@@ -24,6 +24,13 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
         tx.courier.findUnique({ where: { id: input.courierId } }),
       ]);
       if (!entry || !courier) throw new DomainError("Registro de conciliação não encontrado.", "NOT_FOUND", 404);
+      const cnpjOwner = await tx.courier.findFirst({
+        where: { cnpj: entry.cnpj, id: { not: courier.id } },
+        select: { id: true },
+      });
+      if (cnpjOwner) {
+        throw new DomainError("Este CNPJ já está vinculado a outro entregador. Revise o vínculo existente antes de continuar.", "CNPJ_IN_USE", 409);
+      }
 
       if (entry.courierId && entry.courierId !== courier.id) {
         await tx.courier.updateMany({
@@ -61,6 +68,8 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
           sourceCnpjName: entry.sourceName,
           cnpjMatchStatus: MatchStatus.MANUAL_MATCHED,
           cnpjMatchScore: 1,
+          activationCodeHash: courier.cnpj !== entry.cnpj ? null : undefined,
+          activationCodeExpiresAt: courier.cnpj !== entry.cnpj ? null : undefined,
         },
       });
       await tx.auditLog.create({

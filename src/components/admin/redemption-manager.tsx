@@ -9,7 +9,7 @@ import { Button, buttonStyles } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { formatDateTime, formatPoints } from "@/lib/format";
-import { redemptionLabels, redemptionTone } from "@/lib/presentation";
+import { formatCnpj, redemptionLabels, redemptionTone } from "@/lib/presentation";
 
 type RedemptionStatus = keyof typeof redemptionLabels;
 
@@ -17,7 +17,7 @@ export type AdminRedemption = {
   id: string;
   code: string;
   courierName: string;
-  courierCpf: string | null;
+  courierCnpj: string | null;
   productName: string;
   quantity: number;
   pointsSpent: number;
@@ -102,7 +102,7 @@ export function RedemptionManager({ redemptions, page, total }: { redemptions: A
             <table className="w-full text-left text-sm">
               <thead className="border-b border-slate-200 bg-slate-50 text-xs text-slate-600"><tr><th scope="col" className="px-5 py-3 font-bold">Resgate</th><th scope="col" className="px-4 py-3 font-bold">Entregador</th><th scope="col" className="px-4 py-3 font-bold">Item</th><th scope="col" className="px-4 py-3 font-bold">Status</th><th scope="col" className="px-5 py-3 text-right font-bold">Próximo passo</th></tr></thead>
               <tbody className="divide-y divide-slate-200">
-                {filtered.map((item) => <tr key={item.id} className="align-top"><td className="px-5 py-4"><p className="font-extrabold tabular-nums text-[var(--brand-navy)]">{item.code}</p><p className="mt-1 text-xs tabular-nums text-slate-500">{formatDateTime(item.requestedAt)} • {item.periodKey}</p></td><td className="px-4 py-4"><p className="font-bold text-[var(--brand-navy)]">{item.courierName}</p><p className="mt-1 text-xs tabular-nums text-slate-500">{item.courierCpf ?? "CPF não informado"}</p></td><td className="px-4 py-4"><p className="font-bold text-[var(--brand-navy)]">{item.productName}</p><p className="mt-1 text-xs tabular-nums text-slate-500">{item.quantity} un. • {formatPoints(item.pointsSpent)} pts</p></td><td className="px-4 py-4"><StatusBadge tone={redemptionTone[item.status]}>{redemptionLabels[item.status]}</StatusBadge>{errors[item.id] ? <p className="mt-2 max-w-xs text-xs font-semibold text-red-700" role="alert">{errors[item.id]}</p> : null}</td><td className="px-5 py-4"><Actions item={item} /></td></tr>)}
+                {filtered.map((item) => <tr key={item.id} className="align-top"><td className="px-5 py-4"><p className="font-extrabold tabular-nums text-[var(--brand-navy)]">{item.code}</p><p className="mt-1 text-xs tabular-nums text-slate-500">{formatDateTime(item.requestedAt)} • {item.periodKey}</p></td><td className="px-4 py-4"><p className="font-bold text-[var(--brand-navy)]">{item.courierName}</p><p className="mt-1 text-xs tabular-nums text-slate-500">{formatCnpj(item.courierCnpj)}</p></td><td className="px-4 py-4"><p className="font-bold text-[var(--brand-navy)]">{item.productName}</p><p className="mt-1 text-xs tabular-nums text-slate-500">{item.quantity} un. • {formatPoints(item.pointsSpent)} pts</p></td><td className="px-4 py-4"><StatusBadge tone={redemptionTone[item.status]}>{redemptionLabels[item.status]}</StatusBadge>{errors[item.id] ? <p className="mt-2 max-w-xs text-xs font-semibold text-red-700" role="alert">{errors[item.id]}</p> : null}</td><td className="px-5 py-4"><Actions item={item} /></td></tr>)}
               </tbody>
             </table>
           </div>

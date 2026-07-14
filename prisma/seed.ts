@@ -180,14 +180,20 @@ async function main() {
   if (seedDemoData) {
     const courier = await db.courier.upsert({
       where: { externalCourierId: "demo-courier-001" },
-      update: {},
+      update: {
+        cnpj: "11222333000181",
+        cnpjMatchStatus: "MANUAL_MATCHED",
+        cnpjMatchScore: 1,
+        status: CourierStatus.ACTIVE,
+      },
       create: {
         externalCourierId: "demo-courier-001",
         name: "Entregador Demonstração",
         normalizedName: "ENTREGADOR DEMONSTRACAO",
-        cpf: "52998224725",
+        cnpj: "11222333000181",
+        cnpjMatchStatus: "MANUAL_MATCHED",
+        cnpjMatchScore: 1,
         status: CourierStatus.ACTIVE,
-        cpfAddedAt: new Date(),
         plaza: "São Paulo",
       },
     });

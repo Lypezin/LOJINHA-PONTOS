@@ -121,8 +121,8 @@ model Courier {
   externalCourierId       String?                 @unique
   name                    String
   normalizedName          String
-  cpf                     String?                 @unique
-  cnpj                    String?
+  legacyCpf               String?                 @unique @map("cpf")
+  cnpj                    String?                 @unique
   sourceCnpjName          String?
   cnpjMatchStatus         MatchStatus             @default(PENDING)
   cnpjMatchScore          Float?
@@ -132,7 +132,7 @@ model Courier {
   tag                     String?
   source                  String?
   lastImportedAt          DateTime?
-  cpfAddedAt              DateTime?
+  legacyCpfAddedAt        DateTime?               @map("cpfAddedAt")
   activationCodeHash      String?
   activationCodeExpiresAt DateTime?
   user                    User?
@@ -144,7 +144,6 @@ model Courier {
   updatedAt               DateTime                @updatedAt
 
   @@index([normalizedName])
-  @@index([cnpj])
   @@index([cnpjMatchStatus])
   @@index([status])
 }

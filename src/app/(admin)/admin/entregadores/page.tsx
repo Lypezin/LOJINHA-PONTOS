@@ -14,7 +14,6 @@ export default async function AdminCouriersPage() {
     select: {
       id: true,
       name: true,
-      cpf: true,
       cnpj: true,
       status: true,
       cnpjMatchStatus: true,
@@ -28,7 +27,6 @@ export default async function AdminCouriersPage() {
   const data: AdminCourier[] = couriers.map((courier) => ({
     id: courier.id,
     name: courier.name,
-    cpf: courier.cpf,
     cnpj: courier.cnpj,
     status: courier.status,
     cnpjMatchStatus: courier.cnpjMatchStatus,

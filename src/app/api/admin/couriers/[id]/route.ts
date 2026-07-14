@@ -3,13 +3,12 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth/session";
 import { db } from "@/lib/db";
-import { digitsOnly, isValidCnpj, isValidCpf } from "@/lib/documents";
+import { digitsOnly, isValidCnpj } from "@/lib/documents";
 import { DomainError } from "@/lib/domain-error";
 import { apiError } from "@/lib/http";
 import { isTrustedPostOrigin } from "@/lib/auth/origin";
 
 const schema = z.object({
-  cpf: z.string().trim().nullable().optional(),
   cnpj: z.string().trim().nullable().optional(),
   name: z.string().trim().min(2).max(160).optional(),
   status: z.nativeEnum(CourierStatus).optional(),
@@ -34,25 +33,21 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     const admin = await requireAdmin();
     const { id } = await context.params;
     const input = schema.parse(await request.json());
-    const cpfProvided = Object.prototype.hasOwnProperty.call(input, "cpf");
     const cnpjProvided = Object.prototype.hasOwnProperty.call(input, "cnpj");
-    const cpf = cpfProvided ? (input.cpf == null || input.cpf === "" ? null : digitsOnly(input.cpf)) : undefined;
     const cnpj = cnpjProvided ? (input.cnpj == null || input.cnpj === "" ? null : digitsOnly(input.cnpj)) : undefined;
-    if (cpf && !isValidCpf(cpf)) throw new DomainError("CPF inválido.", "INVALID_CPF", 422);
     if (cnpj && !isValidCnpj(cnpj)) throw new DomainError("CNPJ inválido.", "INVALID_CNPJ", 422);
 
     const current = await db.courier.findUnique({ where: { id } });
     if (!current) throw new DomainError("Entregador não encontrado.", "NOT_FOUND", 404);
-    if (cpf) {
-      const owner = await db.courier.findFirst({ where: { cpf, id: { not: id } }, select: { id: true } });
-      if (owner) throw new DomainError("Este CPF já está vinculado a outro entregador.", "CPF_IN_USE", 409);
+    if (cnpj) {
+      const owner = await db.courier.findFirst({ where: { cnpj, id: { not: id } }, select: { id: true } });
+      if (owner) throw new DomainError("Este CNPJ já está vinculado a outro entregador.", "CNPJ_IN_USE", 409);
     }
 
     const courier = await db.$transaction(async (tx) => {
       const updated = await tx.courier.update({
         where: { id },
         data: {
-          cpf,
           cnpj,
           name: input.name,
           normalizedName: input.name ? normalizeName(input.name) : undefined,
@@ -60,9 +55,8 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
           cnpjMatchStatus: input.cnpjMatchStatus,
           plaza: input.plaza,
           subPlaza: input.subPlaza,
-          cpfAddedAt: cpfProvided && cpf && cpf !== current.cpf ? new Date() : undefined,
-          activationCodeHash: cpfProvided && cpf !== current.cpf ? null : undefined,
-          activationCodeExpiresAt: cpfProvided && cpf !== current.cpf ? null : undefined,
+          activationCodeHash: cnpjProvided && cnpj !== current.cnpj ? null : undefined,
+          activationCodeExpiresAt: cnpjProvided && cnpj !== current.cnpj ? null : undefined,
         },
       });
       if (input.status === "INACTIVE") {
@@ -83,7 +77,6 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
           entityId: updated.id,
           metadata: {
             fields: Object.keys(input),
-            cpfChanged: cpfProvided && cpf !== current.cpf,
             cnpjChanged: cnpjProvided && cnpj !== current.cnpj,
             sessionsRevoked: input.status === "INACTIVE",
           },

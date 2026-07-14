@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { hashForAudit, writeAuditLog } from "@/lib/auth/audit";
-import { cpfStorageCandidates, isValidCpf } from "@/lib/auth/identity";
+import { cnpjStorageCandidates, isValidCnpj } from "@/lib/auth/identity";
 import { createSession } from "@/lib/auth/session";
 import { originDeniedResponse, parseJsonBody, secureJson } from "@/lib/auth/http";
 import { isTrustedPostOrigin } from "@/lib/auth/origin";
@@ -9,7 +9,7 @@ import { loginSchema } from "@/lib/auth/validation";
 import { AUTH_RATE_LIMITS, consumeAuthRateLimit, rateLimitResponse } from "@/lib/auth/rate-limit";
 
 const DUMMY_PASSWORD_HASH = "$2b$12$OfUmlDF.LD99obmkGSoZtevMrp7wK.5SztMRarEKD52vC1rSPjOpy";
-const INVALID_CREDENTIALS = "E-mail, CPF ou senha incorretos.";
+const INVALID_CREDENTIALS = "E-mail, CNPJ ou senha incorretos.";
 
 export async function POST(request: Request) {
   if (!isTrustedPostOrigin(request)) return originDeniedResponse();
@@ -21,10 +21,10 @@ export async function POST(request: Request) {
     const { identifier, password } = parsed.data;
     const limit = await consumeAuthRateLimit(request, "login", identifier, AUTH_RATE_LIMITS.login);
     if (!limit.allowed) return rateLimitResponse(limit.retryAfterSeconds);
-    const identifierIsCpf = isValidCpf(identifier);
+    const identifierIsCnpj = isValidCnpj(identifier);
     const user = await db.user.findFirst({
-      where: identifierIsCpf
-        ? { courier: { is: { cpf: { in: cpfStorageCandidates(identifier) } } } }
+      where: identifierIsCnpj
+        ? { courier: { is: { cnpj: { in: cnpjStorageCandidates(identifier) } } } }
         : { emailNormalized: identifier },
       select: {
         id: true,
@@ -45,7 +45,7 @@ export async function POST(request: Request) {
         request,
         action: "auth.login_failed",
         entityType: "Auth",
-        metadata: { identifierHash: hashForAudit(identifier), identifierType: identifierIsCpf ? "cpf" : "email" },
+        metadata: { identifierHash: hashForAudit(identifier), identifierType: identifierIsCnpj ? "cnpj" : "email" },
       });
       return secureJson({ ok: false, message: INVALID_CREDENTIALS }, { status: 401 });
     }

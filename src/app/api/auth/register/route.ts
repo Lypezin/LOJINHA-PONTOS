@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
-import { cpfStorageCandidates } from "@/lib/auth/identity";
+import { cnpjStorageCandidates } from "@/lib/auth/identity";
 import { hashForAudit, writeAuditLog } from "@/lib/auth/audit";
 import { createSession } from "@/lib/auth/session";
 import { originDeniedResponse, parseJsonBody, secureJson } from "@/lib/auth/http";
@@ -20,19 +20,19 @@ export async function POST(request: Request) {
   const parsed = await parseJsonBody(request, registerSchema);
   if (!parsed.success) return parsed.response;
 
-  const { cpf, email, password, activationCode } = parsed.data;
-  const identityHash = hashForAudit(cpf);
+  const { cnpj, email, password, activationCode } = parsed.data;
+  const identityHash = hashForAudit(cnpj);
   let createdUserId: string | null = null;
   let createdUserRole: "ADMIN" | "COURIER" = "COURIER";
   let createdUserName = "Entregador";
 
   try {
-    const limit = await consumeAuthRateLimit(request, "register", cpf, AUTH_RATE_LIMITS.register);
+    const limit = await consumeAuthRateLimit(request, "register", cnpj, AUTH_RATE_LIMITS.register);
     if (!limit.allowed) return rateLimitResponse(limit.retryAfterSeconds);
-    // Mantém o custo da resposta parecido para CPFs existentes e inexistentes.
+    // Mantém o custo da resposta parecido para CNPJs existentes e inexistentes.
     const passwordHash = await bcrypt.hash(password, 12);
     const courier = await db.courier.findFirst({
-      where: { cpf: { in: cpfStorageCandidates(cpf) } },
+      where: { cnpj: { in: cnpjStorageCandidates(cnpj) } },
       select: {
         id: true,
         name: true,

@@ -24,14 +24,14 @@ export default async function AdminRedemptionsPage({ searchParams }: { searchPar
       status: true,
       requestedAt: true,
       period: { select: { key: true } },
-      courier: { select: { name: true, cpf: true } },
+      courier: { select: { name: true, cnpj: true } },
     },
   });
   const data: AdminRedemption[] = redemptions.map((item) => ({
     id: item.id,
     code: item.code,
     courierName: item.courier.name,
-    courierCpf: item.courier.cpf,
+    courierCnpj: item.courier.cnpj,
     productName: item.productNameSnapshot,
     quantity: item.quantity,
     pointsSpent: item.pointsSpent,

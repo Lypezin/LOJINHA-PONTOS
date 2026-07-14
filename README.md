@@ -4,8 +4,8 @@ Aplicação full-stack para transformar a produção mensal dos entregadores em 
 
 ## O que já está coberto
 
-- Cadastro por CPF e código de ativação vinculado a um entregador previamente importado.
-- Login por CPF ou e-mail, sessão segura em cookie `httpOnly` e logout.
+- Cadastro por CNPJ e código de ativação vinculado a um entregador previamente importado.
+- Login por CNPJ ou e-mail, sessão segura em cookie `httpOnly` e logout.
 - Recuperação de senha por e-mail com token de uso único e validade de 1 hora.
 - Importação das guias `BANCO DE DADOS` e `DADOS CNPJ`.
 - Coluna de pontos configurável; a coluna R vem como padrão.
@@ -41,7 +41,7 @@ Copie `.env.example` para `.env.local` e preencha os valores. O banco já config
 
 - Admin: `admin@lojinha.local` / `TroqueAgora#2026`
 - Entregador de demonstração: `entregador@demo.local` / `Demo@12345`
-- CPF de demonstração: `529.982.247-25`
+- CNPJ de demonstração: `11.222.333/0001-81`
 
 Troque a senha administrativa antes de publicar a aplicação. O primeiro login administrativo força essa troca. Em desenvolvimento, o fluxo “Esqueci minha senha” retorna o link de redefinição na própria resposta quando o Resend não está configurado.
 
@@ -57,9 +57,11 @@ O banco local deste workspace já contém o entregador de demonstração. Em uma
 
 Cada arquivo é tratado como o retrato completo daquela competência. Reenviar exatamente o mesmo arquivo não duplica pontos; enviar uma versão atualizada lança somente a diferença por entregador.
 
-## Limitação real do arquivo fornecido
+## Identidade por CNPJ
 
-O arquivo `ATT LOJINHA.xlsx` não possui CPF. A coluna F é um UUID e a segunda guia contém somente CNPJ. Como CPF não pode ser deduzido de nenhum desses campos, o administrador precisa preencher o CPF no cadastro do entregador (ou fornecer futuramente uma planilha com CPF), gerar um código de ativação e entregar esse código à pessoa correta. Só então ela consegue se registrar. O código impede que alguém que apenas conheça o CPF tome a conta primeiro.
+O identificador de acesso correto é o CNPJ da guia `DADOS CNPJ`. A coluna F da guia principal continua sendo o UUID usado para consolidar as linhas mensais; o vínculo entre UUID, nome e CNPJ é feito pela conciliação das duas guias. No arquivo fornecido, 1.334 dos 1.471 entregadores foram vinculados automaticamente a um CNPJ único. Os outros 137 precisam de confirmação no painel **Conciliação** antes do cadastro.
+
+Depois do vínculo, o administrador gera um código de ativação de uso único para o entregador. O cadastro exige CNPJ, código, e-mail e senha. Esse código é necessário porque CNPJs podem ser consultados publicamente e, sozinhos, não provam quem está criando a conta.
 
 A análise completa e mascarada está em [`docs/analise-planilha.md`](docs/analise-planilha.md).
 

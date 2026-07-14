@@ -199,7 +199,7 @@ Estados de hover, foco, pressionado, carregando e desabilitado são obrigatório
 - Rótulo sempre visível acima do campo.
 - Ajuda abaixo do campo quando necessária.
 - Erro junto ao campo e resumo no topo quando houver vários erros.
-- Máscaras de CPF e CNPJ não podem bloquear colagem, leitor de tela ou valor normalizado.
+- A máscara de CNPJ não pode bloquear colagem, leitor de tela ou valor normalizado.
 - Mostrar e ocultar senha com botão nomeado.
 - Não usar placeholder como rótulo.
 

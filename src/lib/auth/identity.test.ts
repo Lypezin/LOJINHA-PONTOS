@@ -1,17 +1,26 @@
 import { describe, expect, it } from "vitest";
-import { formatCpf, getPasswordError, isValidCpf, normalizeEmail } from "./identity";
+import { cnpjStorageCandidates, formatCnpj, getPasswordError, isValidCnpj, normalizeCnpj, normalizeEmail } from "./identity";
 
 describe("auth identity utilities", () => {
-  it("normalizes e-mail and formats CPF without blocking partial input", () => {
+  it("normalizes e-mail and formats CNPJ without blocking partial input", () => {
     expect(normalizeEmail("  Entregador@Exemplo.COM ")).toBe("entregador@exemplo.com");
-    expect(formatCpf("52998224725")).toBe("529.982.247-25");
-    expect(formatCpf("5299")).toBe("529.9");
+    expect(formatCnpj("11222333000181")).toBe("11.222.333/0001-81");
+    expect(formatCnpj("1122")).toBe("11.22");
+    expect(formatCnpj("1122233300018")).toBe("11.222.333/0001-8");
   });
 
-  it("validates CPF check digits and rejects repeated digits", () => {
-    expect(isValidCpf("529.982.247-25")).toBe(true);
-    expect(isValidCpf("111.111.111-11")).toBe(false);
-    expect(isValidCpf("529.982.247-24")).toBe(false);
+  it("validates CNPJ check digits and rejects repeated digits", () => {
+    expect(isValidCnpj("11.222.333/0001-81")).toBe(true);
+    expect(isValidCnpj("11.111.111/1111-11")).toBe(false);
+    expect(isValidCnpj("11.222.333/0001-80")).toBe(false);
+  });
+
+  it("normalizes CNPJ and accepts normalized or formatted storage", () => {
+    expect(normalizeCnpj("11.222.333/0001-81")).toBe("11222333000181");
+    expect(cnpjStorageCandidates("11.222.333/0001-81")).toEqual([
+      "11222333000181",
+      "11.222.333/0001-81",
+    ]);
   });
 
   it("requires a bounded password with letters and numbers", () => {

@@ -14,10 +14,10 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const { id } = await context.params;
     const courier = await db.courier.findUnique({
       where: { id },
-      select: { id: true, cpf: true, user: { select: { id: true } } },
+      select: { id: true, cnpj: true, user: { select: { id: true } } },
     });
     if (!courier) throw new DomainError("Entregador não encontrado.", "NOT_FOUND", 404);
-    if (!courier.cpf) throw new DomainError("Cadastre o CPF antes de gerar o código.", "CPF_REQUIRED", 409);
+    if (!courier.cnpj) throw new DomainError("Concilie o CNPJ antes de gerar o código.", "CNPJ_REQUIRED", 409);
     if (courier.user) throw new DomainError("Este entregador já possui uma conta.", "ACCOUNT_EXISTS", 409);
 
     const code = randomBytes(6).toString("hex").slice(0, 10).toUpperCase();
