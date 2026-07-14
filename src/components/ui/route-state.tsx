@@ -3,7 +3,7 @@
 import { AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export function RouteError({ reset }: { reset: () => void }) {
+export function RouteError({ reset, reference }: { reset: () => void; reference?: string }) {
   return (
     <main className="flex min-h-[60dvh] items-center justify-center px-4 py-12">
       <div className="w-full max-w-lg rounded-[20px] border border-red-200 bg-white p-8 text-center shadow-sm">
@@ -11,7 +11,8 @@ export function RouteError({ reset }: { reset: () => void }) {
           <AlertCircle className="size-6" />
         </div>
         <h1 className="mt-5 text-balance text-2xl font-extrabold text-[var(--brand-navy)]">Não foi possível carregar esta página</h1>
-        <p className="mt-2 text-pretty text-sm leading-6 text-slate-600">Verifique sua conexão e tente novamente. Nenhuma alteração foi feita.</p>
+        <p className="mt-2 text-pretty text-sm leading-6 text-slate-600">Tente novamente. Se o problema continuar, informe a referência abaixo à equipe responsável.</p>
+        {reference ? <p className="mt-3 text-xs text-slate-500">Referência: <strong className="font-bold tabular-nums">{reference}</strong></p> : null}
         <Button onClick={reset} className="mt-6">
           <RefreshCw className="size-4" aria-hidden="true" />
           Tentar novamente
