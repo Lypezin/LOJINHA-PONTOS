@@ -39,7 +39,7 @@ export default async function AdminReconciliationPage({ searchParams }: { search
     const filteredTotal = await db.cnpjGuideEntry.count({ where });
     const pageCount = Math.max(1, Math.ceil(filteredTotal / 40));
     const page = Number.isInteger(requestedPage) ? Math.min(Math.max(requestedPage, 1), pageCount) : 1;
-    const entries = await db.cnpjGuideEntry.findMany({ where, orderBy: { name: "asc" }, skip: (page - 1) * 40, take: 40, select: { id: true, name: true, cnpj: true, courierId: true, courier: { select: { name: true } }, source: true, notes: true } });
+    const entries = await db.cnpjGuideEntry.findMany({ where, orderBy: { name: "asc" }, skip: (page - 1) * 40, take: 40, select: { id: true, name: true, cnpj: true, courierId: true, courier: { select: { name: true, externalCourierId: true } }, source: true, notes: true } });
     const linkedCourierIds = entries.flatMap((entry) => entry.courierId ? [entry.courierId] : []);
     const couriers = await db.courier.findMany({
       where: {
