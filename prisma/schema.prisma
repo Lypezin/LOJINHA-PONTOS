@@ -1,0 +1,377 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  COURIER
+}
+
+enum CourierStatus {
+  PENDING
+  ACTIVE
+  INACTIVE
+}
+
+enum MatchStatus {
+  PENDING
+  AUTO_MATCHED
+  MANUAL_MATCHED
+  AMBIGUOUS
+  NOT_FOUND
+}
+
+enum PeriodStatus {
+  OPEN
+  CLOSED
+}
+
+enum ImportStatus {
+  PROCESSING
+  COMPLETED
+  COMPLETED_WITH_WARNINGS
+  FAILED
+  DUPLICATE
+}
+
+enum PointEntryType {
+  IMPORT_CREDIT
+  IMPORT_CORRECTION
+  ADMIN_ADJUSTMENT
+  REDEMPTION
+  REFUND
+  EXPIRATION
+}
+
+enum ProductStatus {
+  DRAFT
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum RedemptionStatus {
+  REQUESTED
+  APPROVED
+  PREPARING
+  READY
+  DELIVERED
+  CANCELED
+}
+
+model User {
+  id                 String               @id @default(cuid())
+  email              String
+  emailNormalized    String               @unique
+  passwordHash       String
+  role               UserRole             @default(COURIER)
+  active             Boolean              @default(true)
+  mustChangePassword Boolean              @default(false)
+  courierId          String?              @unique
+  courier            Courier?             @relation(fields: [courierId], references: [id], onDelete: SetNull)
+  sessions           Session[]
+  resetTokens        PasswordResetToken[]
+  imports            ImportBatch[]        @relation("ImportCreatedBy")
+  productsCreated    Product[]            @relation("ProductCreatedBy")
+  redemptionsManaged Redemption[]         @relation("RedemptionManagedBy")
+  settingsUpdated    SystemSetting[]      @relation("SettingUpdatedBy")
+  ledgerEntries      PointLedgerEntry[]   @relation("LedgerActor")
+  auditLogs          AuditLog[]           @relation("AuditActor")
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  @@index([role, active])
+}
+
+model Session {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash  String   @unique
+  expiresAt  DateTime
+  lastSeenAt DateTime @default(now())
+  ipHash     String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@index([userId, expiresAt])
+  @@index([expiresAt])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, expiresAt])
+  @@index([expiresAt])
+}
+
+model Courier {
+  id                      String                  @id @default(cuid())
+  externalCourierId       String?                 @unique
+  name                    String
+  normalizedName          String
+  cpf                     String?                 @unique
+  cnpj                    String?
+  sourceCnpjName          String?
+  cnpjMatchStatus         MatchStatus             @default(PENDING)
+  cnpjMatchScore          Float?
+  status                  CourierStatus           @default(PENDING)
+  plaza                   String?
+  subPlaza                String?
+  tag                     String?
+  source                  String?
+  lastImportedAt          DateTime?
+  cpfAddedAt              DateTime?
+  activationCodeHash      String?
+  activationCodeExpiresAt DateTime?
+  user                    User?
+  pointAccounts           PointAccount[]
+  importSnapshots         ImportCourierSnapshot[]
+  redemptions             Redemption[]
+  cnpjEntries             CnpjRegistryEntry[]
+  createdAt               DateTime                @default(now())
+  updatedAt               DateTime                @updatedAt
+
+  @@index([normalizedName])
+  @@index([cnpj])
+  @@index([cnpjMatchStatus])
+  @@index([status])
+}
+
+model CnpjRegistryEntry {
+  id             String      @id @default(cuid())
+  sourceName     String
+  normalizedName String
+  cnpj           String
+  sourceRow      Int
+  sourceKey      String      @unique
+  matchStatus    MatchStatus @default(PENDING)
+  matchScore     Float?
+  notes          String?
+  courierId      String?
+  courier        Courier?    @relation(fields: [courierId], references: [id], onDelete: SetNull)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@index([normalizedName])
+  @@index([cnpj])
+  @@index([matchStatus])
+}
+
+model MonthlyPeriod {
+  id          String         @id @default(cuid())
+  key         String         @unique
+  year        Int
+  month       Int
+  startsAt    DateTime
+  endsAt      DateTime
+  status      PeriodStatus   @default(OPEN)
+  closedAt    DateTime?
+  accounts    PointAccount[]
+  imports     ImportBatch[]
+  redemptions Redemption[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@unique([year, month])
+  @@index([status, startsAt, endsAt])
+}
+
+model PointAccount {
+  id               String             @id @default(cuid())
+  courierId        String
+  courier          Courier            @relation(fields: [courierId], references: [id], onDelete: Cascade)
+  periodId         String
+  period           MonthlyPeriod      @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  importedPoints   Int                @default(0)
+  adjustmentPoints Int                @default(0)
+  redeemedPoints   Int                @default(0)
+  expiredPoints    Int                @default(0)
+  balancePoints    Int                @default(0)
+  version          Int                @default(0)
+  entries          PointLedgerEntry[]
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  @@unique([courierId, periodId])
+  @@index([periodId, balancePoints])
+}
+
+model PointLedgerEntry {
+  id             String         @id @default(cuid())
+  accountId      String
+  account        PointAccount   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  type           PointEntryType
+  amount         Int
+  balanceAfter   Int
+  description    String
+  referenceType  String?
+  referenceId    String?
+  idempotencyKey String?        @unique
+  importBatchId  String?
+  importBatch    ImportBatch?   @relation(fields: [importBatchId], references: [id], onDelete: SetNull)
+  actorUserId    String?
+  actor          User?          @relation("LedgerActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  createdAt      DateTime       @default(now())
+
+  @@index([accountId, createdAt])
+  @@index([referenceType, referenceId])
+  @@index([importBatchId])
+}
+
+model ImportBatch {
+  id                String                  @id @default(cuid())
+  filename          String
+  fileHash          String
+  dataSheet         String                  @default("BANCO DE DADOS")
+  cnpjSheet         String                  @default("DADOS CNPJ")
+  pointsColumn      String
+  pointsColumnIndex Int
+  periodId          String
+  period            MonthlyPeriod           @relation(fields: [periodId], references: [id], onDelete: Restrict)
+  status            ImportStatus            @default(PROCESSING)
+  rowCount          Int                     @default(0)
+  courierCount      Int                     @default(0)
+  totalPoints       Int                     @default(0)
+  warningCount      Int                     @default(0)
+  warnings          Json?
+  errorMessage      String?
+  createdById       String
+  createdBy         User                    @relation("ImportCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  snapshots         ImportCourierSnapshot[]
+  ledgerEntries     PointLedgerEntry[]
+  processedAt       DateTime?
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+
+  @@unique([fileHash, periodId, pointsColumn])
+  @@index([periodId, createdAt])
+  @@index([status])
+}
+
+model ImportCourierSnapshot {
+  id                String      @id @default(cuid())
+  batchId           String
+  batch             ImportBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  courierId         String
+  courier           Courier     @relation(fields: [courierId], references: [id], onDelete: Restrict)
+  externalCourierId String
+  sourceName        String
+  normalizedName    String
+  sourceRowCount    Int
+  points            Int
+  previousPoints    Int
+  deltaPoints       Int
+  warnings          Json?
+  createdAt         DateTime    @default(now())
+
+  @@unique([batchId, courierId])
+  @@index([courierId, createdAt])
+}
+
+model Product {
+  id                     String        @id @default(cuid())
+  slug                   String        @unique
+  name                   String
+  description            String
+  category               String
+  imageUrl               String?       @db.Text
+  pointsCost             Int
+  referenceValueCents    Int?
+  stockQuantity          Int           @default(0)
+  maxPerCourierPerPeriod Int?
+  status                 ProductStatus @default(DRAFT)
+  featured               Boolean       @default(false)
+  sortOrder              Int           @default(0)
+  version                Int           @default(0)
+  createdById            String
+  createdBy              User          @relation("ProductCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  redemptions            Redemption[]
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+
+  @@index([status, sortOrder])
+  @@index([category])
+}
+
+model Redemption {
+  id                  String           @id @default(cuid())
+  code                String           @unique
+  idempotencyKey      String           @unique
+  courierId           String
+  courier             Courier          @relation(fields: [courierId], references: [id], onDelete: Restrict)
+  periodId            String
+  period              MonthlyPeriod    @relation(fields: [periodId], references: [id], onDelete: Restrict)
+  productId           String
+  product             Product          @relation(fields: [productId], references: [id], onDelete: Restrict)
+  quantity            Int              @default(1)
+  unitPoints          Int
+  pointsSpent         Int
+  productNameSnapshot String
+  imageUrlSnapshot    String?          @db.Text
+  status              RedemptionStatus @default(REQUESTED)
+  notes               String?
+  adminNotes          String?
+  managedById         String?
+  managedBy           User?            @relation("RedemptionManagedBy", fields: [managedById], references: [id], onDelete: SetNull)
+  requestedAt         DateTime         @default(now())
+  fulfilledAt         DateTime?
+  canceledAt          DateTime?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+
+  @@index([courierId, requestedAt])
+  @@index([periodId, status])
+  @@index([status, requestedAt])
+}
+
+model SystemSetting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       Json
+  description String?
+  updatedById String?
+  updatedBy   User?    @relation("SettingUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorUserId String?
+  actor       User?    @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  action      String
+  entityType  String
+  entityId    String?
+  metadata    Json?
+  ipHash      String?
+  createdAt   DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([actorUserId, createdAt])
+  @@index([createdAt])
+}
+
+model RateLimitBucket {
+  id              String    @id
+  action          String
+  scope           String
+  count           Int       @default(0)
+  windowStartedAt DateTime
+  blockedUntil    DateTime?
+  updatedAt       DateTime  @updatedAt
+
+  @@index([action, updatedAt])
+  @@index([blockedUntil])
+}
