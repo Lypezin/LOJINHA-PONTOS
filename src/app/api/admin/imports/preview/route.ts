@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { readImportUpload } from "@/features/imports/request";
+import { getCnpjGuideSourceEntries } from "@/features/cnpj-guide/service";
 import { buildImportPreview } from "@/features/imports/service";
 import {
   ImportWorkbookError,
@@ -34,10 +35,12 @@ export async function POST(request: Request) {
     }
     await requireAdmin();
     const upload = await readImportUpload(request);
+    const guideEntries = await getCnpjGuideSourceEntries();
     const parsed = await parseImportWorkbook(upload.buffer, {
       filename: upload.filename,
       periodKey: upload.periodKey,
       pointsColumn: upload.pointsColumn,
+      guideEntries,
     });
     const preview = await buildImportPreview(parsed);
     return NextResponse.json({ ok: true, data: preview });

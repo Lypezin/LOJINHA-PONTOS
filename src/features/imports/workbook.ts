@@ -121,6 +121,11 @@ function resolveSheet(workbook: ExcelJS.Workbook, expectedName: string): ExcelJS
   return resolved;
 }
 
+function findOptionalSheet(workbook: ExcelJS.Workbook, expectedName: string) {
+  const target = normalizeName(expectedName);
+  return workbook.worksheets.find((sheet) => normalizeName(sheet.name) === target) ?? null;
+}
+
 function primitiveCellValue(value: ExcelJS.CellValue): CellValue {
   if (value === null || value === undefined) return null;
   if (
@@ -337,12 +342,12 @@ export async function parseImportWorkbook(
   }
 
   const dataWorksheet = resolveSheet(workbook, DATA_SHEET_NAME);
-  const cnpjWorksheet = resolveSheet(workbook, CNPJ_SHEET_NAME);
+  const cnpjWorksheet = findOptionalSheet(workbook, CNPJ_SHEET_NAME);
   if (
     dataWorksheet.rowCount > MAX_DATA_ROWS ||
-    cnpjWorksheet.rowCount > MAX_CNPJ_ROWS ||
+    (cnpjWorksheet?.rowCount ?? 0) > MAX_CNPJ_ROWS ||
     dataWorksheet.columnCount > MAX_WORKSHEET_COLUMNS ||
-    cnpjWorksheet.columnCount > MAX_WORKSHEET_COLUMNS
+    (cnpjWorksheet?.columnCount ?? 0) > MAX_WORKSHEET_COLUMNS
   ) {
     throw new ImportWorkbookError(
       "A planilha excede o limite de linhas ou colunas permitido para importação.",
@@ -350,20 +355,22 @@ export async function parseImportWorkbook(
     );
   }
   const dataRows = sheetRows(dataWorksheet);
-  const cnpjRows = sheetRows(cnpjWorksheet);
+  const cnpjRows = cnpjWorksheet ? sheetRows(cnpjWorksheet) : [];
 
   const dataHeaderIndex = findHeaderRow(dataRows, [
     DATA_ALIASES.externalCourierId,
     DATA_ALIASES.name,
   ]);
-  const cnpjHeaderIndex = findHeaderRow(cnpjRows, [CNPJ_ALIASES.name, CNPJ_ALIASES.cnpj]);
+  const cnpjHeaderIndex = cnpjWorksheet
+    ? findHeaderRow(cnpjRows, [CNPJ_ALIASES.name, CNPJ_ALIASES.cnpj])
+    : -1;
   if (dataHeaderIndex < 0) {
     throw new ImportWorkbookError(
       "Não foi possível detectar os cabeçalhos de entregador na guia BANCO DE DADOS.",
       "HEADER_NOT_FOUND",
     );
   }
-  if (cnpjHeaderIndex < 0) {
+  if (cnpjWorksheet && cnpjHeaderIndex < 0) {
     throw new ImportWorkbookError(
       "Não foi possível detectar os cabeçalhos ENTREGADOR e CNPJ na guia DADOS CNPJ.",
       "HEADER_NOT_FOUND",
@@ -504,10 +511,14 @@ export async function parseImportWorkbook(
     }
   }
 
-  const cnpjNameIndex = findColumnIndex(cnpjRows[cnpjHeaderIndex], CNPJ_ALIASES.name);
-  const cnpjValueIndex = findColumnIndex(cnpjRows[cnpjHeaderIndex], CNPJ_ALIASES.cnpj);
+  const cnpjNameIndex = cnpjHeaderIndex >= 0
+    ? findColumnIndex(cnpjRows[cnpjHeaderIndex], CNPJ_ALIASES.name)
+    : -1;
+  const cnpjValueIndex = cnpjHeaderIndex >= 0
+    ? findColumnIndex(cnpjRows[cnpjHeaderIndex], CNPJ_ALIASES.cnpj)
+    : -1;
   const cnpjBySourceKey = new Map<string, CnpjSourceEntry>();
-  for (let offset = cnpjHeaderIndex + 1; offset < cnpjRows.length; offset += 1) {
+  for (let offset = Math.max(0, cnpjHeaderIndex + 1); offset < cnpjRows.length; offset += 1) {
     const row = cnpjRows[offset] ?? [];
     if (rowIsEmpty(row)) continue;
     const sourceRow = offset + 1;
@@ -542,6 +553,9 @@ export async function parseImportWorkbook(
         sourceKey,
       });
     }
+  }
+  for (const entry of options.guideEntries ?? []) {
+    if (!cnpjBySourceKey.has(entry.sourceKey)) cnpjBySourceKey.set(entry.sourceKey, entry);
   }
   const cnpjEntries = [...cnpjBySourceKey.values()];
   const cnpjMatches = matchCouriersToCnpj(aggregates, cnpjEntries);
@@ -611,9 +625,9 @@ export async function parseImportWorkbook(
     filename: options.filename,
     fileHash: hashBuffer(buffer),
     dataSheet: dataWorksheet.name,
-    cnpjSheet: cnpjWorksheet.name,
+    cnpjSheet: cnpjWorksheet?.name ?? "Guia interna de CNPJ",
     dataHeaderRow: dataHeaderIndex + 1,
-    cnpjHeaderRow: cnpjHeaderIndex + 1,
+    cnpjHeaderRow: cnpjHeaderIndex >= 0 ? cnpjHeaderIndex + 1 : 0,
     columns,
     pointsColumn,
     rowCount: validRowCount,

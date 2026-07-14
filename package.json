@@ -15,6 +15,7 @@
     "smoke:import": "tsx --env-file=.env.local scripts/smoke-import.ts",
     "repair:import": "tsx --env-file=.env.local scripts/repair-import-omissions.ts",
     "import:excel": "tsx --env-file=.env.local scripts/import-excel.ts",
+    "import:cnpj-guide": "tsx --env-file=.env.local scripts/import-cnpj-guide.ts",
     "verify:data": "tsx --env-file=.env.local scripts/verify-data.ts",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",

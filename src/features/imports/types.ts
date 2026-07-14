@@ -102,6 +102,7 @@ export interface ParseImportOptions {
   filename: string;
   pointsColumn?: string | number | null;
   periodKey?: string | null;
+  guideEntries?: CnpjSourceEntry[];
 }
 
 export interface ImportPreviewResponse {

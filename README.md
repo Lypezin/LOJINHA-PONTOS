@@ -7,7 +7,7 @@ Aplicação full-stack para transformar a produção mensal dos entregadores em 
 - Cadastro por CNPJ e código de ativação vinculado a um entregador previamente importado.
 - Login por CNPJ ou e-mail, sessão segura em cookie `httpOnly` e logout.
 - Recuperação de senha por e-mail com token de uso único e validade de 1 hora.
-- Importação das guias `BANCO DE DADOS` e `DADOS CNPJ`.
+- Importação da guia `BANCO DE DADOS`, usando automaticamente a Guia de CNPJ permanente do sistema; `DADOS CNPJ` é um complemento opcional.
 - Coluna de pontos configurável; a coluna R vem como padrão.
 - Créditos por competência mensal, reimportação idempotente, ajustes e expiração.
 - Conciliação automática conservadora de CNPJ e fila de revisão manual.
@@ -50,16 +50,16 @@ O banco local deste workspace já contém o entregador de demonstração. Em uma
 ## Como importar o Excel
 
 1. Entre como administrador e abra **Importações**.
-2. Selecione a competência (`AAAA-MM`) e o arquivo `.xlsx`.
+2. Selecione a competência (`AAAA-MM`) e o arquivo `.xlsx` com a guia `BANCO DE DADOS`.
 3. Confirme a guia principal e escolha a coluna que valerá pontos. A coluna R, `numero_de_pedidos_aceitos_e_concluidos`, aparece pré-selecionada.
 4. Revise o resumo: linhas, entregadores, total de pontos, diferença para o lote anterior e pendências de CNPJ.
 5. Confirme a importação.
 
-Cada arquivo é tratado como o retrato completo daquela competência. Reenviar exatamente o mesmo arquivo não duplica pontos; enviar uma versão atualizada lança somente a diferença por entregador.
+Cada arquivo é tratado como o retrato completo daquela competência. Reenviar exatamente o mesmo arquivo não duplica pontos; enviar uma versão atualizada lança somente a diferença por entregador. A guia `DADOS CNPJ` pode continuar no Excel, mas não é mais obrigatória: a base mantida em **Conciliação > Guia de CNPJ** é aplicada automaticamente.
 
 ## Identidade por CNPJ
 
-O identificador de acesso correto é o CNPJ da guia `DADOS CNPJ`. A coluna F da guia principal continua sendo o UUID usado para consolidar as linhas mensais; o vínculo entre UUID, nome e CNPJ é feito pela conciliação das duas guias. No arquivo fornecido, 1.334 dos 1.471 entregadores foram vinculados automaticamente a um CNPJ único. Os outros 137 precisam de confirmação no painel **Conciliação** antes do cadastro.
+O identificador de acesso correto é o CNPJ. A coluna F da guia principal continua sendo o UUID usado para consolidar as linhas mensais. A base permanente fica em **Conciliação > Guia de CNPJ**, onde o administrador pode adicionar ou editar nome, CNPJ e o entregador vinculado. Depois da carga do `informativo.xlsx`, 1.356 entregadores ativos estão com CNPJ e 116 permanecem pendentes.
 
 Depois do vínculo, o administrador gera um código de ativação de uso único para o entregador. O cadastro exige CNPJ, código, e-mail e senha. Esse código é necessário porque CNPJs podem ser consultados publicamente e, sozinhos, não provam quem está criando a conta.
 

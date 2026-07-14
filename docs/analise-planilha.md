@@ -42,7 +42,7 @@ O CNPJ da segunda guia é o identificador cadastral correto. O fluxo seguro é:
 4. depois do vínculo, o administrador gera um código de ativação individual;
 5. o entregador cria sua conta informando CNPJ, código, e-mail e senha.
 
-No lote analisado, os 1.334 CNPJs atribuídos aos entregadores são únicos. O código de ativação continua obrigatório porque o CNPJ é uma informação consultável publicamente.
+Na carga inicial, 1.334 CNPJs foram atribuídos automaticamente. O `informativo.xlsx`, que traz UUID, nome e CNPJ na mesma linha, permitiu elevar o total para 1.356 entregadores ativos com CNPJ; 116 continuam pendentes. O código de ativação continua obrigatório porque o CNPJ é uma informação consultável publicamente.
 
 ## Estratégia de importação
 
@@ -50,6 +50,7 @@ No lote analisado, os 1.334 CNPJs atribuídos aos entregadores são únicos. O c
 - O administrador escolhe a coluna de pontos; a coluna R vem pré-selecionada.
 - A configuração é salva pelo nome canônico do cabeçalho, usando a letra apenas como metadado, para continuar correta se a ordem das colunas mudar.
 - Linhas são agrupadas pelo UUID do entregador.
+- A Guia de CNPJ permanente do sistema é combinada automaticamente com a importação; a guia Excel `DADOS CNPJ` passou a ser opcional e complementar.
 - O arquivo e as opções geram uma assinatura (`hash`) para detectar repetição.
 - Uma reimportação substitui o crédito-base daquela competência e lança apenas a diferença, sem duplicar saldo.
 - Créditos, ajustes, resgates e expirações são mantidos em lançamentos separados e auditáveis.

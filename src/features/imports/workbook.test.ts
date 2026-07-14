@@ -16,7 +16,7 @@ function dataRow(date: Date, id: string, name: string, points: number | string) 
   return values;
 }
 
-async function workbookBuffer(invalidPoints = false) {
+async function workbookBuffer(invalidPoints = false, includeCnpjSheet = true) {
   const workbook = new ExcelJS.Workbook();
   const data = workbook.addWorksheet("BANCO DE DADOS");
   data.addRow(["Relatório mensal"]);
@@ -38,10 +38,12 @@ async function workbookBuffer(invalidPoints = false) {
   );
   data.addRow(dataRow(new Date("2026-07-03T12:00:00Z"), SECOND_ID, "Maria Souza", 3));
 
-  const cnpj = workbook.addWorksheet("DADOS CNPJ");
-  cnpj.addRow(["Dados cadastrais"]);
-  cnpj.addRow(["ENTREGADOR", "CNPJ"]);
-  cnpj.addRow(["João da Silva", "11.222.333/0001-81"]);
+  if (includeCnpjSheet) {
+    const cnpj = workbook.addWorksheet("DADOS CNPJ");
+    cnpj.addRow(["Dados cadastrais"]);
+    cnpj.addRow(["ENTREGADOR", "CNPJ"]);
+    cnpj.addRow(["João da Silva", "11.222.333/0001-81"]);
+  }
 
   return Buffer.from(await workbook.xlsx.writeBuffer());
 }
@@ -80,5 +82,25 @@ describe("Excel import aggregation", () => {
         expect.objectContaining({ code: "INVALID_POINTS", severity: "error" }),
       ]),
     );
+  });
+
+  it("uses the internal CNPJ guide when the workbook has only BANCO DE DADOS", async () => {
+    const parsed = await parseImportWorkbook(await workbookBuffer(false, false), {
+      filename: "entregadores.xlsx",
+      periodKey: "2026-07",
+      guideEntries: [{
+        sourceName: "João da Silva",
+        normalizedName: "joao da silva",
+        cnpj: "11222333000181",
+        sourceRow: 0,
+        sourceKey: "guide:test",
+      }],
+    });
+
+    expect(parsed.cnpjSheet).toBe("Guia interna de CNPJ");
+    expect(parsed.cnpjHeaderRow).toBe(0);
+    expect(["EXACT", "FUZZY"]).toContain(parsed.cnpjMatches.get(FIRST_ID)?.kind);
+    expect(parsed.cnpjMatches.get(FIRST_ID)?.cnpj).toBe("11222333000181");
+    expect(parsed.canCommit).toBe(true);
   });
 });

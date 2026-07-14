@@ -138,12 +138,29 @@ model Courier {
   importSnapshots         ImportCourierSnapshot[]
   redemptions             Redemption[]
   cnpjEntries             CnpjRegistryEntry[]
+  cnpjGuideEntry          CnpjGuideEntry?
   createdAt               DateTime                @default(now())
   updatedAt               DateTime                @updatedAt
 
   @@index([normalizedName])
   @@index([cnpjMatchStatus])
   @@index([status])
+}
+
+model CnpjGuideEntry {
+  id             String   @id @default(cuid())
+  name           String
+  normalizedName String
+  cnpj           String   @unique
+  courierId      String?  @unique
+  courier        Courier? @relation(fields: [courierId], references: [id], onDelete: SetNull)
+  source         String   @default("ADMIN")
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([normalizedName])
+  @@index([name])
 }
 
 model CnpjRegistryEntry {
