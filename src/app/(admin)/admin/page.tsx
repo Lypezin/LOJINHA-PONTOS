@@ -8,7 +8,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { ensureCurrentPeriod } from "@/features/points/period";
 import { requirePageAdmin } from "@/lib/auth/session";
-import { db } from "@/lib/db";
+import { db, retryDatabaseRead } from "@/lib/db";
 import { formatDateTime, formatPoints } from "@/lib/format";
 import { monthLabel, redemptionLabels, redemptionTone } from "@/lib/presentation";
 
@@ -28,7 +28,7 @@ export default async function AdminDashboardPage() {
   await requirePageAdmin();
   const period = await ensureCurrentPeriod();
   const [metricsRows, recentRedemptions, latestImport, lowStock] = await Promise.all([
-    db.$queryRaw<DashboardMetrics[]>(Prisma.sql`
+    retryDatabaseRead(() => db.$queryRaw<DashboardMetrics[]>(Prisma.sql`
       SELECT
         (SELECT COUNT(*)::int FROM "Courier" WHERE "status" = 'ACTIVE'::"CourierStatus") AS "courierCount",
         (SELECT COUNT(*)::int FROM "Product" WHERE "status" = 'ACTIVE'::"ProductStatus") AS "productCount",
@@ -39,7 +39,7 @@ export default async function AdminDashboardPage() {
         COALESCE(SUM("redeemedPoints"), 0)::int AS "redeemedPoints"
       FROM "PointAccount"
       WHERE "periodId" = ${period.id}
-    `),
+    `)),
     db.redemption.findMany({
       orderBy: { requestedAt: "desc" },
       take: 6,
