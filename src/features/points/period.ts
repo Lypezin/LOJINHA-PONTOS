@@ -1,4 +1,5 @@
 import { PointEntryType, PeriodStatus, Prisma } from "@prisma/client";
+import { cache } from "react";
 import { db } from "@/lib/db";
 
 const TIME_ZONE = "America/Sao_Paulo";
@@ -102,13 +103,15 @@ export async function ensureCurrentPeriod(now = new Date()) {
   return period;
 }
 
-export async function getCurrentAccount(courierId: string) {
+const loadCurrentAccount = async (courierId: string) => {
   const period = await ensureCurrentPeriod();
   const account = await db.pointAccount.findUnique({
     where: { courierId_periodId: { courierId, periodId: period.id } },
-    include: { entries: { orderBy: { createdAt: "desc" }, take: 8 } },
   });
   return { period, account };
-}
+};
+
+// Compartilha período e saldo entre o layout e a página na mesma requisição.
+export const getCurrentAccount = cache(loadCurrentAccount);
 
 export type TransactionClient = Prisma.TransactionClient;

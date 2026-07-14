@@ -17,6 +17,7 @@
     "import:excel": "tsx --env-file=.env.local scripts/import-excel.ts",
     "import:cnpj-guide": "tsx --env-file=.env.local scripts/import-cnpj-guide.ts",
     "verify:data": "tsx --env-file=.env.local scripts/verify-data.ts",
+    "verify:performance": "tsx --env-file=.env.local scripts/verify-performance.ts",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate deploy",

@@ -41,7 +41,7 @@ function AdminNav({ pathname, closeOnNavigate = false }: { pathname: string; clo
             aria-current={active ? "page" : undefined}
             className={cn(
               "flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-bold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200",
-              active ? "bg-blue-50 text-[var(--brand-blue-dark)]" : "text-slate-600 hover:bg-slate-100 hover:text-[var(--brand-navy)]",
+              active ? "border border-blue-100 bg-blue-50 text-[var(--brand-blue-dark)]" : "border border-transparent text-slate-600 hover:bg-slate-100 hover:text-[var(--brand-navy)]",
             )}
           >
             <Icon className="size-5" aria-hidden="true" />
@@ -59,7 +59,8 @@ export function AdminShell({ children, email }: { children: React.ReactNode; ema
 
   return (
     <div className="min-h-dvh bg-[var(--surface-soft)] lg:flex">
-      <aside className="sticky top-0 hidden h-dvh w-72 shrink-0 border-r border-slate-200 bg-white p-5 lg:flex lg:flex-col">
+      <aside className="sticky top-0 hidden h-dvh w-72 shrink-0 border-r border-slate-200 bg-white p-5 shadow-sm lg:flex lg:flex-col">
+        <div className="absolute inset-x-0 top-0 h-1 bg-[var(--brand-blue)]" />
         <AppMark href="/admin" />
         <div className="mt-8 flex-1 overflow-y-auto">
           <AdminNav pathname={pathname} />
@@ -105,7 +106,7 @@ export function AdminShell({ children, email }: { children: React.ReactNode; ema
             </Dialog.Portal>
           </Dialog.Root>
         </header>
-        <main className="mx-auto w-full max-w-[1600px] px-4 py-8 sm:px-6 lg:px-8">{children}</main>
+        <main className="mx-auto w-full max-w-[1600px] px-4 py-8 sm:px-6 sm:py-10 lg:px-8">{children}</main>
       </div>
     </div>
   );

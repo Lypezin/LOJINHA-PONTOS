@@ -49,8 +49,10 @@ export default async function StorePage() {
         description="Use seus pontos da competência atual. O saldo que não for usado expira automaticamente na virada do mês."
       />
 
-      <section className="overflow-hidden rounded-[28px] bg-[var(--brand-blue-dark)] p-6 text-white shadow-lg sm:p-8" aria-labelledby="balance-title">
-        <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+      <section className="relative overflow-hidden rounded-[28px] border border-blue-900 bg-[var(--brand-blue-dark)] p-6 text-white shadow-lg sm:p-8" aria-labelledby="balance-title">
+        <span className="absolute -right-10 -top-16 size-52 rounded-full border-[28px] border-white/[0.06]" aria-hidden="true" />
+        <span className="absolute -bottom-20 right-32 size-40 rounded-full border-[24px] border-[var(--brand-mint)]/[0.08]" aria-hidden="true" />
+        <div className="relative z-10 flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <div className="flex items-center gap-2 text-sm font-bold text-blue-100">
               <WalletCards className="size-5 text-[var(--brand-mint)]" aria-hidden="true" />
@@ -65,12 +67,12 @@ export default async function StorePage() {
             </Link>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:min-w-[28rem]">
-            <div className="rounded-2xl bg-white/10 p-4">
+            <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
               <CalendarClock className="size-5 text-[var(--brand-mint)]" aria-hidden="true" />
               <p className="mt-3 text-xs font-semibold text-blue-100">Válido até</p>
               <p className="mt-1 font-extrabold tabular-nums">{formatDate(period.endsAt)}</p>
             </div>
-            <div className={expiringSoon ? "rounded-2xl bg-amber-100 p-4 text-amber-950" : "rounded-2xl bg-white/10 p-4"}>
+            <div className={expiringSoon ? "rounded-2xl border border-amber-200 bg-amber-100 p-4 text-amber-950" : "rounded-2xl border border-white/10 bg-white/10 p-4"}>
               <Clock3 className={expiringSoon ? "size-5 text-amber-800" : "size-5 text-[var(--brand-mint)]"} aria-hidden="true" />
               <p className={expiringSoon ? "mt-3 text-xs font-semibold text-amber-900" : "mt-3 text-xs font-semibold text-blue-100"}>Tempo restante</p>
               <p className="mt-1 font-extrabold tabular-nums">{daysLeft === 1 ? "1 dia" : `${daysLeft} dias`}</p>

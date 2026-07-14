@@ -17,8 +17,9 @@ export function CourierShell({ children, name, balance }: { children: React.Reac
   const pathname = usePathname();
 
   return (
-    <div className="min-h-dvh bg-[#f7f9fc]">
-      <header className="sticky top-0 z-20 border-b border-slate-200 bg-white">
+    <div className="min-h-dvh bg-[var(--background)]">
+      <header className="sticky top-0 z-20 border-b border-slate-200 bg-white shadow-sm">
+        <div className="h-1 bg-[var(--brand-blue)]" />
         <div className="mx-auto flex min-h-20 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
           <AppMark />
           <nav className="hidden items-center gap-1 md:flex" aria-label="Navegação principal">
@@ -31,7 +32,7 @@ export function CourierShell({ children, name, balance }: { children: React.Reac
                   aria-current={active ? "page" : undefined}
                   className={cn(
                     "inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-bold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200",
-                    active ? "bg-blue-50 text-[var(--brand-blue-dark)]" : "text-slate-600 hover:bg-slate-100 hover:text-[var(--brand-navy)]",
+                    active ? "border border-blue-100 bg-blue-50 text-[var(--brand-blue-dark)]" : "border border-transparent text-slate-600 hover:bg-slate-100 hover:text-[var(--brand-navy)]",
                   )}
                 >
                   <Icon className="size-4" aria-hidden="true" />
@@ -43,7 +44,7 @@ export function CourierShell({ children, name, balance }: { children: React.Reac
           <div className="flex items-center gap-2">
             <Link
               href="/historico"
-              className="hidden min-h-11 items-center gap-2 rounded-full bg-emerald-50 px-4 text-sm font-extrabold text-[var(--brand-mint-ink)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 sm:inline-flex"
+              className="hidden min-h-11 items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 text-sm font-extrabold text-[var(--brand-mint-ink)] shadow-sm focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 sm:inline-flex"
               aria-label={`Saldo atual: ${formatPoints(balance)} pontos. Ver extrato.`}
             >
               <WalletCards className="size-4" aria-hidden="true" />
@@ -60,7 +61,7 @@ export function CourierShell({ children, name, balance }: { children: React.Reac
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-7xl px-4 py-8 pb-28 sm:px-6 md:pb-10 lg:px-8">{children}</main>
+      <main className="mx-auto w-full max-w-7xl px-4 py-8 pb-28 sm:px-6 sm:py-10 md:pb-10 lg:px-8">{children}</main>
 
       <nav
         className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white px-3 pt-2 md:hidden"

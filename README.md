@@ -83,11 +83,12 @@ npm run build
 npm run smoke:redemption
 npm run smoke:import
 npm run verify:data
+npm run verify:performance
 npm run db:migrate
 npm audit
 ```
 
-O smoke de resgate cria dados isolados, disputa simultaneamente o último item e confirma que somente um pedido debita saldo e estoque. O smoke de importação valida idempotência, deltas e concorrência com um resgate. Os dados temporários são removidos ao final.
+O smoke de resgate cria dados isolados, disputa simultaneamente o último item e confirma que somente um pedido debita saldo e estoque. O smoke de importação valida idempotência, deltas e concorrência com um resgate. `verify:performance` confirma os índices críticos e impõe um teto de 50 ms para as consultas principais no banco. Os dados temporários são removidos ao final.
 
 ## Publicação
 

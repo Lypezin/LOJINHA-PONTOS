@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Prisma } from "@prisma/client";
 import { ArrowRight, Boxes, FileSpreadsheet, PackageCheck, ShoppingBag, UserRoundSearch, UsersRound, WalletCards } from "lucide-react";
 import { buttonStyles } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -13,15 +14,32 @@ import { monthLabel, redemptionLabels, redemptionTone } from "@/lib/presentation
 
 export const metadata = { title: "Administração" };
 
+type DashboardMetrics = {
+  courierCount: number;
+  productCount: number;
+  pendingRedemptions: number;
+  unresolvedMatches: number;
+  balancePoints: number;
+  importedPoints: number;
+  redeemedPoints: number;
+};
+
 export default async function AdminDashboardPage() {
   await requirePageAdmin();
   const period = await ensureCurrentPeriod();
-  const [courierCount, productCount, pendingRedemptions, unresolvedMatches, pointTotals, recentRedemptions, latestImport, lowStock] = await Promise.all([
-    db.courier.count({ where: { status: "ACTIVE" } }),
-    db.product.count({ where: { status: "ACTIVE" } }),
-    db.redemption.count({ where: { status: { in: ["REQUESTED", "APPROVED", "PREPARING", "READY"] } } }),
-    db.cnpjRegistryEntry.count({ where: { matchStatus: { in: ["PENDING", "AMBIGUOUS", "NOT_FOUND"] } } }),
-    db.pointAccount.aggregate({ where: { periodId: period.id }, _sum: { balancePoints: true, importedPoints: true, redeemedPoints: true } }),
+  const [metricsRows, recentRedemptions, latestImport, lowStock] = await Promise.all([
+    db.$queryRaw<DashboardMetrics[]>(Prisma.sql`
+      SELECT
+        (SELECT COUNT(*)::int FROM "Courier" WHERE "status" = 'ACTIVE'::"CourierStatus") AS "courierCount",
+        (SELECT COUNT(*)::int FROM "Product" WHERE "status" = 'ACTIVE'::"ProductStatus") AS "productCount",
+        (SELECT COUNT(*)::int FROM "Redemption" WHERE "status" IN ('REQUESTED', 'APPROVED', 'PREPARING', 'READY')) AS "pendingRedemptions",
+        (SELECT COUNT(*)::int FROM "Courier" WHERE "cnpj" IS NULL AND "status" <> 'INACTIVE'::"CourierStatus") AS "unresolvedMatches",
+        COALESCE(SUM("balancePoints"), 0)::int AS "balancePoints",
+        COALESCE(SUM("importedPoints"), 0)::int AS "importedPoints",
+        COALESCE(SUM("redeemedPoints"), 0)::int AS "redeemedPoints"
+      FROM "PointAccount"
+      WHERE "periodId" = ${period.id}
+    `),
     db.redemption.findMany({
       orderBy: { requestedAt: "desc" },
       take: 6,
@@ -38,6 +56,8 @@ export default async function AdminDashboardPage() {
     db.importBatch.findFirst({ orderBy: { createdAt: "desc" }, select: { id: true, filename: true, status: true, courierCount: true, totalPoints: true, createdAt: true } }),
     db.product.findMany({ where: { status: "ACTIVE", stockQuantity: { lte: 5 } }, orderBy: { stockQuantity: "asc" }, take: 5, select: { id: true, name: true, stockQuantity: true } }),
   ]);
+  const metrics = metricsRows[0] ?? { courierCount: 0, productCount: 0, pendingRedemptions: 0, unresolvedMatches: 0, balancePoints: 0, importedPoints: 0, redeemedPoints: 0 };
+  const { courierCount, productCount, pendingRedemptions, unresolvedMatches } = metrics;
 
   return (
     <div className="space-y-10">
@@ -49,8 +69,8 @@ export default async function AdminDashboardPage() {
       />
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Indicadores principais">
-        <StatCard label="Saldo em circulação" value={`${formatPoints(pointTotals._sum.balancePoints ?? 0)} pts`} helper={`${formatPoints(pointTotals._sum.importedPoints ?? 0)} pontos importados no mês`} icon={WalletCards} />
-        <StatCard label="Resgates em andamento" value={formatPoints(pendingRedemptions)} helper={`${formatPoints(pointTotals._sum.redeemedPoints ?? 0)} pontos já utilizados`} icon={PackageCheck} />
+        <StatCard label="Saldo em circulação" value={`${formatPoints(metrics.balancePoints)} pts`} helper={`${formatPoints(metrics.importedPoints)} pontos importados no mês`} icon={WalletCards} />
+        <StatCard label="Resgates em andamento" value={formatPoints(pendingRedemptions)} helper={`${formatPoints(metrics.redeemedPoints)} pontos já utilizados`} icon={PackageCheck} />
         <StatCard label="Entregadores ativos" value={formatPoints(courierCount)} helper="Cadastros liberados para a operação" icon={UsersRound} />
         <StatCard label="Produtos ativos" value={formatPoints(productCount)} helper={`${lowStock.length} item(ns) com estoque baixo`} icon={Boxes} />
       </section>

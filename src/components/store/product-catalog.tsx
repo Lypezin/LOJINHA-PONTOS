@@ -34,7 +34,7 @@ function ProductImage({ src, name }: { src: string | null; name: string }) {
   return (
     // O catálogo aceita URL externa e imagem embutida cadastradas pelo administrador.
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={src} alt={name} className="aspect-[4/3] w-full object-cover" onError={() => setFailed(true)} />
+    <img src={src} alt={name} loading="lazy" decoding="async" className="aspect-[4/3] w-full object-cover" onError={() => setFailed(true)} />
   );
 }
 
@@ -207,12 +207,12 @@ export function ProductCatalog({ products, balance }: { products: StoreProduct[]
       </div>
 
       {visible.length ? (
-        <div className="mt-6 grid grid-cols-1 gap-5 min-[360px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {visible.map((product) => {
             const referenceValue = formatCurrency(product.referenceValueCents);
             const lowStock = product.stockQuantity > 0 && product.stockQuantity <= 5;
             return (
-              <article key={product.id} className="flex min-w-0 flex-col overflow-hidden rounded-[20px] border border-slate-200 bg-white shadow-sm">
+              <article key={product.id} className="flex min-w-0 flex-col overflow-hidden rounded-[20px] border border-slate-200 bg-white shadow-sm ring-1 ring-slate-950/[0.02]">
                 <div className="relative overflow-hidden">
                   <ProductImage src={product.imageUrl} name={product.name} />
                   {product.featured ? <StatusBadge tone="info" className="absolute left-3 top-3 border-white/80 bg-white">Destaque</StatusBadge> : null}

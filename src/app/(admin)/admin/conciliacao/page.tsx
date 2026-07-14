@@ -39,10 +39,16 @@ export default async function AdminReconciliationPage({ searchParams }: { search
     const filteredTotal = await db.cnpjGuideEntry.count({ where });
     const pageCount = Math.max(1, Math.ceil(filteredTotal / 40));
     const page = Number.isInteger(requestedPage) ? Math.min(Math.max(requestedPage, 1), pageCount) : 1;
-    const [entries, couriers] = await Promise.all([
-      db.cnpjGuideEntry.findMany({ where, orderBy: { name: "asc" }, skip: (page - 1) * 40, take: 40, select: { id: true, name: true, cnpj: true, courierId: true, courier: { select: { name: true } }, source: true, notes: true } }),
-      db.courier.findMany({ where: { status: { not: "INACTIVE" } }, orderBy: { name: "asc" }, select: { id: true, name: true, cnpj: true } }),
-    ]);
+    const entries = await db.cnpjGuideEntry.findMany({ where, orderBy: { name: "asc" }, skip: (page - 1) * 40, take: 40, select: { id: true, name: true, cnpj: true, courierId: true, courier: { select: { name: true } }, source: true, notes: true } });
+    const linkedCourierIds = entries.flatMap((entry) => entry.courierId ? [entry.courierId] : []);
+    const couriers = await db.courier.findMany({
+      where: {
+        status: { not: "INACTIVE" },
+        OR: [{ cnpj: null }, { id: { in: linkedCourierIds } }],
+      },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, cnpj: true },
+    });
     content = <CnpjGuideManager entries={entries satisfies CnpjGuideEntryView[]} couriers={couriers satisfies CnpjGuideCourierOption[]} page={page} total={filteredTotal} query={query} initialCourierId={params.courierId} />;
   } else {
     const pageCount = Math.max(1, Math.ceil(pendingTotal / 30));

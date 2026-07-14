@@ -3,9 +3,10 @@
 import * as AlertDialog from "@radix-ui/react-alert-dialog";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Check, CircleDollarSign, Copy, KeyRound, Pencil, Search, UsersRound, X } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type FormEvent, useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { type FormEvent, useState } from "react";
+import { Button, buttonStyles } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { formatDate, formatPoints } from "@/lib/format";
@@ -226,28 +227,20 @@ function AdjustPointsDialog({ courier, onSaved }: { courier: AdminCourier; onSav
   );
 }
 
-export function CourierManager({ couriers }: { couriers: AdminCourier[] }) {
+export function CourierManager({ couriers, total, page, query, status }: { couriers: AdminCourier[]; total: number; page: number; query: string; status: "ALL" | CourierStatus }) {
   const router = useRouter();
-  const [query, setQuery] = useState("");
-  const [status, setStatus] = useState<"ALL" | CourierStatus>("ALL");
-  const [page, setPage] = useState(1);
-  const filtered = useMemo(() => couriers.filter((courier) => {
-    const haystack = `${courier.name} ${courier.cnpj ?? ""} ${courier.email ?? ""}`.toLocaleLowerCase("pt-BR");
-    return haystack.includes(query.trim().toLocaleLowerCase("pt-BR")) && (status === "ALL" || courier.status === status);
-  }), [couriers, query, status]);
   const pageSize = 20;
-  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const currentPage = Math.min(page, pageCount);
-  const visible = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const refresh = () => router.refresh();
+  const pageHref = (nextPage: number) => `/admin/entregadores?page=${nextPage}${query ? `&q=${encodeURIComponent(query)}` : ""}${status !== "ALL" ? `&status=${status}` : ""}`;
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row"><label className="relative block max-w-lg flex-1"><span className="sr-only">Buscar entregador</span><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" aria-hidden="true" /><input className={`${fieldClass} pl-10`} value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} placeholder="Buscar por nome, CNPJ ou e-mail" /></label><label><span className="sr-only">Filtrar cadastro por status</span><select className={`${fieldClass} sm:w-48`} value={status} onChange={(event) => { setStatus(event.target.value as "ALL" | CourierStatus); setPage(1); }}><option value="ALL">Todos os status</option><option value="ACTIVE">Ativos</option><option value="PENDING">Pendentes</option><option value="INACTIVE">Inativos</option></select></label></div>
-      {filtered.length ? (
+      <form method="get" className="flex flex-col gap-3 sm:flex-row"><label className="relative block max-w-lg flex-1"><span className="sr-only">Buscar entregador</span><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" aria-hidden="true" /><input name="q" className={`${fieldClass} pl-10`} defaultValue={query} placeholder="Buscar por nome, CNPJ ou e-mail" /></label><label><span className="sr-only">Filtrar cadastro por status</span><select name="status" className={`${fieldClass} sm:w-48`} defaultValue={status}><option value="ALL">Todos os status</option><option value="ACTIVE">Ativos</option><option value="PENDING">Pendentes</option><option value="INACTIVE">Inativos</option></select></label><Button type="submit" variant="secondary">Buscar</Button></form>
+      {couriers.length ? (
         <>
           <div className="grid gap-4 xl:grid-cols-2">
-          {visible.map((courier) => (
+          {couriers.map((courier) => (
             <article key={courier.id} className="rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm">
               <div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0"><h2 className="line-clamp-2 text-balance text-lg font-extrabold text-[var(--brand-navy)]">{courier.name}</h2><p className="mt-1 truncate text-sm text-slate-600">{courier.email || "Ainda sem conta de acesso"}</p></div><StatusBadge tone={courierTone(courier.status)}>{courierLabel(courier.status)}</StatusBadge></div>
               <dl className="mt-5 grid gap-3 rounded-2xl bg-slate-50 p-4 text-sm sm:grid-cols-3"><div><dt className="text-xs font-semibold text-slate-500">CNPJ</dt><dd className="mt-1 font-bold tabular-nums text-[var(--brand-navy)]">{formatCnpj(courier.cnpj)}</dd></div><div><dt className="text-xs font-semibold text-slate-500">Praça</dt><dd className="mt-1 font-bold text-[var(--brand-navy)]">{courier.plaza || "Não informada"}</dd></div><div><dt className="text-xs font-semibold text-slate-500">Conciliação</dt><dd className="mt-1 font-bold text-[var(--brand-navy)]">{matchLabels[courier.cnpjMatchStatus]}</dd></div></dl>
@@ -259,12 +252,12 @@ export function CourierManager({ couriers }: { couriers: AdminCourier[] }) {
           </div>
           {pageCount > 1 ? (
             <nav className="flex flex-col items-center justify-between gap-3 rounded-[20px] border border-slate-200 bg-white p-4 sm:flex-row" aria-label="Páginas de entregadores">
-              <p className="text-sm text-slate-600"><span className="font-extrabold tabular-nums text-[var(--brand-navy)]">{formatPoints(filtered.length)}</span> entregadores • página <span className="font-bold tabular-nums">{currentPage} de {pageCount}</span></p>
-              <div className="flex gap-2"><Button variant="secondary" size="sm" disabled={currentPage === 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>Anterior</Button><Button variant="secondary" size="sm" disabled={currentPage === pageCount} onClick={() => setPage((value) => Math.min(pageCount, value + 1))}>Próxima</Button></div>
+              <p className="text-sm text-slate-600"><span className="font-extrabold tabular-nums text-[var(--brand-navy)]">{formatPoints(total)}</span> entregadores • página <span className="font-bold tabular-nums">{page} de {pageCount}</span></p>
+              <div className="flex gap-2">{page > 1 ? <Link href={pageHref(page - 1)} className={buttonStyles({ variant: "secondary", size: "sm" })}>Anterior</Link> : null}{page < pageCount ? <Link href={pageHref(page + 1)} className={buttonStyles({ variant: "secondary", size: "sm" })}>Próxima</Link> : null}</div>
             </nav>
           ) : null}
         </>
-      ) : <EmptyState icon={<UsersRound className="size-6" />} title={couriers.length ? "Nenhum entregador encontrado" : "Nenhum entregador importado"} description={couriers.length ? "Revise a busca ou o filtro selecionado." : "Importe a planilha mensal para criar a base de entregadores."} action={couriers.length ? <Button variant="secondary" onClick={() => { setQuery(""); setStatus("ALL"); }}>Limpar filtros</Button> : undefined} />}
+      ) : <EmptyState icon={<UsersRound className="size-6" />} title={query || status !== "ALL" ? "Nenhum entregador encontrado" : "Nenhum entregador importado"} description={query || status !== "ALL" ? "Revise a busca ou o filtro selecionado." : "Importe a planilha mensal para criar a base de entregadores."} action={query || status !== "ALL" ? <Link href="/admin/entregadores" className={buttonStyles({ variant: "secondary" })}>Limpar filtros</Link> : undefined} />}
     </div>
   );
 }

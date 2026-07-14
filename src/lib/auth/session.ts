@@ -4,6 +4,7 @@ import { createHash, randomBytes } from "node:crypto";
 import type { CourierStatus, UserRole } from "@prisma/client";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { cache } from "react";
 import { db } from "@/lib/db";
 import { getRequestIpHash } from "@/lib/auth/audit";
 import { DomainError } from "@/lib/domain-error";
@@ -95,7 +96,7 @@ export async function createSession(userId: string, request: Request) {
   return { id: session.id, expiresAt };
 }
 
-export async function getCurrentUser(): Promise<SessionUser | null> {
+const loadCurrentUser = async (): Promise<SessionUser | null> => {
   const token = (await cookies()).get(SESSION_COOKIE_NAME)?.value;
   if (!token) return null;
 
@@ -134,7 +135,11 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
   }
 
   return session.user;
-}
+};
+
+// Layouts e páginas protegidas consultam o mesmo usuário durante uma renderização.
+// O cache do React é isolado por requisição e evita viagens duplicadas ao banco.
+export const getCurrentUser = cache(loadCurrentUser);
 
 export async function destroyCurrentSession() {
   const token = (await cookies()).get(SESSION_COOKIE_NAME)?.value;
