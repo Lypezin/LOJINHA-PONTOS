@@ -10,7 +10,11 @@ export default async function CourierLayout({ children }: { children: React.Reac
   const { account } = await getCurrentAccount(user.courierId);
 
   return (
-    <CourierShell name={user.courier.name} balance={account?.balancePoints ?? 0}>
+    <CourierShell
+      name={user.displayName || user.courier.name}
+      balance={account?.balancePoints ?? 0}
+      avatarVersion={user.avatarUpdatedAt?.getTime() ?? null}
+    >
       {children}
     </CourierShell>
   );

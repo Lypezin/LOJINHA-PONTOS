@@ -13,7 +13,17 @@ const items = [
   { href: "/perfil", label: "Perfil", icon: UserRound },
 ];
 
-export function CourierShell({ children, name, balance }: { children: React.ReactNode; name: string; balance: number }) {
+export function CourierShell({
+  children,
+  name,
+  balance,
+  avatarVersion,
+}: {
+  children: React.ReactNode;
+  name: string;
+  balance: number;
+  avatarVersion: number | null;
+}) {
   const pathname = usePathname();
 
   return (
@@ -52,10 +62,14 @@ export function CourierShell({ children, name, balance }: { children: React.Reac
             </Link>
             <Link
               href="/perfil"
-              className="flex size-11 items-center justify-center rounded-full bg-[var(--brand-navy)] text-sm font-extrabold text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+              className="flex size-11 items-center justify-center overflow-hidden rounded-full bg-[var(--brand-navy)] text-sm font-extrabold text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
               aria-label={`Abrir perfil de ${name}`}
             >
-              {initials(name)}
+              {avatarVersion ? (
+                // A imagem é privada e servida por uma rota autenticada do próprio app.
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={`/api/profile/avatar?v=${avatarVersion}`} alt="" className="size-full object-cover" />
+              ) : initials(name)}
             </Link>
           </div>
         </div>

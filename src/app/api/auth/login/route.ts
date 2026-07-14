@@ -29,6 +29,7 @@ export async function POST(request: Request) {
       select: {
         id: true,
         email: true,
+        displayName: true,
         passwordHash: true,
         role: true,
         active: true,
@@ -62,7 +63,7 @@ export async function POST(request: Request) {
     return secureJson({
       ok: true,
       message: "Entrada autorizada.",
-      user: { name: user.courier?.name ?? "Administrador", email: user.email, role: user.role },
+      user: { name: user.displayName ?? user.courier?.name ?? "Administrador", email: user.email, role: user.role },
       redirectTo: user.mustChangePassword ? "/trocar-senha" : user.role === "ADMIN" ? "/admin" : "/loja",
     });
   } catch {

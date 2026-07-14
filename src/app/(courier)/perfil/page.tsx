@@ -1,5 +1,6 @@
 import { CalendarClock, Mail, MapPin, ShieldCheck, Store, UserRound } from "lucide-react";
 import { LogoutButton } from "@/components/auth/logout-button";
+import { ProfileEditor } from "@/components/profile/profile-editor";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { getCurrentAccount } from "@/features/points/period";
@@ -29,7 +30,14 @@ export default async function ProfilePage() {
 
   return (
     <div className="space-y-10">
-      <PageHeader eyebrow="Sua conta" title="Meu perfil" description="Confira os dados vinculados ao seu cadastro e a regra de validade dos pontos." />
+      <PageHeader eyebrow="Sua conta" title="Meu perfil" description="Atualize seus dados, personalize sua foto e confira as informações operacionais vinculadas ao cadastro." />
+
+      <ProfileEditor
+        legalName={courier.name}
+        initialDisplayName={user.displayName || courier.name}
+        initialEmail={user.email}
+        avatarVersion={user.avatarUpdatedAt?.getTime() ?? null}
+      />
 
       <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
         <section className="rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm sm:p-7" aria-labelledby="data-title">
@@ -50,7 +58,7 @@ export default async function ProfilePage() {
               </div>
             ))}
           </dl>
-          <p className="mt-5 text-pretty text-xs leading-5 text-slate-500">Se algum dado estiver incorreto, fale com a equipe administrativa. Nome e CNPJ são validados pelas guias da planilha mensal.</p>
+          <p className="mt-5 text-pretty text-xs leading-5 text-slate-500">Praça, subpraça, nome operacional e CNPJ são validados pelas guias da planilha mensal. Se algum deles estiver incorreto, fale com a equipe administrativa.</p>
         </section>
 
         <div className="space-y-6">

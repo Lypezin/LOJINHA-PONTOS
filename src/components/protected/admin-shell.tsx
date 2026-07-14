@@ -11,6 +11,7 @@ import {
   PackageCheck,
   Settings,
   UserRoundSearch,
+  UserCog,
   UsersRound,
   X,
 } from "lucide-react";
@@ -24,6 +25,7 @@ const items = [
   { href: "/admin/produtos", label: "Produtos", icon: Boxes },
   { href: "/admin/resgates", label: "Resgates", icon: PackageCheck },
   { href: "/admin/entregadores", label: "Entregadores", icon: UsersRound },
+  { href: "/admin/usuarios", label: "Usuários", icon: UserCog },
   { href: "/admin/importacoes", label: "Importações", icon: FileSpreadsheet },
   { href: "/admin/conciliacao", label: "Conciliação", icon: UserRoundSearch },
   { href: "/admin/configuracoes", label: "Configurações", icon: Settings },
@@ -54,7 +56,7 @@ function AdminNav({ pathname, closeOnNavigate = false }: { pathname: string; clo
   );
 }
 
-export function AdminShell({ children, email }: { children: React.ReactNode; email: string }) {
+export function AdminShell({ children, email, name }: { children: React.ReactNode; email: string; name: string | null }) {
   const pathname = usePathname();
 
   return (
@@ -67,10 +69,10 @@ export function AdminShell({ children, email }: { children: React.ReactNode; ema
         </div>
         <div className="mt-6 flex items-center gap-3 border-t border-slate-200 pt-5">
           <span className="flex size-10 items-center justify-center rounded-full bg-[var(--brand-navy)] text-xs font-extrabold text-white" aria-hidden="true">
-            {initials(email)}
+            {initials(name || email)}
           </span>
           <div className="min-w-0">
-            <p className="text-xs font-semibold text-slate-500">Administrador</p>
+            <p className="truncate text-xs font-semibold text-slate-500">{name || "Administrador"}</p>
             <p className="truncate text-sm font-bold text-[var(--brand-navy)]">{email}</p>
           </div>
         </div>

@@ -68,10 +68,14 @@ model User {
   id                 String               @id @default(cuid())
   email              String
   emailNormalized    String               @unique
+  displayName        String?              @db.VarChar(100)
   passwordHash       String
   role               UserRole             @default(COURIER)
   active             Boolean              @default(true)
   mustChangePassword Boolean              @default(false)
+  avatarData         Bytes?
+  avatarMimeType     String?              @db.VarChar(32)
+  avatarUpdatedAt    DateTime?
   courierId          String?              @unique
   courier            Courier?             @relation(fields: [courierId], references: [id], onDelete: SetNull)
   sessions           Session[]

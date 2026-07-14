@@ -17,9 +17,11 @@ export type SessionUser = {
   id: string;
   email: string;
   emailNormalized: string;
+  displayName: string | null;
   role: UserRole;
   active: boolean;
   mustChangePassword: boolean;
+  avatarUpdatedAt: Date | null;
   courierId: string | null;
   courier: {
     id: string;
@@ -112,9 +114,11 @@ const loadCurrentUser = async (): Promise<SessionUser | null> => {
           id: true,
           email: true,
           emailNormalized: true,
+          displayName: true,
           role: true,
           active: true,
           mustChangePassword: true,
+          avatarUpdatedAt: true,
           courierId: true,
           courier: { select: { id: true, name: true, status: true } },
         },

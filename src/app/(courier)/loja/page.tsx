@@ -44,7 +44,7 @@ export default async function StorePage() {
   return (
     <div className="space-y-10">
       <PageHeader
-        eyebrow={`Olá, ${user.courier.name.split(" ")[0]}`}
+        eyebrow={`Olá, ${(user.displayName || user.courier.name).split(" ")[0]}`}
         title="Seus pedidos viram conquistas"
         description="Use seus pontos da competência atual. O saldo que não for usado expira automaticamente na virada do mês."
       />
