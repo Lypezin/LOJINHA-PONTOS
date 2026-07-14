@@ -20,7 +20,7 @@ Aplicação full-stack para transformar a produção mensal dos entregadores em 
 ## Requisitos
 
 - Node.js 20.12 ou mais recente.
-- PostgreSQL acessível pela variável `DATABASE_URL`.
+- PostgreSQL acessível por `DATABASE_URL` (pooler transacional para a aplicação) e `DIRECT_URL` (migrações/seed).
 - Uma conta Resend e domínio validado para recuperação de senha em produção.
 
 ## Instalação
@@ -94,12 +94,14 @@ O smoke de resgate cria dados isolados, disputa simultaneamente o último item e
 Antes de publicar:
 
 1. configure `NEXT_PUBLIC_APP_URL` e `APP_URL` com HTTPS;
-2. troque `ADMIN_EMAIL`, `ADMIN_PASSWORD` e `AUTH_AUDIT_SALT`;
-3. configure `RESEND_API_KEY` e `EMAIL_FROM`;
-4. mantenha `SEED_DEMO_DATA=false`;
-5. execute `npm run db:migrate` para aplicar as migrações versionadas;
-6. execute `npm run build` e os testes;
-7. faça backup do PostgreSQL e defina política de retenção para os registros de auditoria.
+2. use o pooler transacional do Supabase (`6543`) em `DATABASE_URL` com `pgbouncer=true&connection_limit=1`;
+3. use a conexão de sessão (`5432`) em `DIRECT_URL` para migrações e seed;
+4. troque `ADMIN_EMAIL`, `ADMIN_PASSWORD` e `AUTH_AUDIT_SALT`;
+5. configure `RESEND_API_KEY` e `EMAIL_FROM`;
+6. mantenha `SEED_DEMO_DATA=false`;
+7. execute `npm run db:migrate` para aplicar as migrações versionadas;
+8. execute `npm run build` e os testes;
+9. faça backup do PostgreSQL e defina política de retenção para os registros de auditoria.
 
 Fotos enviadas pelo painel são armazenadas como URL ou `data URL` limitada. Para um catálogo grande, recomenda-se trocar por um bucket S3/Supabase Storage sem alterar o restante do domínio.
 

@@ -9,7 +9,9 @@ export default defineConfig({
   schema: "prisma/schema.prisma",
   engine: "classic",
   datasource: {
-    url: env("DATABASE_URL"),
+    // Runtime serverless usa o pooler transacional; migrações preferem a
+    // conexão de sessão/direta para manter continuidade de sessão.
+    url: process.env.DIRECT_URL ?? env("DATABASE_URL"),
   },
   migrations: {
     path: "prisma/migrations",
