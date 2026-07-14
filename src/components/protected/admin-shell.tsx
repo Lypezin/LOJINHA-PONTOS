@@ -11,6 +11,7 @@ import {
   PackageCheck,
   Settings,
   UserRoundSearch,
+  UserRound,
   UserCog,
   UsersRound,
   X,
@@ -29,6 +30,7 @@ const items = [
   { href: "/admin/importacoes", label: "Importações", icon: FileSpreadsheet },
   { href: "/admin/conciliacao", label: "Conciliação", icon: UserRoundSearch },
   { href: "/admin/configuracoes", label: "Configurações", icon: Settings },
+  { href: "/admin/perfil", label: "Meu perfil", icon: UserRound },
 ];
 
 function AdminNav({ pathname, closeOnNavigate = false }: { pathname: string; closeOnNavigate?: boolean }) {
@@ -56,7 +58,7 @@ function AdminNav({ pathname, closeOnNavigate = false }: { pathname: string; clo
   );
 }
 
-export function AdminShell({ children, email, name }: { children: React.ReactNode; email: string; name: string | null }) {
+export function AdminShell({ children, email, name, avatarVersion }: { children: React.ReactNode; email: string; name: string | null; avatarVersion: number | null }) {
   const pathname = usePathname();
 
   return (
@@ -67,15 +69,19 @@ export function AdminShell({ children, email, name }: { children: React.ReactNod
         <div className="mt-8 flex-1 overflow-y-auto">
           <AdminNav pathname={pathname} />
         </div>
-        <div className="mt-6 flex items-center gap-3 border-t border-slate-200 pt-5">
-          <span className="flex size-10 items-center justify-center rounded-full bg-[var(--brand-navy)] text-xs font-extrabold text-white" aria-hidden="true">
-            {initials(name || email)}
+        <Link href="/admin/perfil" className="mt-6 flex items-center gap-3 rounded-xl border-t border-slate-200 pt-5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200" aria-label="Abrir meu perfil">
+          <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--brand-navy)] text-xs font-extrabold text-white" aria-hidden="true">
+            {avatarVersion ? (
+              // A imagem é privada e servida por uma rota autenticada.
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={`/api/profile/avatar?v=${avatarVersion}`} alt="" className="size-full object-cover" />
+            ) : initials(name || email)}
           </span>
           <div className="min-w-0">
             <p className="truncate text-xs font-semibold text-slate-500">{name || "Administrador"}</p>
             <p className="truncate text-sm font-bold text-[var(--brand-navy)]">{email}</p>
           </div>
-        </div>
+        </Link>
         <div className="mt-3"><LogoutButton /></div>
       </aside>
 

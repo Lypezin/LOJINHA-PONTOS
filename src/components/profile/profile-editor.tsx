@@ -19,11 +19,13 @@ export function ProfileEditor({
   initialDisplayName,
   initialEmail,
   avatarVersion,
+  showOperationalName = true,
 }: {
   legalName: string;
   initialDisplayName: string;
   initialEmail: string;
   avatarVersion: number | null;
+  showOperationalName?: boolean;
 }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -186,7 +188,7 @@ export function ProfileEditor({
           <div>
             <label htmlFor="profile-name" className="mb-1.5 block text-sm font-bold">Nome de exibição</label>
             <div className="relative"><UserRound className="pointer-events-none absolute left-3 top-3.5 size-4 text-slate-400" /><input id="profile-name" className={`${fieldClass} pl-10`} required minLength={2} maxLength={100} value={displayName} onChange={(event) => { setDisplayName(event.target.value); setProfileMessage(""); }} /></div>
-            <p className="mt-1.5 text-xs text-slate-500">O nome operacional da planilha continua protegido: {legalName}.</p>
+            {showOperationalName ? <p className="mt-1.5 text-xs text-slate-500">O nome operacional da planilha continua protegido: {legalName}.</p> : null}
           </div>
           <div>
             <label htmlFor="profile-email" className="mb-1.5 block text-sm font-bold">E-mail de acesso</label>
