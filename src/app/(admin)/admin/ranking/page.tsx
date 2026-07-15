@@ -66,10 +66,10 @@ export default async function AdminRankingPage() {
 
   const averageBalance = accounts.length > 0 ? totalBalance / accounts.length : 0;
 
-  // Sort and take top 10
-  topEarners.sort((a, b) => b.value - a.value).splice(10);
-  topSpenders.sort((a, b) => b.value - a.value).splice(10);
-  topBalances.sort((a, b) => b.value - a.value).splice(10);
+  // Sort entries
+  topEarners.sort((a, b) => b.value - a.value);
+  topSpenders.sort((a, b) => b.value - a.value);
+  topBalances.sort((a, b) => b.value - a.value);
 
   const stats = {
     totalDistributed,
