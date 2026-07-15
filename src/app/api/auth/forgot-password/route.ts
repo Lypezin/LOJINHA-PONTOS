@@ -91,7 +91,7 @@ export async function POST(request: Request) {
     return secureJson({
       ok: true,
       message: GENERIC_MESSAGE,
-      ...(process.env.NODE_ENV !== "production" && resetUrl ? { resetUrl } : {}),
+      ...(process.env.DEV_EXPOSE_RESET_URL === "true" && resetUrl ? { resetUrl } : {}),
     });
   } catch {
     console.error("[auth:forgot-password] Falha interna na solicitação.");

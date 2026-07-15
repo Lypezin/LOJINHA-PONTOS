@@ -2,15 +2,13 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export function middleware(request: NextRequest) {
-  // Prevent DoS via large JSON payloads (M3)
-  const contentType = request.headers.get("content-type")?.toLowerCase() ?? "";
-  if (
-    ["POST", "PUT", "PATCH"].includes(request.method) &&
-    contentType.startsWith("application/json")
-  ) {
+  // Prevent DoS via large payloads (M3 / Security Bypass)
+  if (["POST", "PUT", "PATCH"].includes(request.method)) {
+    const contentType = request.headers.get("content-type")?.toLowerCase() ?? "";
+    const isMultipart = contentType.startsWith("multipart/form-data");
+    const limit = isMultipart ? 210 * 1024 * 1024 : 256 * 1024; // 210 MB for uploads, 256 KB for JSON/text
     const contentLength = Number(request.headers.get("content-length") ?? 0);
-    const MAX_JSON_PAYLOAD_BYTES = 256 * 1024; // 256 KB
-    if (Number.isFinite(contentLength) && contentLength > MAX_JSON_PAYLOAD_BYTES) {
+    if (Number.isFinite(contentLength) && contentLength > limit) {
       return new NextResponse(
         JSON.stringify({ error: "A solicitação é muito grande.", code: "PAYLOAD_TOO_LARGE" }),
         { status: 413, headers: { "Content-Type": "application/json" } }
@@ -64,6 +62,8 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
+    // Ensure all API routes are matched to prevent suffix bypasses
+    "/api/:path*",
     // Apply to all routes except static files (_next/static, _next/image, favicon.ico, images)
     "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],

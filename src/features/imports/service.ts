@@ -202,43 +202,47 @@ async function bulkUpdateCouriers(
   });
 
   if (!values.length) return;
-  await tx.$executeRaw(Prisma.sql`
-    UPDATE "Courier" AS courier
-    SET
-      "name" = incoming."name"::text,
-      "normalizedName" = incoming."normalizedName"::text,
-      "plaza" = incoming."plaza"::text,
-      "subPlaza" = incoming."subPlaza"::text,
-      "tag" = incoming."tag"::text,
-      "source" = incoming."source"::text,
-      "cnpj" = CASE
-        WHEN courier."cnpjMatchStatus" = 'MANUAL_MATCHED'::"MatchStatus"
-          THEN courier."cnpj"
-        ELSE incoming."cnpj"::text
-      END,
-      "sourceCnpjName" = CASE
-        WHEN courier."cnpjMatchStatus" = 'MANUAL_MATCHED'::"MatchStatus"
-          THEN courier."sourceCnpjName"
-        ELSE incoming."sourceCnpjName"::text
-      END,
-      "cnpjMatchStatus" = CASE
-        WHEN courier."cnpjMatchStatus" = 'MANUAL_MATCHED'::"MatchStatus"
-          THEN courier."cnpjMatchStatus"
-        ELSE incoming."cnpjMatchStatus"::text::"MatchStatus"
-      END,
-      "cnpjMatchScore" = CASE
-        WHEN courier."cnpjMatchStatus" = 'MANUAL_MATCHED'::"MatchStatus"
-          THEN courier."cnpjMatchScore"
-        ELSE incoming."cnpjMatchScore"::double precision
-      END,
-      "lastImportedAt" = ${importedAt},
-      "updatedAt" = ${importedAt}
-    FROM (VALUES ${Prisma.join(values)}) AS incoming(
-      "id", "name", "normalizedName", "plaza", "subPlaza", "tag", "source",
-      "cnpj", "sourceCnpjName", "cnpjMatchStatus", "cnpjMatchScore"
-    )
-    WHERE courier."id" = incoming."id"::text
-  `);
+  const CHUNK_SIZE = 1000;
+  for (let i = 0; i < values.length; i += CHUNK_SIZE) {
+    const chunk = values.slice(i, i + CHUNK_SIZE);
+    await tx.$executeRaw(Prisma.sql`
+      UPDATE "Courier" AS courier
+      SET
+        "name" = incoming."name"::text,
+        "normalizedName" = incoming."normalizedName"::text,
+        "plaza" = incoming."plaza"::text,
+        "subPlaza" = incoming."subPlaza"::text,
+        "tag" = incoming."tag"::text,
+        "source" = incoming."source"::text,
+        "cnpj" = CASE
+          WHEN courier."cnpjMatchStatus" = 'MANUAL_MATCHED'::"MatchStatus"
+            THEN courier."cnpj"
+          ELSE incoming."cnpj"::text
+        END,
+        "sourceCnpjName" = CASE
+          WHEN courier."cnpjMatchStatus" = 'MANUAL_MATCHED'::"MatchStatus"
+            THEN courier."sourceCnpjName"
+          ELSE incoming."sourceCnpjName"::text
+        END,
+        "cnpjMatchStatus" = CASE
+          WHEN courier."cnpjMatchStatus" = 'MANUAL_MATCHED'::"MatchStatus"
+            THEN courier."cnpjMatchStatus"
+          ELSE incoming."cnpjMatchStatus"::text::"MatchStatus"
+        END,
+        "cnpjMatchScore" = CASE
+          WHEN courier."cnpjMatchStatus" = 'MANUAL_MATCHED'::"MatchStatus"
+            THEN courier."cnpjMatchScore"
+          ELSE incoming."cnpjMatchScore"::double precision
+        END,
+        "lastImportedAt" = ${importedAt},
+        "updatedAt" = ${importedAt}
+      FROM (VALUES ${Prisma.join(chunk)}) AS incoming(
+        "id", "name", "normalizedName", "plaza", "subPlaza", "tag", "source",
+        "cnpj", "sourceCnpjName", "cnpjMatchStatus", "cnpjMatchScore"
+      )
+      WHERE courier."id" = incoming."id"::text
+    `);
+  }
 }
 
 async function updateRegistryMatches(
@@ -265,31 +269,39 @@ async function updateRegistryMatches(
     const values = [...pendingValues].map(
       ([sourceKey, score]) => Prisma.sql`(${sourceKey}, ${score})`,
     );
-    await tx.$executeRaw(Prisma.sql`
-      UPDATE "CnpjRegistryEntry" AS entry
-      SET
-        "courierId" = NULL,
-        "matchStatus" = 'AMBIGUOUS'::"MatchStatus",
-        "matchScore" = incoming."score"::double precision,
-        "updatedAt" = NOW()
-      FROM (VALUES ${Prisma.join(values)}) AS incoming("sourceKey", "score")
-      WHERE entry."sourceKey" = incoming."sourceKey"::text
-        AND entry."matchStatus" <> 'MANUAL_MATCHED'::"MatchStatus"
-    `);
+    const CHUNK_SIZE = 1000;
+    for (let i = 0; i < values.length; i += CHUNK_SIZE) {
+      const chunk = values.slice(i, i + CHUNK_SIZE);
+      await tx.$executeRaw(Prisma.sql`
+        UPDATE "CnpjRegistryEntry" AS entry
+        SET
+          "courierId" = NULL,
+          "matchStatus" = 'AMBIGUOUS'::"MatchStatus",
+          "matchScore" = incoming."score"::double precision,
+          "updatedAt" = NOW()
+        FROM (VALUES ${Prisma.join(chunk)}) AS incoming("sourceKey", "score")
+        WHERE entry."sourceKey" = incoming."sourceKey"::text
+          AND entry."matchStatus" <> 'MANUAL_MATCHED'::"MatchStatus"
+      `);
+    }
   }
 
   if (exactValues.length) {
-    await tx.$executeRaw(Prisma.sql`
-      UPDATE "CnpjRegistryEntry" AS entry
-      SET
-        "courierId" = incoming."courierId"::text,
-        "matchStatus" = 'AUTO_MATCHED'::"MatchStatus",
-        "matchScore" = incoming."score"::double precision,
-        "updatedAt" = NOW()
-      FROM (VALUES ${Prisma.join(exactValues)}) AS incoming("sourceKey", "courierId", "score")
-      WHERE entry."sourceKey" = incoming."sourceKey"::text
-        AND entry."matchStatus" <> 'MANUAL_MATCHED'::"MatchStatus"
-    `);
+    const CHUNK_SIZE = 1000;
+    for (let i = 0; i < exactValues.length; i += CHUNK_SIZE) {
+      const chunk = exactValues.slice(i, i + CHUNK_SIZE);
+      await tx.$executeRaw(Prisma.sql`
+        UPDATE "CnpjRegistryEntry" AS entry
+        SET
+          "courierId" = incoming."courierId"::text,
+          "matchStatus" = 'AUTO_MATCHED'::"MatchStatus",
+          "matchScore" = incoming."score"::double precision,
+          "updatedAt" = NOW()
+        FROM (VALUES ${Prisma.join(chunk)}) AS incoming("sourceKey", "courierId", "score")
+        WHERE entry."sourceKey" = incoming."sourceKey"::text
+          AND entry."matchStatus" <> 'MANUAL_MATCHED'::"MatchStatus"
+      `);
+    }
   }
 }
 
@@ -384,16 +396,20 @@ export async function commitImport({
       });
 
       if (parsed.cnpjEntries.length) {
-        await tx.cnpjRegistryEntry.createMany({
-          data: parsed.cnpjEntries.map((entry) => ({
-            sourceName: entry.sourceName,
-            normalizedName: entry.normalizedName,
-            cnpj: entry.cnpj,
-            sourceRow: entry.sourceRow,
-            sourceKey: entry.sourceKey,
-          })),
-          skipDuplicates: true,
-        });
+        const entries = parsed.cnpjEntries.map((entry) => ({
+          sourceName: entry.sourceName,
+          normalizedName: entry.normalizedName,
+          cnpj: entry.cnpj,
+          sourceRow: entry.sourceRow,
+          sourceKey: entry.sourceKey,
+        }));
+        const CHUNK_SIZE = 1000;
+        for (let i = 0; i < entries.length; i += CHUNK_SIZE) {
+          await tx.cnpjRegistryEntry.createMany({
+            data: entries.slice(i, i + CHUNK_SIZE),
+            skipDuplicates: true,
+          });
+        }
       }
       const manualRegistryEntries = parsed.cnpjEntries.length
         ? await tx.cnpjRegistryEntry.findMany({
@@ -482,12 +498,16 @@ export async function commitImport({
         (aggregate) => !existingByExternalId.has(aggregate.externalCourierId),
       );
       if (newCouriers.length) {
-        await tx.courier.createMany({
-          data: newCouriers.map((aggregate) =>
-            courierCreateData(aggregate, effectiveParsed, now),
-          ),
-          skipDuplicates: true,
-        });
+        const data = newCouriers.map((aggregate) =>
+          courierCreateData(aggregate, effectiveParsed, now),
+        );
+        const CHUNK_SIZE = 1000;
+        for (let i = 0; i < data.length; i += CHUNK_SIZE) {
+          await tx.courier.createMany({
+            data: data.slice(i, i + CHUNK_SIZE),
+            skipDuplicates: true,
+          });
+        }
       }
       await bulkUpdateCouriers(tx, effectiveParsed, existingByExternalId, now);
 
@@ -563,10 +583,14 @@ export async function commitImport({
       // Materializar primeiro elimina a janela de corrida de uma conta inexistente:
       // ajustes concorrentes passam a disputar a mesma linha, em vez de criarem
       // uma conta entre a leitura e o createMany da importação.
-      await tx.pointAccount.createMany({
-        data: courierIds.map((courierId) => ({ courierId, periodId: period.id })),
-        skipDuplicates: true,
-      });
+      const accountData = courierIds.map((courierId) => ({ courierId, periodId: period.id }));
+      const CHUNK_SIZE = 1000;
+      for (let i = 0; i < accountData.length; i += CHUNK_SIZE) {
+        await tx.pointAccount.createMany({
+          data: accountData.slice(i, i + CHUNK_SIZE),
+          skipDuplicates: true,
+        });
+      }
 
       // Resgates e ajustes também atualizam PointAccount. O lock precisa vir
       // antes da leitura do saldo para que o UPDATE absoluto e o balanceAfter
@@ -703,21 +727,35 @@ export async function commitImport({
       }
 
       if (accountUpdates.length) {
-        await tx.$executeRaw(Prisma.sql`
-          UPDATE "PointAccount" AS account
-          SET
-            "importedPoints" = incoming."importedPoints"::integer,
-            "balancePoints" = incoming."balancePoints"::integer,
-            "version" = account."version" + 1,
-            "updatedAt" = NOW()
-          FROM (VALUES ${Prisma.join(accountUpdates)}) AS incoming(
-            "id", "importedPoints", "balancePoints"
-          )
-          WHERE account."id" = incoming."id"::text
-        `);
+        const CHUNK_SIZE = 1000;
+        for (let i = 0; i < accountUpdates.length; i += CHUNK_SIZE) {
+          const chunk = accountUpdates.slice(i, i + CHUNK_SIZE);
+          await tx.$executeRaw(Prisma.sql`
+            UPDATE "PointAccount" AS account
+            SET
+              "importedPoints" = incoming."importedPoints"::integer,
+              "balancePoints" = incoming."balancePoints"::integer,
+              "version" = account."version" + 1,
+              "updatedAt" = NOW()
+            FROM (VALUES ${Prisma.join(chunk)}) AS incoming(
+              "id", "importedPoints", "balancePoints"
+            )
+            WHERE account."id" = incoming."id"::text
+          `);
+        }
       }
-      if (ledgerRows.length) await tx.pointLedgerEntry.createMany({ data: ledgerRows });
-      if (snapshotRows.length) await tx.importCourierSnapshot.createMany({ data: snapshotRows });
+      if (ledgerRows.length) {
+        const CHUNK_SIZE = 1000;
+        for (let i = 0; i < ledgerRows.length; i += CHUNK_SIZE) {
+          await tx.pointLedgerEntry.createMany({ data: ledgerRows.slice(i, i + CHUNK_SIZE) });
+        }
+      }
+      if (snapshotRows.length) {
+        const CHUNK_SIZE = 1000;
+        for (let i = 0; i < snapshotRows.length; i += CHUNK_SIZE) {
+          await tx.importCourierSnapshot.createMany({ data: snapshotRows.slice(i, i + CHUNK_SIZE) });
+        }
+      }
 
       const warningCount =
         parsedWarningCount + omittedPreviousSnapshots.length + manualMatchConflictCount;
