@@ -177,7 +177,7 @@ export function RankingDashboard({ topEarners, topSpenders, topBalances, stats }
                 return (
                   <div
                     key={entry.courierId}
-                    className={`flex flex-col items-center w-full max-w-xs rounded-[24px] border bg-white p-6 shadow-md transition-all duration-200 hover:scale-[1.03] ${
+                    className={`group flex flex-col items-center w-full max-w-xs rounded-[24px] border bg-white p-6 shadow-md transition-all duration-200 hover:scale-[1.03] ${
                       isFirst
                         ? "border-amber-400 ring-2 ring-amber-400/20 order-1 md:order-2 md:pb-12 md:-translate-y-4"
                         : isSecond
@@ -197,9 +197,9 @@ export function RankingDashboard({ topEarners, topSpenders, topBalances, stats }
                         }`}
                       >
                         {isFirst ? (
-                          <Crown className="size-7 animate-bounce" style={{ animationDuration: '3s' }} />
+                          <Crown className="size-7 transition-transform duration-300 ease-out group-hover:scale-110 group-hover:-translate-y-1 group-hover:rotate-12" />
                         ) : (
-                          <Award className="size-7" />
+                          <Award className="size-7 transition-transform duration-300 ease-out group-hover:scale-110 group-hover:-translate-y-1" />
                         )}
                         <span className="absolute -bottom-1 -right-1 flex size-6 items-center justify-center rounded-full bg-[var(--brand-navy)] text-xs text-white border-2 border-white">
                           {position}º

@@ -95,17 +95,40 @@ export function UserManager({ initialUsers, currentUserId }: { initialUsers: Man
         {error ? <p className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-800" role="alert">{error}</p> : null}
         {message ? <p className="mt-4 flex items-start gap-2 rounded-xl bg-emerald-50 p-3 text-sm font-bold text-emerald-800" role="status"><CheckCircle2 className="mt-0.5 size-4 shrink-0" />{message}</p> : null}
         <div className="mt-5 space-y-3">
-          {users.map((user) => (
-            <article key={user.id} className="flex flex-col gap-4 rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex min-w-0 items-start gap-3">
-                <span className={`flex size-11 shrink-0 items-center justify-center rounded-2xl ${user.active ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}><ShieldCheck className="size-5" /></span>
-                <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h3 className="truncate font-extrabold text-[var(--brand-navy)]">{user.displayName || "Administrador"}</h3>{user.id === currentUserId ? <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-bold text-[var(--brand-blue-dark)]">Você</span> : null}{user.mustChangePassword ? <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-800">Troca de senha pendente</span> : null}</div><p className="mt-1 truncate text-sm text-slate-600">{user.email}</p><p className="mt-1 text-xs text-slate-500">Criado em {user.createdAtLabel}</p></div>
-              </div>
-              <div className="shrink-0">
-                {user.active ? <Button variant="ghost" disabled={changingId === user.id || user.id === currentUserId} onClick={() => setActive(user, false)}><UserRoundX className="size-4" />Desativar</Button> : <Button variant="secondary" disabled={changingId === user.id} onClick={() => setActive(user, true)}><UserRoundCheck className="size-4" />Reativar</Button>}
-              </div>
-            </article>
-          ))}
+          {users.map((user) => {
+            const iconBg = user.active
+              ? "bg-emerald-50 text-emerald-700"
+              : "bg-slate-100 text-slate-600";
+            return (
+              <article key={user.id} className="flex flex-col gap-4 rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex min-w-0 items-start gap-3">
+                  <span className={`flex size-11 shrink-0 items-center justify-center rounded-2xl ${iconBg}`}>
+                    <ShieldCheck className="size-5" />
+                  </span>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="truncate font-extrabold text-[var(--brand-navy)]">{user.displayName || "Administrador"}</h3>
+                      {user.id === currentUserId ? (
+                        <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-bold text-[var(--brand-blue-dark)]">
+                          Você
+                        </span>
+                      ) : null}
+                      {user.mustChangePassword ? (
+                        <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-800">
+                          Troca de senha pendente
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="mt-1 truncate text-sm text-slate-600">{user.email}</p>
+                    <p className="mt-1 text-xs text-slate-500 font-medium">Criado em {user.createdAtLabel}</p>
+                  </div>
+                </div>
+                <div className="shrink-0">
+                  {user.active ? <Button variant="ghost" disabled={changingId === user.id || user.id === currentUserId} onClick={() => setActive(user, false)}><UserRoundX className="size-4" />Desativar</Button> : <Button variant="secondary" disabled={changingId === user.id} onClick={() => setActive(user, true)}><UserRoundCheck className="size-4" />Reativar</Button>}
+                </div>
+              </article>
+            );
+          })}
         </div>
       </section>
     </div>

@@ -108,7 +108,16 @@ export function ImportWizard({ defaultPeriodKey, defaultPointsColumn }: { defaul
           { label: "1. Arquivo", active: true },
           { label: "2. Prévia", active: Boolean(preview) },
           { label: "3. Resultado", active: Boolean(result) },
-        ].map((step) => <div key={step.label} className={step.active ? "rounded-xl bg-blue-50 px-3 py-2 text-center text-xs font-bold text-[var(--brand-blue-dark)]" : "rounded-xl bg-slate-100 px-3 py-2 text-center text-xs font-bold text-slate-500"}>{step.label}</div>)}
+        ].map((step) => {
+          const baseClass = "rounded-xl px-3 py-2 text-center text-xs font-bold";
+          const activeClass = "bg-blue-50 text-[var(--brand-blue-dark)]";
+          const inactiveClass = "bg-slate-100 text-slate-600";
+          return (
+            <div key={step.label} className={`${baseClass} ${step.active ? activeClass : inactiveClass}`}>
+              {step.label}
+            </div>
+          );
+        })}
       </div>
 
       <div className="mt-7">

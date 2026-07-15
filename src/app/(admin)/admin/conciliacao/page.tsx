@@ -54,7 +54,50 @@ export default async function AdminReconciliationPage({ searchParams }: { search
     const pageCount = Math.max(1, Math.ceil(pendingTotal / 30));
     const page = Number.isInteger(requestedPage) ? Math.min(Math.max(requestedPage, 1), pageCount) : 1;
     const couriers = await db.courier.findMany({ where: { cnpj: null, status: { not: "INACTIVE" } }, orderBy: { name: "asc" }, skip: (page - 1) * 30, take: 30, select: { id: true, name: true, externalCourierId: true } });
-    content = couriers.length ? <div className="space-y-5"><div className="grid gap-4 xl:grid-cols-2">{couriers.map((courier) => <article key={courier.id} className="rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm"><div className="flex items-start gap-3"><span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-700"><CircleAlert className="size-5" /></span><div className="min-w-0 flex-1"><h2 className="text-balance font-extrabold text-[var(--brand-navy)]">{courier.name}</h2><p className="mt-1 truncate text-xs tabular-nums text-slate-400">{courier.externalCourierId}</p></div></div><div className="mt-5 flex justify-end"><Link className={buttonStyles({ size: "sm" })} href={`/admin/conciliacao?tab=guia&courierId=${courier.id}`}>Informar CNPJ</Link></div></article>)}</div>{pendingTotal > 30 ? <nav className="flex justify-end gap-2">{page > 1 ? <Link className={buttonStyles({ variant: "secondary", size: "sm" })} href={`/admin/conciliacao?page=${page - 1}`}>Anterior</Link> : null}{page < pageCount ? <Link className={buttonStyles({ variant: "secondary", size: "sm" })} href={`/admin/conciliacao?page=${page + 1}`}>Próxima</Link> : null}</nav> : null}</div> : <EmptyState icon={<UsersRound className="size-6" />} title="Todos os entregadores estão conciliados" description="Nenhum entregador ativo está sem CNPJ." />;
+    content = couriers.length ? (
+      <div className="space-y-5">
+        <div className="grid gap-4 xl:grid-cols-2">
+          {couriers.map((courier) => (
+            <article key={courier.id} className="rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex items-start gap-3">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-700">
+                  <CircleAlert className="size-5" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-balance font-extrabold text-[var(--brand-navy)]">{courier.name}</h2>
+                  <p className="mt-1 truncate text-xs tabular-nums text-slate-500">{courier.externalCourierId}</p>
+                </div>
+              </div>
+              <div className="mt-5 flex justify-end">
+                <Link className={buttonStyles({ size: "sm" })} href={`/admin/conciliacao?tab=guia&courierId=${courier.id}`}>
+                  Informar CNPJ
+                </Link>
+              </div>
+            </article>
+          ))}
+        </div>
+        {pendingTotal > 30 ? (
+          <nav className="flex justify-end gap-2">
+            {page > 1 ? (
+              <Link className={buttonStyles({ variant: "secondary", size: "sm" })} href={`/admin/conciliacao?page=${page - 1}`}>
+                Anterior
+              </Link>
+            ) : null}
+            {page < pageCount ? (
+              <Link className={buttonStyles({ variant: "secondary", size: "sm" })} href={`/admin/conciliacao?page=${page + 1}`}>
+                Próxima
+              </Link>
+            ) : null}
+          </nav>
+        ) : null}
+      </div>
+    ) : (
+      <EmptyState
+        icon={<UsersRound className="size-6" />}
+        title="Todos os entregadores estão conciliados"
+        description="Nenhum entregador ativo está sem CNPJ."
+      />
+    );
   }
 
   return <div className="space-y-8"><PageHeader eyebrow="Nomes e CNPJ" title="Conciliação" description={`${matchedTotal.toLocaleString("pt-BR")} entregadores com CNPJ. Mantenha a guia interna atualizada e ela será usada automaticamente nas importações mensais.`} /><nav className="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm" aria-label="Seções da conciliação">{tabs.map(({ id, label, icon: Icon }) => <Link key={id} href={`/admin/conciliacao?tab=${id}`} className={buttonStyles({ variant: tab === id ? "primary" : "ghost", size: "sm" })}><Icon className="size-4" />{label}</Link>)}</nav>{content}</div>;

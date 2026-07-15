@@ -47,7 +47,9 @@ function AdminNav({ pathname, closeOnNavigate = false }: { pathname: string; clo
             aria-current={active ? "page" : undefined}
             className={cn(
               "flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-bold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200",
-              active ? "border border-blue-100 bg-blue-50 text-[var(--brand-blue-dark)]" : "border border-transparent text-slate-600 hover:bg-slate-100 hover:text-[var(--brand-navy)]",
+              active
+                ? "border border-blue-100 bg-blue-50 text-[var(--brand-blue-dark)]"
+                : "border border-transparent text-slate-600 hover:bg-slate-100 hover:text-[var(--brand-navy)]",
             )}
           >
             <Icon className="size-5" aria-hidden="true" />
