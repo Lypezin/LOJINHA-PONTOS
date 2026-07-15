@@ -58,7 +58,7 @@ export function AuthShell({ eyebrow, title, description, children, footer }: Aut
                     </span>
                     <div>
                       <p className="font-bold">{benefitTitle}</p>
-                      <p className="mt-1 max-w-sm text-pretty text-sm leading-6 text-white/75">{text}</p>
+                      <p className="mt-1 max-w-sm text-pretty text-sm leading-6 text-white/85">{text}</p>
                     </div>
                   </div>
                 ))}
@@ -80,13 +80,13 @@ export function AuthShell({ eyebrow, title, description, children, footer }: Aut
               <ShieldCheck aria-hidden="true" className="size-4" />
               {eyebrow}
             </div>
-            <h1 className="mt-5 text-balance text-3xl font-extrabold leading-tight text-[var(--brand-navy)] sm:text-4xl">
+             <h1 className="mt-5 text-balance text-3xl font-extrabold leading-tight text-[var(--brand-navy)] sm:text-4xl">
               {title}
             </h1>
-            <p className="mt-3 max-w-md text-pretty leading-7 text-[#52617A]">{description}</p>
+            <p className="mt-3 max-w-md text-pretty leading-7 text-slate-700">{description}</p>
 
             <div className="mt-8">{children}</div>
-            <div className="mt-7 border-t border-[var(--line)] pt-6 text-center text-sm text-[#52617A]">
+            <div className="mt-7 border-t border-[var(--line)] pt-6 text-center text-sm text-slate-700">
               {footer}
             </div>
           </div>

@@ -112,10 +112,10 @@ export default async function AdminDashboardPage() {
             <div className="mt-4 overflow-hidden rounded-[20px] border border-slate-200 bg-white">
               <div className="divide-y divide-slate-200">
                 {recentRedemptions.map((item) => (
-                  <article key={item.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                  <article key={item.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between hover:bg-slate-50/60 transition-colors duration-150">
                     <div className="min-w-0">
                       <p className="truncate font-bold text-[var(--brand-navy)]">{item.courier.name} • {item.productNameSnapshot}</p>
-                      <p className="mt-1 text-xs tabular-nums text-slate-500">{item.code} • {formatDateTime(item.requestedAt)}</p>
+                      <p className="mt-1 text-xs tabular-nums text-slate-600 font-medium">{item.code} • {formatDateTime(item.requestedAt)}</p>
                     </div>
                     <div className="flex shrink-0 items-center gap-3">
                       <span className="text-sm font-extrabold tabular-nums text-[var(--brand-navy)]">{formatPoints(item.pointsSpent)} pts</span>
@@ -138,10 +138,10 @@ export default async function AdminDashboardPage() {
             {latestImport ? (
               <div className="mt-4">
                 <p className="truncate text-sm font-bold text-[var(--brand-navy)]">{latestImport.filename}</p>
-                <p className="mt-1 text-xs tabular-nums text-slate-500">{formatDateTime(latestImport.createdAt)}</p>
+                <p className="mt-1 text-xs tabular-nums text-slate-600 font-medium">{formatDateTime(latestImport.createdAt)}</p>
                 <dl className="mt-4 grid grid-cols-2 gap-3 rounded-2xl bg-slate-50 p-4">
-                  <div><dt className="text-xs text-slate-500">Entregadores</dt><dd className="mt-1 font-extrabold tabular-nums">{formatPoints(latestImport.courierCount)}</dd></div>
-                  <div><dt className="text-xs text-slate-500">Pontos</dt><dd className="mt-1 font-extrabold tabular-nums">{formatPoints(latestImport.totalPoints)}</dd></div>
+                  <div><dt className="text-xs text-slate-600 font-medium">Entregadores</dt><dd className="mt-1 font-extrabold tabular-nums">{formatPoints(latestImport.courierCount)}</dd></div>
+                  <div><dt className="text-xs text-slate-600 font-medium">Pontos</dt><dd className="mt-1 font-extrabold tabular-nums">{formatPoints(latestImport.totalPoints)}</dd></div>
                 </dl>
               </div>
             ) : <p className="mt-3 text-pretty text-sm leading-6 text-slate-600">Nenhuma planilha foi importada ainda.</p>}

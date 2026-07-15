@@ -83,7 +83,7 @@ export default async function HistoryPage() {
         {redemptions.length ? (
           <div className="mt-5 grid gap-4 lg:grid-cols-2">
             {redemptions.map((redemption) => (
-              <article key={redemption.id} className="flex gap-4 rounded-[20px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+              <article key={redemption.id} className="flex gap-4 rounded-[20px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
                 <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-blue-50 text-[var(--brand-blue)] sm:size-20">
                   {redemption.imageUrlSnapshot ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -95,8 +95,8 @@ export default async function HistoryPage() {
                     <h3 className="line-clamp-2 text-balance font-extrabold text-[var(--brand-navy)]">{redemption.productNameSnapshot}</h3>
                     <StatusBadge tone={redemptionTone[redemption.status]}>{redemptionLabels[redemption.status]}</StatusBadge>
                   </div>
-                  <p className="mt-2 text-xs font-semibold tabular-nums text-slate-500">{redemption.code} • {formatDateTime(redemption.requestedAt)}</p>
-                  <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-600">
+                  <p className="mt-2 text-xs font-semibold tabular-nums text-slate-650">{redemption.code} • {formatDateTime(redemption.requestedAt)}</p>
+                  <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-700">
                     <span className="tabular-nums">{redemption.quantity} unidade(s)</span>
                     <span className="font-extrabold tabular-nums text-[var(--brand-navy)]">{formatPoints(redemption.pointsSpent)} pts</span>
                     <span>{monthLabel(redemption.period.year, redemption.period.month)}</span>
@@ -132,9 +132,9 @@ export default async function HistoryPage() {
                 <article key={entry.id} className="grid gap-3 px-5 py-4 text-sm sm:grid-cols-[1.3fr_1fr_0.7fr_0.7fr] sm:items-center sm:gap-4">
                   <div>
                     <p className="font-bold text-[var(--brand-navy)]">{entryLabels[entry.type]}</p>
-                    <p className="mt-1 line-clamp-2 text-xs text-slate-500">{entry.description}</p>
+                    <p className="mt-1 line-clamp-2 text-xs text-slate-600 font-medium">{entry.description}</p>
                   </div>
-                  <div className="text-xs text-slate-600">
+                  <div className="text-xs text-slate-700">
                     <p>{monthLabel(entry.period.year, entry.period.month)}</p>
                     <p className="mt-1 tabular-nums">{formatDateTime(entry.createdAt)}</p>
                   </div>
