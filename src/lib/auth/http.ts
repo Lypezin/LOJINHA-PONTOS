@@ -16,7 +16,11 @@ type ParsedBody<T> =
   | { success: true; data: T }
   | { success: false; response: NextResponse };
 
-export async function parseJsonBody<T>(request: Request, schema: z.ZodType<T>): Promise<ParsedBody<T>> {
+export async function parseJsonBody<T>(
+  request: Request,
+  schema: z.ZodType<T>,
+  maxBytes: number = MAX_AUTH_BODY_BYTES
+): Promise<ParsedBody<T>> {
   const contentType = request.headers.get("content-type")?.toLowerCase() ?? "";
   if (!contentType.startsWith("application/json")) {
     return {
@@ -26,7 +30,7 @@ export async function parseJsonBody<T>(request: Request, schema: z.ZodType<T>): 
   }
 
   const contentLength = Number(request.headers.get("content-length") ?? 0);
-  if (Number.isFinite(contentLength) && contentLength > MAX_AUTH_BODY_BYTES) {
+  if (Number.isFinite(contentLength) && contentLength > maxBytes) {
     return {
       success: false,
       response: secureJson({ ok: false, message: "A solicitação é muito grande." }, { status: 413 }),
@@ -36,7 +40,7 @@ export async function parseJsonBody<T>(request: Request, schema: z.ZodType<T>): 
   let body: unknown;
   try {
     const rawBody = await request.text();
-    if (new TextEncoder().encode(rawBody).length > MAX_AUTH_BODY_BYTES) {
+    if (new TextEncoder().encode(rawBody).length > maxBytes) {
       return {
         success: false,
         response: secureJson({ ok: false, message: "A solicitação é muito grande." }, { status: 413 }),

@@ -1,7 +1,7 @@
 import { Prisma, PrismaClient } from "@prisma/client";
 
-const SUPABASE_PROJECT_REF = "cpidpqnstchvcozijczf";
-const SUPABASE_TRANSACTION_POOLER = "aws-1-sa-east-1.pooler.supabase.com";
+const SUPABASE_PROJECT_REF = process.env.SUPABASE_PROJECT_REF ?? "cpidpqnstchvcozijczf";
+const SUPABASE_TRANSACTION_POOLER = process.env.SUPABASE_TRANSACTION_POOLER ?? "aws-1-sa-east-1.pooler.supabase.com";
 
 const RETRYABLE_READ_OPERATIONS = new Set([
   "findUnique",

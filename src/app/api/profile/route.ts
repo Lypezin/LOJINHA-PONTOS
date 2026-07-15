@@ -9,6 +9,7 @@ import { getRequestIpHash } from "@/lib/auth/audit";
 import { db } from "@/lib/db";
 import { DomainError } from "@/lib/domain-error";
 import { apiError } from "@/lib/http";
+import { parseJsonBody } from "@/lib/auth/http";
 
 const profileSchema = z.object({
   displayName: z.string().trim().min(2).max(100),
@@ -22,7 +23,9 @@ export async function PATCH(request: Request) {
       throw new DomainError("Origem da solicitação não permitida.", "INVALID_ORIGIN", 403);
     }
     const sessionUser = await requireUser();
-    const input = profileSchema.parse(await request.json());
+    const parsed = await parseJsonBody(request, profileSchema);
+    if (!parsed.success) return parsed.response;
+    const input = parsed.data;
     const emailChanged = input.email !== sessionUser.emailNormalized;
 
     if (emailChanged) {

@@ -6,6 +6,7 @@ import { requireUser } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { DomainError } from "@/lib/domain-error";
 import { apiError } from "@/lib/http";
+import { consumeAuthRateLimit, rateLimitResponse } from "@/lib/auth/rate-limit";
 
 const MAX_AVATAR_BYTES = 5_000_000;
 const MAX_STORED_AVATAR_BYTES = 1_500_000;
@@ -53,6 +54,15 @@ export async function PUT(request: Request) {
       throw new DomainError("Origem da solicitação não permitida.", "INVALID_ORIGIN", 403);
     }
     const user = await requireUser();
+
+    const rateLimit = await consumeAuthRateLimit(request, "avatar_upload", user.id, [
+      { scope: "ip", max: 30, windowMs: 15 * 60_000, blockMs: 15 * 60_000 },
+      { scope: "identity", max: 10, windowMs: 15 * 60_000, blockMs: 15 * 60_000 },
+    ]);
+    if (!rateLimit.allowed) {
+      return rateLimitResponse(rateLimit.retryAfterSeconds);
+    }
+
     const contentLength = Number(request.headers.get("content-length") ?? 0);
     if (Number.isFinite(contentLength) && contentLength > MAX_AVATAR_BYTES + 128_000) {
       throw new DomainError("A foto deve ter no máximo 5 MB.", "AVATAR_TOO_LARGE", 413);
@@ -125,6 +135,15 @@ export async function DELETE(request: Request) {
       throw new DomainError("Origem da solicitação não permitida.", "INVALID_ORIGIN", 403);
     }
     const user = await requireUser();
+
+    const rateLimit = await consumeAuthRateLimit(request, "avatar_delete", user.id, [
+      { scope: "ip", max: 30, windowMs: 15 * 60_000, blockMs: 15 * 60_000 },
+      { scope: "identity", max: 10, windowMs: 15 * 60_000, blockMs: 15 * 60_000 },
+    ]);
+    if (!rateLimit.allowed) {
+      return rateLimitResponse(rateLimit.retryAfterSeconds);
+    }
+
     await db.$transaction([
       db.user.update({
         where: { id: user.id },
