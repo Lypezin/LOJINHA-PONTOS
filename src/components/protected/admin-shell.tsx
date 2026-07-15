@@ -14,6 +14,7 @@ import {
   UserRound,
   UserCog,
   UsersRound,
+  Trophy,
   X,
 } from "lucide-react";
 import { AppMark } from "@/components/ui/app-mark";
@@ -26,6 +27,7 @@ const items = [
   { href: "/admin/produtos", label: "Produtos", icon: Boxes },
   { href: "/admin/resgates", label: "Resgates", icon: PackageCheck },
   { href: "/admin/entregadores", label: "Entregadores", icon: UsersRound },
+  { href: "/admin/ranking", label: "Ranking", icon: Trophy },
   { href: "/admin/usuarios", label: "Usuários", icon: UserCog },
   { href: "/admin/importacoes", label: "Importações", icon: FileSpreadsheet },
   { href: "/admin/conciliacao", label: "Conciliação", icon: UserRoundSearch },
