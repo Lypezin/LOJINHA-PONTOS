@@ -46,6 +46,10 @@ export interface CourierAggregate {
   name: string;
   normalizedName: string;
   points: number;
+  dailyPoints: Array<{
+    date: string;
+    points: number;
+  }>;
   sourceRowCount: number;
   firstSourceRow: number;
   plaza: string | null;

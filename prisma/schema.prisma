@@ -295,6 +295,7 @@ model ImportCourierSnapshot {
   normalizedName    String
   sourceRowCount    Int
   points            Int
+  dailyPoints       Json?
   previousPoints    Int
   deltaPoints       Int
   warnings          Json?

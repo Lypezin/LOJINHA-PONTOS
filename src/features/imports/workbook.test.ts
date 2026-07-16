@@ -64,6 +64,10 @@ describe("Excel import aggregation", () => {
     expect(parsed.aggregates).toHaveLength(2);
     expect(parsed.totalPoints).toBe(13);
     expect(parsed.aggregates.find((item) => item.externalCourierId === FIRST_ID)?.points).toBe(10);
+    expect(parsed.aggregates.find((item) => item.externalCourierId === FIRST_ID)?.dailyPoints).toEqual([
+      { date: "2026-07-01", points: 4 },
+      { date: "2026-07-02", points: 6 },
+    ]);
     expect(parsed.detectedPeriodKeys).toEqual(["2026-07"]);
     expect(parsed.cnpjMatches.get(FIRST_ID)?.kind).toBe("EXACT");
     expect(parsed.cnpjMatches.get(SECOND_ID)?.kind).toBe("NOT_FOUND");

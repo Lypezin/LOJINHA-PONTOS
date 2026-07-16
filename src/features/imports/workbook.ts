@@ -250,19 +250,22 @@ function resolvePointsColumn(
   return column;
 }
 
-function parsePeriodKey(value: CellValue): string | null {
+function parseDateKey(value: CellValue): string | null {
   let year: number | null = null;
   let month: number | null = null;
+  let day: number | null = null;
 
   if (value instanceof Date && !Number.isNaN(value.getTime())) {
     year = value.getUTCFullYear();
     month = value.getUTCMonth() + 1;
+    day = value.getUTCDate();
   } else if (typeof value === "number") {
     // Excel's serial date epoch includes the historical 1900 leap-year bug.
     const parsed = new Date(Date.UTC(1899, 11, 30) + value * 86_400_000);
     if (!Number.isNaN(parsed.getTime())) {
       year = parsed.getUTCFullYear();
       month = parsed.getUTCMonth() + 1;
+      day = parsed.getUTCDate();
     }
   } else if (typeof value === "string") {
     const text = value.trim();
@@ -271,15 +274,23 @@ function parsePeriodKey(value: CellValue): string | null {
     if (iso) {
       year = Number(iso[1]);
       month = Number(iso[2]);
+      day = Number(iso[3]);
     } else if (brazilian) {
       year = Number(brazilian[3]);
       if (year < 100) year += 2000;
       month = Number(brazilian[2]);
+      day = Number(brazilian[1]);
     }
   }
 
-  if (!year || !month || month < 1 || month > 12) return null;
-  return `${year}-${String(month).padStart(2, "0")}`;
+  if (!year || !month || !day || month < 1 || month > 12 || day < 1 || day > 31) return null;
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  if (
+    parsed.getUTCFullYear() !== year ||
+    parsed.getUTCMonth() + 1 !== month ||
+    parsed.getUTCDate() !== day
+  ) return null;
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
 function mode(values: string[]): string | null {
@@ -299,6 +310,7 @@ interface MutableAggregate {
   externalCourierId: string;
   names: string[];
   points: number;
+  dailyPoints: Map<string, number>;
   sourceRowCount: number;
   firstSourceRow: number;
   plazas: string[];
@@ -416,7 +428,8 @@ export async function parseImportWorkbook(
     const externalCourierId = normalizeUuid(row[idIndex]);
     const name = textCell(row[nameIndex]);
     const points = parseNonNegativeInteger(row[pointsColumn.index]);
-    const periodKey = dateIndex >= 0 ? parsePeriodKey(row[dateIndex]) : null;
+    const dateKey = dateIndex >= 0 ? parseDateKey(row[dateIndex]) : null;
+    const periodKey = dateKey?.slice(0, 7) ?? null;
 
     let valid = true;
     if (!isUuid(externalCourierId)) {
@@ -449,6 +462,7 @@ export async function parseImportWorkbook(
       externalCourierId,
       names: [],
       points: 0,
+      dailyPoints: new Map<string, number>(),
       sourceRowCount: 0,
       firstSourceRow: sourceRow,
       plazas: [],
@@ -458,6 +472,7 @@ export async function parseImportWorkbook(
     };
     aggregate.names.push(name);
     aggregate.points += points;
+    aggregate.dailyPoints.set(dateKey!, (aggregate.dailyPoints.get(dateKey!) ?? 0) + points);
     aggregate.sourceRowCount += 1;
     if (!Number.isSafeInteger(aggregate.points) || aggregate.points > MAX_DATABASE_INT) {
       issues.add(
@@ -493,6 +508,9 @@ export async function parseImportWorkbook(
       name: chosenName,
       normalizedName: normalizeName(chosenName),
       points: aggregate.points,
+      dailyPoints: [...aggregate.dailyPoints.entries()]
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([date, dailyTotal]) => ({ date, points: dailyTotal })),
       sourceRowCount: aggregate.sourceRowCount,
       firstSourceRow: aggregate.firstSourceRow,
       plaza: mode(aggregate.plazas),

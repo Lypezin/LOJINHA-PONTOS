@@ -8,7 +8,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { getCurrentAccount } from "@/features/points/period";
 import { requirePageUser } from "@/lib/auth/session";
 import { db } from "@/lib/db";
-import { formatDateTime, formatPoints } from "@/lib/format";
+import { formatDate, formatDateTime, formatPoints } from "@/lib/format";
 import { monthLabel, redemptionLabels, redemptionTone } from "@/lib/presentation";
 
 export const metadata = { title: "Meus resgates" };
@@ -21,6 +21,29 @@ const entryLabels = {
   REFUND: "Estorno",
   EXPIRATION: "Expiração",
 } as const;
+
+function readDailyPoints(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    if (
+      typeof item === "object" && item !== null &&
+      typeof (item as { date?: unknown }).date === "string" &&
+      /^\d{4}-\d{2}-\d{2}$/.test((item as { date: string }).date) &&
+      typeof (item as { points?: unknown }).points === "number" &&
+      Number.isSafeInteger((item as { points: number }).points)
+    ) {
+      return [{
+        date: (item as { date: string }).date,
+        points: (item as { points: number }).points,
+      }];
+    }
+    return [];
+  });
+}
+
+function formatImportDate(date: string) {
+  return formatDate(`${date}T12:00:00Z`);
+}
 
 export default async function HistoryPage() {
   const user = await requirePageUser();
@@ -53,7 +76,24 @@ export default async function HistoryPage() {
         entries: {
           orderBy: { createdAt: "desc" },
           take: 40,
-          select: { id: true, type: true, amount: true, balanceAfter: true, description: true, createdAt: true },
+          select: {
+            id: true,
+            type: true,
+            amount: true,
+            balanceAfter: true,
+            description: true,
+            createdAt: true,
+            importBatch: {
+              select: {
+                filename: true,
+                snapshots: {
+                  where: { courierId: user.courierId },
+                  take: 1,
+                  select: { dailyPoints: true },
+                },
+              },
+            },
+          },
         },
       },
     }),
@@ -128,11 +168,33 @@ export default async function HistoryPage() {
               <span>Movimentação</span><span>Competência e data</span><span className="text-right">Valor</span><span className="text-right">Saldo</span>
             </div>
             <div className="divide-y divide-slate-200">
-              {entries.map((entry) => (
-                <article key={entry.id} className="grid gap-3 px-5 py-4 text-sm sm:grid-cols-[1.3fr_1fr_0.7fr_0.7fr] sm:items-center sm:gap-4">
+              {entries.map((entry) => {
+                const dailyPoints = readDailyPoints(entry.importBatch?.snapshots[0]?.dailyPoints);
+                return (
+                <article key={entry.id} className="grid gap-3 px-5 py-4 text-sm sm:grid-cols-[1.3fr_1fr_0.7fr_0.7fr] sm:items-start sm:gap-4">
                   <div>
                     <p className="font-bold text-[var(--brand-navy)]">{entryLabels[entry.type]}</p>
                     <p className="mt-1 line-clamp-2 text-xs text-slate-600 font-medium">{entry.description}</p>
+                    {dailyPoints.length ? (
+                      <details className="mt-3 rounded-xl border border-blue-100 bg-blue-50/60 px-3 py-2">
+                        <summary className="cursor-pointer text-xs font-bold text-[var(--brand-blue)]">
+                          Ver pontos por dia ({dailyPoints.length} {dailyPoints.length === 1 ? "dia" : "dias"})
+                        </summary>
+                        <div className="mt-2 divide-y divide-blue-100">
+                          {dailyPoints.map((daily) => (
+                            <div key={daily.date} className="flex items-center justify-between gap-4 py-2 text-xs">
+                              <span className="font-medium text-slate-700">{formatImportDate(daily.date)}</span>
+                              <span className="font-extrabold tabular-nums text-emerald-700">+{formatPoints(daily.points)} pts</span>
+                            </div>
+                          ))}
+                        </div>
+                        {entry.importBatch?.filename ? (
+                          <p className="mt-2 truncate border-t border-blue-100 pt-2 text-[11px] text-slate-500" title={entry.importBatch.filename}>
+                            Arquivo: {entry.importBatch.filename}
+                          </p>
+                        ) : null}
+                      </details>
+                    ) : null}
                   </div>
                   <div className="text-xs text-slate-700">
                     <p>{monthLabel(entry.period.year, entry.period.month)}</p>
@@ -143,7 +205,8 @@ export default async function HistoryPage() {
                   </p>
                   <p className="font-bold tabular-nums text-[var(--brand-navy)] sm:text-right">{formatPoints(entry.balanceAfter)} pts</p>
                 </article>
-              ))}
+                );
+              })}
             </div>
           </div>
         ) : (

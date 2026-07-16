@@ -669,6 +669,7 @@ export async function commitImport({
           normalizedName: aggregate.normalizedName,
           sourceRowCount: aggregate.sourceRowCount,
           points: aggregate.points,
+          dailyPoints: jsonValue(aggregate.dailyPoints),
           previousPoints,
           deltaPoints,
           warnings: aggregate.warnings.length ? jsonValue(aggregate.warnings) : undefined,
