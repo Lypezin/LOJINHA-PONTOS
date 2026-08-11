@@ -66,7 +66,7 @@ export function AdminShell({ children, email, name, avatarVersion }: { children:
   const pathname = usePathname();
 
   return (
-    <div className="min-h-dvh bg-[var(--surface-soft)] lg:flex">
+    <div className="min-h-dvh bg-[var(--background)] lg:flex">
       <aside className="sticky top-0 hidden h-dvh w-72 shrink-0 border-r border-slate-200 bg-white p-5 shadow-sm lg:flex lg:flex-col">
         <div className="absolute inset-x-0 top-0 h-1 bg-[var(--brand-blue)]" />
         <AppMark href="/admin" />
@@ -90,7 +90,7 @@ export function AdminShell({ children, email, name, avatarVersion }: { children:
       </aside>
 
       <div className="min-w-0 flex-1">
-        <header className="sticky top-0 z-20 flex min-h-18 items-center justify-between border-b border-slate-200 bg-white px-4 sm:px-6 lg:hidden">
+        <header className="sticky top-0 z-20 flex min-h-20 items-center justify-between border-b border-slate-200 bg-white px-4 sm:px-6 lg:hidden">
           <AppMark href="/admin" />
           <Dialog.Root>
             <Dialog.Trigger asChild>
@@ -113,12 +113,24 @@ export function AdminShell({ children, email, name, avatarVersion }: { children:
                 <div className="mt-7">
                   <AdminNav pathname={pathname} closeOnNavigate />
                 </div>
-                <div className="mt-6 border-t border-slate-200 pt-5"><LogoutButton /></div>
+                <Link href="/admin/perfil" className="mt-6 flex items-center gap-3 rounded-xl border-t border-slate-200 pt-5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200" aria-label="Abrir meu perfil">
+                  <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--brand-navy)] text-xs font-extrabold text-white" aria-hidden="true">
+                    {avatarVersion ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={`/api/profile/avatar?v=${avatarVersion}`} alt="" className="size-full object-cover" />
+                    ) : initials(name || email)}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-semibold text-slate-500">{name || "Administrador"}</p>
+                    <p className="truncate text-sm font-bold text-[var(--brand-navy)]">{email}</p>
+                  </div>
+                </Link>
+                <div className="mt-4 border-t border-slate-200 pt-4"><LogoutButton /></div>
               </Dialog.Content>
             </Dialog.Portal>
           </Dialog.Root>
         </header>
-        <main className="mx-auto w-full max-w-[1600px] px-4 py-8 sm:px-6 sm:py-10 lg:px-8">{children}</main>
+        <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-10 lg:px-8">{children}</main>
       </div>
     </div>
   );

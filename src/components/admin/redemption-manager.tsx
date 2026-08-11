@@ -87,7 +87,7 @@ export function RedemptionManager({
             <AlertDialog.Trigger asChild><Button variant="ghost" size="sm" disabled={pendingId === item.id}><XCircle className="size-4 text-red-700" aria-hidden="true" />Cancelar</Button></AlertDialog.Trigger>
             <AlertDialog.Portal>
               <AlertDialog.Overlay className="fixed inset-0 z-40 bg-slate-950/50" />
-              <AlertDialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-[20px] bg-white p-6 shadow-xl focus:outline-none">
+              <AlertDialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[20px] bg-white p-6 shadow-xl focus:outline-none">
                 <div className="flex items-start justify-between gap-4"><div><p className="text-sm font-bold text-red-700">Ação de cancelamento</p><AlertDialog.Title className="mt-1 text-balance text-xl font-extrabold text-[var(--brand-navy)]">Cancelar o resgate {item.code}?</AlertDialog.Title></div><AlertDialog.Cancel asChild><button className="flex size-11 shrink-0 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100" aria-label="Fechar confirmação"><X className="size-5" aria-hidden="true" /></button></AlertDialog.Cancel></div>
                 <AlertDialog.Description className="mt-3 text-pretty text-sm leading-6 text-slate-600">O estoque será devolvido. Se a competência ainda estiver aberta, os <strong className="font-extrabold tabular-nums text-[var(--brand-navy)]">{formatPoints(item.pointsSpent)} pontos</strong> também voltarão ao saldo do entregador.</AlertDialog.Description>
                 <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><AlertDialog.Cancel asChild><Button variant="secondary">Manter resgate</Button></AlertDialog.Cancel><AlertDialog.Action asChild><Button variant="danger" onClick={() => void update(item.id, "CANCELED")}>Confirmar cancelamento</Button></AlertDialog.Action></div>
@@ -128,7 +128,7 @@ export function RedemptionManager({
       )}
       {total > 50 ? (
         <nav className="flex flex-col items-center justify-between gap-3 rounded-[20px] border border-slate-200 bg-white p-4 sm:flex-row" aria-label="Páginas de resgates">
-          <p className="text-sm text-slate-600"><span className="font-extrabold tabular-nums text-[var(--brand-navy)]">{formatPoints(total)}</span> resgates • página <span className="font-bold tabular-nums">{page} de {pageCount}</span></p>
+          <p className="text-sm text-slate-600"><span className="font-extrabold tabular-nums text-[var(--brand-navy)]">{total.toLocaleString("pt-BR")}</span> resgates • página <span className="font-bold tabular-nums">{page} de {pageCount}</span></p>
           <div className="flex gap-2">{page > 1 ? <Link href={pageHref(page - 1)} className={buttonStyles({ variant: "secondary", size: "sm" })}>Anterior</Link> : <span className={buttonStyles({ variant: "secondary", size: "sm", className: "pointer-events-none opacity-50" })}>Anterior</span>}{page < pageCount ? <Link href={pageHref(page + 1)} className={buttonStyles({ variant: "secondary", size: "sm" })}>Próxima</Link> : <span className={buttonStyles({ variant: "secondary", size: "sm", className: "pointer-events-none opacity-50" })}>Próxima</span>}</div>
         </nav>
       ) : null}

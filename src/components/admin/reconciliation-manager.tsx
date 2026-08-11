@@ -91,7 +91,7 @@ function ReconcileDialog({ entry, couriers, onSaved }: { entry: ReconciliationEn
                 )}
               </section>
             </div>
-            <div><label htmlFor={`notes-${entry.id}`} className="mb-1.5 block text-sm font-bold text-[var(--brand-navy)]">Observação <span className="font-normal text-slate-500">(opcional)</span></label><textarea id={`notes-${entry.id}`} maxLength={500} className={`${fieldClass} min-h-24 py-3`} value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Registre como o vínculo foi confirmado" /></div>
+            <div><label htmlFor={`notes-${entry.id}`} className="mb-1.5 block text-sm font-bold text-[var(--brand-navy)]">Observação <span className="font-normal text-slate-500">(opcional)</span></label><textarea id={`notes-${entry.id}`} maxLength={500} className="min-h-24 w-full rounded-xl border border-slate-300 bg-white p-3 text-sm text-[var(--brand-navy)] outline-none focus:border-[var(--brand-blue)] focus:ring-4 focus:ring-blue-100" value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Registre como o vínculo foi confirmado" /></div>
             {error ? <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-800" role="alert">{error}</p> : null}
             <div className="flex flex-col-reverse gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:justify-end"><AlertDialog.Cancel asChild><Button variant="secondary" disabled={pending}>Cancelar</Button></AlertDialog.Cancel><Button type="submit" disabled={pending || !courierId}>{pending ? "Confirmando vínculo…" : "Confirmar vínculo"}</Button></div>
           </form>

@@ -33,7 +33,7 @@ type FieldProps = InputHTMLAttributes<HTMLInputElement> & {
 };
 
 const fieldClassName =
-  "min-h-12 w-full rounded-xl border border-[#BCC1CB] bg-white py-3 pl-11 pr-4 text-base text-[var(--brand-navy)] outline-none placeholder:text-[#738097] hover:border-[var(--brand-blue)] focus:border-[var(--brand-blue)] disabled:cursor-not-allowed disabled:bg-[#EFF2F6] disabled:text-[#52617A]";
+  "min-h-12 w-full rounded-xl border border-slate-300 bg-white py-3 pl-11 pr-4 text-base text-[var(--brand-navy)] outline-none placeholder:text-slate-400 hover:border-[var(--brand-blue)] focus:border-[var(--brand-blue)] disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500";
 
 function Field({ label, error, hint, icon: Icon, id: suppliedId, className, ...props }: FieldProps) {
   const generatedId = useId();
@@ -48,20 +48,20 @@ function Field({ label, error, hint, icon: Icon, id: suppliedId, className, ...p
       <div className="relative">
         <Icon
           aria-hidden="true"
-          className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-[#52617A]"
+          className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-slate-500"
         />
         <input
           {...props}
           id={id}
           aria-invalid={Boolean(error)}
           aria-describedby={error || hint ? descriptionId : undefined}
-          className={cn(fieldClassName, error && "border-[#A61620]", className)}
+          className={cn(fieldClassName, error && "border-red-600", className)}
         />
       </div>
       {(error || hint) && (
         <p
           id={descriptionId}
-          className={cn("mt-2 text-pretty text-sm leading-5", error ? "font-semibold text-[#A61620]" : "text-[#52617A]")}
+          className={cn("mt-2 text-pretty text-sm leading-5", error ? "font-semibold text-red-700" : "text-slate-600")}
         >
           {error ?? hint}
         </p>
@@ -297,6 +297,7 @@ export function RegisterForm() {
         error={fieldErrors.cnpj?.[0]}
         hint="Use o mesmo CNPJ cadastrado pela empresa. Se ele estiver na base e ainda não tiver conta, seus dados e pontos serão vinculados automaticamente."
         disabled={pending}
+        className="font-mono tabular-nums"
         required
       />
       <Field

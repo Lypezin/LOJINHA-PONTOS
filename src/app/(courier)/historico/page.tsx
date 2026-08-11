@@ -135,7 +135,7 @@ export default async function HistoryPage() {
                     <h3 className="line-clamp-2 text-balance font-extrabold text-[var(--brand-navy)]">{redemption.productNameSnapshot}</h3>
                     <StatusBadge tone={redemptionTone[redemption.status]}>{redemptionLabels[redemption.status]}</StatusBadge>
                   </div>
-                  <p className="mt-2 text-xs font-semibold tabular-nums text-slate-650">{redemption.code} • {formatDateTime(redemption.requestedAt)}</p>
+                  <p className="mt-2 text-xs font-semibold tabular-nums text-slate-600 font-medium">{redemption.code} • {formatDateTime(redemption.requestedAt)}</p>
                   <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-700">
                     <span className="tabular-nums">{redemption.quantity} unidade(s)</span>
                     <span className="font-extrabold tabular-nums text-[var(--brand-navy)]">{formatPoints(redemption.pointsSpent)} pts</span>

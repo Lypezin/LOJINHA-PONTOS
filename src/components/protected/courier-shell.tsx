@@ -56,11 +56,11 @@ export function CourierShell({
           <div className="flex items-center gap-2">
             <Link
               href="/historico"
-              className="hidden min-h-11 items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 text-sm font-extrabold text-[var(--brand-mint-ink)] shadow-sm focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 sm:inline-flex"
+              className="flex min-h-11 items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 text-xs font-extrabold text-[var(--brand-mint-ink)] shadow-sm focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 sm:px-4 sm:text-sm sm:gap-2"
               aria-label={`Saldo atual: ${formatPoints(balance)} pontos. Ver extrato.`}
             >
-              <WalletCards className="size-4" aria-hidden="true" />
-              <span className="tabular-nums">{formatPoints(balance)} pts</span>
+              <WalletCards className="size-4 shrink-0" aria-hidden="true" />
+              <span className="tabular-nums">{formatPoints(balance)} <span className="hidden sm:inline">pts</span></span>
             </Link>
             <Link
               href="/perfil"
@@ -77,7 +77,7 @@ export function CourierShell({
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-7xl px-4 py-8 pb-28 sm:px-6 sm:py-10 md:pb-10 lg:px-8">{children}</main>
+      <main className="mx-auto w-full max-w-7xl px-4 py-6 pb-28 sm:px-6 sm:py-10 md:pb-10 lg:px-8">{children}</main>
 
       <nav
         className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white px-3 pt-2 md:hidden"

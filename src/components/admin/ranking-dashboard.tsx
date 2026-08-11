@@ -334,7 +334,7 @@ export function RankingDashboard({ topEarners, topSpenders, topBalances, stats }
                     <th className="px-5 py-3.5 text-right">{valueLabel}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-150">
+                <tbody className="divide-y divide-slate-200">
                   {(() => {
                     const displayedItems = searchQuery
                       ? filteredList
@@ -366,7 +366,7 @@ export function RankingDashboard({ topEarners, topSpenders, topBalances, stats }
                                     ? "bg-amber-100 text-amber-800"
                                     : position === 2
                                     ? "bg-slate-100 text-slate-800"
-                                    : "bg-orange-100 text-orange-850"
+                                    : "bg-orange-100 text-orange-900"
                                   : "text-slate-500"
                               }`}
                             >
@@ -375,7 +375,7 @@ export function RankingDashboard({ topEarners, topSpenders, topBalances, stats }
                           </td>
                           <td className="px-5 py-4 font-bold text-[var(--brand-navy)]">
                             <div className="flex items-center gap-3">
-                              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xxs font-extrabold text-slate-600">
+                              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[10px] font-extrabold text-slate-600">
                                 {initials(entry.courierName)}
                               </span>
                               <span className="truncate max-w-[200px] sm:max-w-xs">{entry.courierName}</span>

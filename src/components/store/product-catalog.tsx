@@ -230,7 +230,7 @@ export function ProductCatalog({ products, balance }: { products: StoreProduct[]
                     </p>
                     {referenceValue ? <p className="text-slate-600 font-medium">Valor de referência: <span className="tabular-nums">{referenceValue}</span></p> : null}
                   </div>
-                  <div className="mt-4">
+                  <div className="mt-auto pt-4">
                     <RedeemDialog product={product} balance={balance} />
                   </div>
                 </div>
