@@ -27,7 +27,7 @@ export default async function ProfilePage() {
   ];
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-8">
       <PageHeader eyebrow="Sua conta" title="Meu perfil" description="Atualize seus dados, personalize sua foto e confira as informações operacionais vinculadas ao cadastro." />
 
       <ProfileEditor

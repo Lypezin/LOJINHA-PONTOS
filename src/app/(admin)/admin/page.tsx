@@ -76,7 +76,7 @@ export default async function AdminDashboardPage() {
       </section>
 
       <section className="grid gap-5 lg:grid-cols-3" aria-label="Atalhos operacionais">
-        <Link href="/admin/resgates" className="group rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200">
+        <Link href="/admin/resgates" className="group rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-400">
           <div className="flex items-start justify-between gap-4">
             <span className="flex size-11 items-center justify-center rounded-2xl bg-blue-50 text-[var(--brand-blue)]"><ShoppingBag className="size-5" aria-hidden="true" /></span>
             <ArrowRight className="size-5 text-slate-400 group-hover:text-[var(--brand-blue)]" aria-hidden="true" />
@@ -84,7 +84,7 @@ export default async function AdminDashboardPage() {
           <h2 className="mt-4 text-balance text-lg font-extrabold text-[var(--brand-navy)]">Fila de resgates</h2>
           <p className="mt-1 text-pretty text-sm leading-6 text-slate-600">{pendingRedemptions ? `${pendingRedemptions} pedido(s) aguardam andamento.` : "Nenhum pedido pendente agora."}</p>
         </Link>
-        <Link href="/admin/conciliacao" className="group rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200">
+        <Link href="/admin/conciliacao" className="group rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-400">
           <div className="flex items-start justify-between gap-4">
             <span className="flex size-11 items-center justify-center rounded-2xl bg-blue-50 text-[var(--brand-blue)]"><UserRoundSearch className="size-5" aria-hidden="true" /></span>
             <ArrowRight className="size-5 text-slate-400 group-hover:text-[var(--brand-blue)]" aria-hidden="true" />
@@ -92,7 +92,7 @@ export default async function AdminDashboardPage() {
           <h2 className="mt-4 text-balance text-lg font-extrabold text-[var(--brand-navy)]">Conciliação de CNPJ</h2>
           <p className="mt-1 text-pretty text-sm leading-6 text-slate-600">{unresolvedMatches ? `${unresolvedMatches} nome(s) precisam de revisão manual.` : "Todos os nomes estão conciliados."}</p>
         </Link>
-        <Link href="/admin/produtos" className="group rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200">
+        <Link href="/admin/produtos" className="group rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-400">
           <div className="flex items-start justify-between gap-4">
             <span className="flex size-11 items-center justify-center rounded-2xl bg-blue-50 text-[var(--brand-blue)]"><Boxes className="size-5" aria-hidden="true" /></span>
             <ArrowRight className="size-5 text-slate-400 group-hover:text-[var(--brand-blue)]" aria-hidden="true" />

@@ -33,7 +33,7 @@ type FieldProps = InputHTMLAttributes<HTMLInputElement> & {
 };
 
 const fieldClassName =
-  "min-h-12 w-full rounded-xl border border-slate-300 bg-white py-3 pl-11 pr-4 text-base text-[var(--brand-navy)] outline-none placeholder:text-slate-400 hover:border-[var(--brand-blue)] focus:border-[var(--brand-blue)] disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500";
+  "min-h-12 w-full rounded-xl border border-slate-300 bg-white py-3 pl-11 pr-4 text-base text-[var(--brand-navy)] outline-none placeholder:text-slate-500 hover:border-[var(--brand-blue)] focus:border-[var(--brand-blue)] disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500";
 
 function Field({ label, error, hint, icon: Icon, id: suppliedId, className, ...props }: FieldProps) {
   const generatedId = useId();
@@ -86,7 +86,7 @@ function PasswordField({ label, error, hint, id: suppliedId, className, ...props
       <div className="relative">
         <LockKeyhole
           aria-hidden="true"
-          className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-[#52617A]"
+          className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-slate-500"
         />
         <input
           {...props}
@@ -94,12 +94,12 @@ function PasswordField({ label, error, hint, id: suppliedId, className, ...props
           type={visible ? "text" : "password"}
           aria-invalid={Boolean(error)}
           aria-describedby={error || hint ? descriptionId : undefined}
-          className={cn(fieldClassName, "pr-12", error && "border-[#A61620]", className)}
+          className={cn(fieldClassName, "pr-12", error && "border-red-700", className)}
         />
         <button
           type="button"
           onClick={() => setVisible((current) => !current)}
-          className="absolute right-1 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-xl text-[#52617A] hover:bg-[#EEF3FF] hover:text-[var(--brand-blue-dark)] disabled:cursor-not-allowed disabled:opacity-50"
+          className="absolute right-1 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
           aria-label={visible ? "Ocultar senha" : "Mostrar senha"}
           disabled={props.disabled}
         >
@@ -109,7 +109,7 @@ function PasswordField({ label, error, hint, id: suppliedId, className, ...props
       {(error || hint) && (
         <p
           id={descriptionId}
-          className={cn("mt-2 text-pretty text-sm leading-5", error ? "font-semibold text-[#A61620]" : "text-[#52617A]")}
+          className={cn("mt-2 text-pretty text-sm leading-5", error ? "font-semibold text-red-700" : "text-slate-500")}
         >
           {error ?? hint}
         </p>
@@ -123,7 +123,7 @@ function SubmitButton({ pending, idleText, pendingText }: { pending: boolean; id
     <button
       type="submit"
       disabled={pending}
-      className="flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[var(--brand-blue)] px-6 py-3 font-bold text-white shadow-sm hover:bg-[var(--brand-blue-dark)] active:bg-[var(--brand-blue-dark)] disabled:cursor-not-allowed disabled:bg-[#8DAAF0]"
+      className="flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[var(--brand-blue)] px-6 py-3 font-bold text-white shadow-sm hover:bg-[var(--brand-blue-dark)] active:bg-[var(--brand-blue-dark)] disabled:cursor-not-allowed disabled:bg-blue-300"
     >
       {pending ? (
         <>
@@ -148,8 +148,8 @@ function FormMessage({ message, success = false }: { message?: string; success?:
       className={cn(
         "flex items-start gap-3 rounded-xl border p-4 text-pretty text-sm font-semibold leading-6",
         success
-          ? "border-[#B7EBDD] bg-[#E9FBF6] text-[#0F4938]"
-          : "border-[#F0C4C7] bg-[#FFF0F0] text-[#A61620]",
+          ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+          : "border-red-200 bg-red-50 text-red-700",
       )}
     >
       {success ? <CheckCircle2 aria-hidden="true" className="mt-0.5 size-5 shrink-0" /> : null}
@@ -336,7 +336,7 @@ export function RegisterForm() {
         required
       />
       <SubmitButton pending={pending} idleText="Criar minha conta" pendingText="Criando conta" />
-      <p className="text-pretty text-xs leading-5 text-[#52617A]">
+      <p className="text-pretty text-xs leading-5 text-slate-500">
         Ao criar sua conta, seus pontos e seu nome serão ligados ao CNPJ informado.
       </p>
     </form>
@@ -392,13 +392,13 @@ export function ForgotPasswordForm() {
       <button
         type="submit"
         disabled={pending}
-        className="flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[var(--brand-blue)] px-6 py-3 font-bold text-white shadow-sm hover:bg-[var(--brand-blue-dark)] disabled:cursor-not-allowed disabled:bg-[#8DAAF0]"
+        className="flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[var(--brand-blue)] px-6 py-3 font-bold text-white shadow-sm hover:bg-[var(--brand-blue-dark)] disabled:cursor-not-allowed disabled:bg-blue-300"
       >
         {pending ? <LoaderCircle aria-hidden="true" className="size-5" /> : <Send aria-hidden="true" className="size-5" />}
         {pending ? "Enviando instruções" : "Enviar instruções"}
       </button>
       {resetUrl ? (
-        <div className="rounded-xl border border-[#C9D7F8] bg-[#EEF3FF] p-4 text-sm text-[var(--brand-blue-dark)]">
+        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-[var(--brand-blue-dark)]">
           <p className="font-bold">Atalho disponível no ambiente de desenvolvimento</p>
           <Link href={resetUrl} className="mt-2 inline-flex min-h-11 items-center font-bold underline">
             Abrir link de redefinição

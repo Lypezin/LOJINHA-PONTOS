@@ -212,7 +212,7 @@ export function ProductCatalog({ products, balance }: { products: StoreProduct[]
             const referenceValue = formatCurrency(product.referenceValueCents);
             const lowStock = product.stockQuantity > 0 && product.stockQuantity <= 5;
             return (
-              <article key={product.id} className="flex min-w-0 flex-col overflow-hidden rounded-[20px] border border-slate-200 bg-white shadow-sm ring-1 ring-slate-950/[0.02] hover:-translate-y-1 hover:shadow-md transition-all duration-200">
+              <article key={product.id} className="flex min-w-0 flex-col overflow-hidden rounded-[20px] border border-slate-200 bg-white shadow-sm ring-1 ring-slate-950/[0.02] motion-safe:hover:-translate-y-1 hover:shadow-md transition duration-200 ease-out will-change-transform">
                 <div className="relative overflow-hidden">
                   <ProductImage src={product.imageUrl} name={product.name} />
                   {product.featured ? <StatusBadge tone="info" className="absolute left-3 top-3 border-white/80 bg-white">Destaque</StatusBadge> : null}
@@ -225,7 +225,7 @@ export function ProductCatalog({ products, balance }: { products: StoreProduct[]
                   <h3 className="mt-3 line-clamp-2 text-balance text-lg font-extrabold text-[var(--brand-navy)]">{product.name}</h3>
                   <p className="mt-2 line-clamp-2 text-pretty text-sm leading-5 text-slate-700">{product.description}</p>
                   <div className="mt-3 flex min-h-10 flex-col justify-end gap-1 text-xs">
-                    <p className={cn("font-bold tabular-nums", product.stockQuantity < 1 ? "text-red-700" : lowStock ? "text-amber-800" : "text-slate-650")}>
+                    <p className={cn("font-bold tabular-nums", product.stockQuantity < 1 ? "text-red-700" : lowStock ? "text-amber-800" : "text-slate-600")}>
                       {product.stockQuantity < 1 ? "Sem estoque" : lowStock ? `Estoque baixo: ${product.stockQuantity}` : `${product.stockQuantity} em estoque`}
                     </p>
                     {referenceValue ? <p className="text-slate-600 font-medium">Valor de referência: <span className="tabular-nums">{referenceValue}</span></p> : null}

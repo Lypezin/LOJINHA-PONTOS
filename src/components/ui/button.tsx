@@ -30,7 +30,7 @@ export function buttonStyles({
   className?: string;
 } = {}) {
   return cn(
-    "inline-flex items-center justify-center gap-2 rounded-full font-bold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50",
+    "inline-flex items-center justify-center gap-2 rounded-full font-bold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-400 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50",
     variants[variant],
     sizes[size],
     className,

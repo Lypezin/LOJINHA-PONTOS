@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Award, Coins, Crown, ShoppingBag, Sparkles, Trophy, Search, Download, HelpCircle } from "lucide-react";
+import { Award, Coins, Crown, ShoppingBag, Sparkles, Trophy, Search, Download, HelpCircle, X } from "lucide-react";
 import { formatPoints, initials } from "@/lib/format";
 import { formatCnpj } from "@/lib/presentation";
 import { StatCard } from "@/components/ui/stat-card";
@@ -45,13 +45,13 @@ export function RankingDashboard({ topEarners, topSpenders, topBalances, stats }
       ) {
         return;
       }
-      if (e.key === "1") {
+      if (e.altKey && e.key === "1") {
         setActiveTab("balances");
         setSearchQuery("");
-      } else if (e.key === "2") {
+      } else if (e.altKey && e.key === "2") {
         setActiveTab("earners");
         setSearchQuery("");
-      } else if (e.key === "3") {
+      } else if (e.altKey && e.key === "3") {
         setActiveTab("spenders");
         setSearchQuery("");
       }
@@ -173,10 +173,12 @@ export function RankingDashboard({ topEarners, topSpenders, topBalances, stats }
 
       {/* Controle de Abas e Pesquisa */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between border-b border-slate-200 pb-5">
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2" role="tablist" aria-label="Categorias do ranking">
           <button
+            role="tab"
+            aria-selected={activeTab === "balances"}
             onClick={() => { setActiveTab("balances"); setSearchQuery(""); setShowAll(false); }}
-            className={`flex min-h-11 items-center gap-2 rounded-xl px-4 text-sm font-bold transition-all duration-150 ${
+            className={`flex min-h-11 items-center gap-2 rounded-xl px-4 text-sm font-bold transition ease-out duration-150 ${
               activeTab === "balances"
                 ? "bg-[var(--brand-blue-dark)] text-white shadow-sm"
                 : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
@@ -186,8 +188,10 @@ export function RankingDashboard({ topEarners, topSpenders, topBalances, stats }
             Saldo Atual
           </button>
           <button
+            role="tab"
+            aria-selected={activeTab === "earners"}
             onClick={() => { setActiveTab("earners"); setSearchQuery(""); setShowAll(false); }}
-            className={`flex min-h-11 items-center gap-2 rounded-xl px-4 text-sm font-bold transition-all duration-150 ${
+            className={`flex min-h-11 items-center gap-2 rounded-xl px-4 text-sm font-bold transition ease-out duration-150 ${
               activeTab === "earners"
                 ? "bg-[var(--brand-blue-dark)] text-white shadow-sm"
                 : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
@@ -197,8 +201,10 @@ export function RankingDashboard({ topEarners, topSpenders, topBalances, stats }
             Maior Acúmulo
           </button>
           <button
+            role="tab"
+            aria-selected={activeTab === "spenders"}
             onClick={() => { setActiveTab("spenders"); setSearchQuery(""); setShowAll(false); }}
-            className={`flex min-h-11 items-center gap-2 rounded-xl px-4 text-sm font-bold transition-all duration-150 ${
+            className={`flex min-h-11 items-center gap-2 rounded-xl px-4 text-sm font-bold transition ease-out duration-150 ${
               activeTab === "spenders"
                 ? "bg-[var(--brand-blue-dark)] text-white shadow-sm"
                 : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
@@ -218,22 +224,23 @@ export function RankingDashboard({ topEarners, topSpenders, topBalances, stats }
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Pesquisar entregador..."
-              className="min-h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-10 text-sm text-[var(--brand-navy)] outline-none placeholder:text-slate-400 focus:border-[var(--brand-blue)] focus:ring-4 focus:ring-blue-100"
+              aria-label="Pesquisar entregador"
+              className="min-h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-12 text-sm text-[var(--brand-navy)] outline-none placeholder:text-slate-400 focus:border-[var(--brand-blue)] focus:ring-4 focus:ring-blue-100"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
-                className="absolute right-3.5 top-1/2 size-6 -translate-y-1/2 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+                className="absolute right-1 top-1/2 size-11 -translate-y-1/2 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
                 aria-label="Limpar pesquisa"
               >
-                <span className="text-lg font-bold leading-none">&times;</span>
+                <X className="size-5" />
               </button>
             )}
           </div>
           <button
             onClick={exportToCsv}
             title="Exportar dados para CSV"
-            className="flex min-h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-slate-600 hover:bg-slate-50 hover:text-[var(--brand-navy)] transition-all duration-150 shadow-sm"
+            className="flex min-h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-slate-600 hover:bg-slate-50 hover:text-[var(--brand-navy)] transition ease-out duration-150 shadow-sm"
           >
             <Download className="size-5" />
           </button>
@@ -244,7 +251,7 @@ export function RankingDashboard({ topEarners, topSpenders, topBalances, stats }
         <div className="rounded-[20px] border border-slate-200 bg-white py-16 text-center">
           <Trophy className="mx-auto size-12 text-slate-300" />
           <h3 className="mt-4 text-lg font-bold text-[var(--brand-navy)]">Nenhum entregador encontrado</h3>
-          <p className="mt-2 text-sm text-slate-500">Tente buscar por outro termo ou limpe a pesquisa.</p>
+          <p className="mt-2 text-sm text-slate-600">Tente buscar por outro termo ou limpe a pesquisa.</p>
         </div>
       ) : (
         <div className="space-y-10">
@@ -260,7 +267,7 @@ export function RankingDashboard({ topEarners, topSpenders, topBalances, stats }
                 return (
                   <div
                     key={entry.courierId}
-                    className={`group flex flex-col items-center w-full max-w-xs rounded-[24px] border bg-white p-6 shadow-md transition-all duration-200 hover:scale-[1.03] ${
+                    className={`group flex flex-col items-center w-full max-w-xs rounded-[20px] border bg-white p-6 shadow-md transition ease-out duration-200 hover:scale-[1.03] ${
                       isFirst
                         ? "border-amber-400 ring-2 ring-amber-400/20 order-1 md:order-2 md:pb-12 md:-translate-y-4"
                         : isSecond
@@ -293,7 +300,7 @@ export function RankingDashboard({ topEarners, topSpenders, topBalances, stats }
                     <h3 className="mt-4 text-center text-base font-extrabold text-[var(--brand-navy)] truncate max-w-full">
                       {entry.courierName}
                     </h3>
-                    <p className="mt-1 text-xs text-slate-500 tabular-nums">
+                    <p className="mt-1 text-xs text-slate-600 tabular-nums">
                       {entry.cnpj ? formatCnpj(entry.cnpj) : "CNPJ não cadastrado"}
                     </p>
                     {entry.plaza && (
@@ -304,7 +311,7 @@ export function RankingDashboard({ topEarners, topSpenders, topBalances, stats }
 
                     {/* Valor do Indicador */}
                     <div className="mt-5 w-full rounded-xl bg-slate-50 py-3 text-center">
-                      <p className="text-xs text-slate-500 font-semibold">{valueLabel}</p>
+                      <p className="text-xs text-slate-600 font-semibold">{valueLabel}</p>
                       <p className="mt-1 text-xl font-black text-[var(--brand-navy)] tabular-nums">
                         {formatPoints(entry.value)} pts
                       </p>
@@ -326,7 +333,7 @@ export function RankingDashboard({ topEarners, topSpenders, topBalances, stats }
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-left text-sm">
                 <thead>
-                  <tr className="border-b border-slate-200 text-slate-500 font-semibold">
+                  <tr className="border-b border-slate-200 text-slate-600 font-semibold">
                     <th className="px-5 py-3.5 text-center">Posição</th>
                     <th className="px-5 py-3.5">Entregador</th>
                     <th className="px-5 py-3.5">CNPJ</th>
@@ -367,7 +374,7 @@ export function RankingDashboard({ topEarners, topSpenders, topBalances, stats }
                                     : position === 2
                                     ? "bg-slate-100 text-slate-800"
                                     : "bg-orange-100 text-orange-900"
-                                  : "text-slate-500"
+                                  : "text-slate-600"
                               }`}
                             >
                               {position}
@@ -381,7 +388,7 @@ export function RankingDashboard({ topEarners, topSpenders, topBalances, stats }
                               <span className="truncate max-w-[200px] sm:max-w-xs">{entry.courierName}</span>
                             </div>
                           </td>
-                          <td className="px-5 py-4 tabular-nums text-slate-500">
+                          <td className="px-5 py-4 tabular-nums text-slate-600">
                             {entry.cnpj ? formatCnpj(entry.cnpj) : "—"}
                           </td>
                           <td className="px-5 py-4 text-slate-600">{entry.plaza ?? "—"}</td>
@@ -399,7 +406,7 @@ export function RankingDashboard({ topEarners, topSpenders, topBalances, stats }
               <div className="flex justify-center border-t border-slate-100 p-4 bg-slate-50/30">
                 <button
                   onClick={() => setShowAll(!showAll)}
-                  className="inline-flex min-h-10 items-center justify-center rounded-xl bg-white border border-slate-200 px-5 text-sm font-bold text-[var(--brand-blue)] hover:bg-slate-50 transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  className="inline-flex min-h-10 items-center justify-center rounded-xl bg-white border border-slate-200 px-5 text-sm font-bold text-[var(--brand-blue)] hover:bg-slate-50 transition shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
                 >
                   {showAll ? "Mostrar apenas Top 10" : `Ver ranking completo (mais ${remaining.length - 10} entregadores)`}
                 </button>

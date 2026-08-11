@@ -46,7 +46,7 @@ function AdminNav({ pathname, closeOnNavigate = false }: { pathname: string; clo
             href={href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-bold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200",
+              "flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-bold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-400",
               active
                 ? "border border-blue-100 bg-blue-50 text-[var(--brand-blue-dark)]"
                 : "border border-transparent text-slate-600 hover:bg-slate-100 hover:text-[var(--brand-navy)]",
@@ -73,38 +73,40 @@ export function AdminShell({ children, email, name, avatarVersion }: { children:
         <div className="mt-8 flex-1 overflow-y-auto">
           <AdminNav pathname={pathname} />
         </div>
-        <Link href="/admin/perfil" className="mt-6 flex items-center gap-3 rounded-xl border-t border-slate-200 pt-5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200" aria-label="Abrir meu perfil">
-          <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--brand-navy)] text-xs font-extrabold text-white" aria-hidden="true">
-            {avatarVersion ? (
-              // A imagem é privada e servida por uma rota autenticada.
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={`/api/profile/avatar?v=${avatarVersion}`} alt="" className="size-full object-cover" />
-            ) : initials(name || email)}
-          </span>
-          <div className="min-w-0">
-            <p className="truncate text-xs font-semibold text-slate-500">{name || "Administrador"}</p>
-            <p className="truncate text-sm font-bold text-[var(--brand-navy)]">{email}</p>
-          </div>
-        </Link>
+        <div className="mt-6 border-t border-slate-200 pt-5">
+          <Link href="/admin/perfil" className="flex min-h-11 items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-400" aria-label="Abrir meu perfil">
+            <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--brand-navy)] text-xs font-extrabold text-white" aria-hidden="true">
+              {avatarVersion ? (
+                // A imagem é privada e servida por uma rota autenticada.
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={`/api/profile/avatar?v=${avatarVersion}`} alt="" className="size-full object-cover" />
+              ) : initials(name || email)}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xs font-semibold text-slate-500">{name || "Administrador"}</p>
+              <p className="truncate text-sm font-bold text-[var(--brand-navy)]">{email}</p>
+            </div>
+          </Link>
+        </div>
         <div className="mt-3"><LogoutButton /></div>
       </aside>
 
       <div className="min-w-0 flex-1">
-        <header className="sticky top-0 z-20 flex min-h-20 items-center justify-between border-b border-slate-200 bg-white px-4 sm:px-6 lg:hidden">
+        <header className="sticky top-0 z-[var(--z-header)] flex min-h-20 items-center justify-between border-b border-slate-200 bg-white px-4 sm:px-6 lg:hidden">
           <AppMark href="/admin" />
           <Dialog.Root>
             <Dialog.Trigger asChild>
-              <button className="flex size-11 items-center justify-center rounded-xl border border-slate-200 text-[var(--brand-navy)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200" aria-label="Abrir menu administrativo">
+              <button className="flex size-11 items-center justify-center rounded-xl border border-slate-200 text-[var(--brand-navy)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-400" aria-label="Abrir menu administrativo">
                 <Menu className="size-5" aria-hidden="true" />
               </button>
             </Dialog.Trigger>
             <Dialog.Portal>
-              <Dialog.Overlay className="fixed inset-0 z-40 bg-slate-950/45" />
-              <Dialog.Content className="fixed inset-y-0 left-0 z-50 w-[min(88vw,20rem)] overflow-y-auto bg-white p-5 shadow-xl focus:outline-none">
+              <Dialog.Overlay className="fixed inset-0 z-[var(--z-overlay)] bg-slate-950/45" />
+              <Dialog.Content className="fixed inset-y-0 left-0 z-[var(--z-drawer)] w-[min(88vw,20rem)] overflow-y-auto bg-white p-5 shadow-xl focus:outline-none">
                 <div className="flex items-center justify-between gap-3">
                   <Dialog.Title className="text-lg font-extrabold text-[var(--brand-navy)]">Menu administrativo</Dialog.Title>
                   <Dialog.Close asChild>
-                    <button className="flex size-11 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200" aria-label="Fechar menu administrativo">
+                    <button className="flex size-11 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-400" aria-label="Fechar menu administrativo">
                       <X className="size-5" aria-hidden="true" />
                     </button>
                   </Dialog.Close>
@@ -113,18 +115,20 @@ export function AdminShell({ children, email, name, avatarVersion }: { children:
                 <div className="mt-7">
                   <AdminNav pathname={pathname} closeOnNavigate />
                 </div>
-                <Link href="/admin/perfil" className="mt-6 flex items-center gap-3 rounded-xl border-t border-slate-200 pt-5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200" aria-label="Abrir meu perfil">
-                  <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--brand-navy)] text-xs font-extrabold text-white" aria-hidden="true">
-                    {avatarVersion ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={`/api/profile/avatar?v=${avatarVersion}`} alt="" className="size-full object-cover" />
-                    ) : initials(name || email)}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="truncate text-xs font-semibold text-slate-500">{name || "Administrador"}</p>
-                    <p className="truncate text-sm font-bold text-[var(--brand-navy)]">{email}</p>
-                  </div>
-                </Link>
+                <div className="mt-6 border-t border-slate-200 pt-5">
+                  <Link href="/admin/perfil" className="flex min-h-11 items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-400" aria-label="Abrir meu perfil">
+                    <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--brand-navy)] text-xs font-extrabold text-white" aria-hidden="true">
+                      {avatarVersion ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={`/api/profile/avatar?v=${avatarVersion}`} alt="" className="size-full object-cover" />
+                      ) : initials(name || email)}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-semibold text-slate-500">{name || "Administrador"}</p>
+                      <p className="truncate text-sm font-bold text-[var(--brand-navy)]">{email}</p>
+                    </div>
+                  </Link>
+                </div>
                 <div className="mt-4 border-t border-slate-200 pt-4"><LogoutButton /></div>
               </Dialog.Content>
             </Dialog.Portal>

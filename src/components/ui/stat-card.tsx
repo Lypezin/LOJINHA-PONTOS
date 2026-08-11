@@ -2,7 +2,7 @@ import type { LucideIcon } from "lucide-react";
 
 export function StatCard({ label, value, helper, icon: Icon }: { label: string; value: string; helper?: string; icon: LucideIcon }) {
   return (
-    <article className="rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm ring-1 ring-slate-950/[0.02] hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
+    <article className="rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm ring-1 ring-slate-950/[0.02] motion-safe:hover:-translate-y-0.5 hover:shadow-md transition duration-200 ease-out will-change-transform">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-slate-600">{label}</p>

@@ -42,14 +42,14 @@ export default async function StorePage() {
   const expiringSoon = daysLeft <= 7;
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-8">
       <PageHeader
         eyebrow={`Olá, ${(user.displayName || user.courier.name).split(" ")[0]}`}
         title="Seus pedidos viram conquistas"
         description="Use seus pontos da competência atual. O saldo que não for usado expira automaticamente na virada do mês."
       />
 
-      <section className="relative overflow-hidden rounded-[28px] border border-blue-900 bg-[var(--brand-blue-dark)] p-6 text-white shadow-lg sm:p-8" aria-labelledby="balance-title">
+      <section className="relative overflow-hidden rounded-[20px] border border-blue-900 bg-[var(--brand-blue-dark)] p-6 text-white shadow-lg sm:p-8" aria-labelledby="balance-title">
         <span className="absolute -right-10 -top-16 size-52 rounded-full border-[28px] border-white/[0.06]" aria-hidden="true" />
         <span className="absolute -bottom-20 right-32 size-40 rounded-full border-[24px] border-[var(--brand-mint)]/[0.08]" aria-hidden="true" />
         <div className="relative z-10 flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
@@ -61,11 +61,12 @@ export default async function StorePage() {
             <p className="mt-4 text-5xl font-extrabold tabular-nums sm:text-6xl">
               {formatPoints(balance)} <span className="text-xl text-blue-100 sm:text-2xl">pontos</span>
             </p>
-            <Link href="/historico" className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-full bg-white px-5 text-sm font-bold text-[var(--brand-blue-dark)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200">
+            <Link href="/historico" className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-full bg-white px-5 text-sm font-bold text-[var(--brand-blue-dark)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-400">
               Ver extrato
               <ChevronRight className="size-4" aria-hidden="true" />
             </Link>
           </div>
+
           <div className="grid gap-3 sm:grid-cols-2 lg:min-w-[28rem]">
             <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
               <CalendarClock className="size-5 text-[var(--brand-mint)]" aria-hidden="true" />

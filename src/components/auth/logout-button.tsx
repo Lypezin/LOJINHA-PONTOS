@@ -23,7 +23,7 @@ export function LogoutButton() {
 
   return (
     <div>
-      <Button variant="secondary" onClick={logout} disabled={pending}>
+      <Button variant="secondary" onClick={logout} disabled={pending} className="w-full">
         <LogOut className="size-4" aria-hidden="true" />
         {pending ? "Saindo…" : "Sair da conta"}
       </Button>

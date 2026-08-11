@@ -28,7 +28,7 @@ export function CourierShell({
 
   return (
     <div className="min-h-dvh bg-[var(--background)]">
-      <header className="sticky top-0 z-20 border-b border-slate-200 bg-white shadow-sm">
+      <header className="sticky top-0 z-[var(--z-header)] border-b border-slate-200 bg-white shadow-sm">
         <div className="h-1 bg-[var(--brand-blue)]" />
         <div className="mx-auto flex min-h-20 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
           <AppMark />
@@ -41,7 +41,7 @@ export function CourierShell({
                   href={href}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-bold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200",
+                    "inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-bold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-400",
                     active
                       ? "border border-blue-100 bg-blue-50 text-[var(--brand-blue-dark)]"
                       : "border border-transparent text-slate-600 hover:bg-slate-100 hover:text-[var(--brand-navy)]",
@@ -56,7 +56,7 @@ export function CourierShell({
           <div className="flex items-center gap-2">
             <Link
               href="/historico"
-              className="flex min-h-11 items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 text-xs font-extrabold text-[var(--brand-mint-ink)] shadow-sm focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 sm:px-4 sm:text-sm sm:gap-2"
+              className="flex min-h-11 items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 text-xs font-extrabold text-[var(--brand-mint-ink)] shadow-sm focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-400 sm:px-4 sm:text-sm sm:gap-2"
               aria-label={`Saldo atual: ${formatPoints(balance)} pontos. Ver extrato.`}
             >
               <WalletCards className="size-4 shrink-0" aria-hidden="true" />
@@ -64,7 +64,7 @@ export function CourierShell({
             </Link>
             <Link
               href="/perfil"
-              className="flex size-11 items-center justify-center overflow-hidden rounded-full bg-[var(--brand-navy)] text-sm font-extrabold text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+              className="flex size-11 items-center justify-center overflow-hidden rounded-full bg-[var(--brand-navy)] text-sm font-extrabold text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-400"
               aria-label={`Abrir perfil de ${name}`}
             >
               {avatarVersion ? (
@@ -80,7 +80,7 @@ export function CourierShell({
       <main className="mx-auto w-full max-w-7xl px-4 py-6 pb-28 sm:px-6 sm:py-10 md:pb-10 lg:px-8">{children}</main>
 
       <nav
-        className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white px-3 pt-2 md:hidden"
+        className="fixed inset-x-0 bottom-0 z-[var(--z-bottom-nav)] border-t border-slate-200 bg-white px-3 pt-2 md:hidden"
         style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}
         aria-label="Navegação principal"
       >
@@ -93,7 +93,7 @@ export function CourierShell({
                 href={href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl px-2 text-xs font-bold focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200",
+                  "flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl px-2 text-xs font-bold focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-400",
                   active
                     ? "bg-blue-50 text-[var(--brand-blue-dark)]"
                     : "text-slate-600",

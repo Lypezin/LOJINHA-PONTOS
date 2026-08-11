@@ -76,7 +76,7 @@ export function AuthShell({ eyebrow, title, description, children, footer }: Aut
 
         <section className="flex items-center px-6 py-10 sm:px-10 lg:px-16 lg:py-14">
           <div className="mx-auto w-full max-w-md">
-            <div className="inline-flex min-h-8 items-center gap-2 rounded-full bg-[#EEF3FF] px-3 text-sm font-bold text-[var(--brand-blue-dark)]">
+            <div className="inline-flex min-h-8 items-center gap-2 rounded-full bg-blue-50 px-3 text-sm font-bold text-[var(--brand-blue-dark)]">
               <ShieldCheck aria-hidden="true" className="size-4" />
               {eyebrow}
             </div>
