@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import ExcelJS from "exceljs";
 import { MatchStatus, Prisma } from "@prisma/client";
 
@@ -411,10 +412,10 @@ export async function importCnpjGuideWorkbook(
           const chunk = guideUpserts.slice(i, i + CHUNK_SIZE);
           const sqlValues = chunk.map(
             (item) =>
-              Prisma.sql`(${item.name}, ${item.normalizedName}, ${item.cnpj}, ${item.courierId}, 'PLANILHA_CNPJ'::text, NOW(), NOW())`,
+              Prisma.sql`(${randomUUID()}, ${item.name}, ${item.normalizedName}, ${item.cnpj}, ${item.courierId}, 'PLANILHA_CNPJ'::text, NOW(), NOW())`,
           );
           await tx.$executeRaw(Prisma.sql`
-            INSERT INTO "CnpjGuideEntry" ("name", "normalizedName", "cnpj", "courierId", "source", "createdAt", "updatedAt")
+            INSERT INTO "CnpjGuideEntry" ("id", "name", "normalizedName", "cnpj", "courierId", "source", "createdAt", "updatedAt")
             VALUES ${Prisma.join(sqlValues)}
             ON CONFLICT ("cnpj") DO UPDATE SET
               "name" = EXCLUDED."name",
