@@ -57,3 +57,52 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     return apiError(error);
   }
 }
+
+export async function DELETE(request: Request, context: { params: Promise<{ id: string }> }) {
+  try {
+    if (!isTrustedPostOrigin(request)) throw new DomainError("Origem da solicitação não permitida.", "INVALID_ORIGIN", 403);
+    const admin = await requireAdmin();
+    const { id } = await context.params;
+
+    const product = await db.product.findUnique({ where: { id } });
+    if (!product) throw new DomainError("Produto não encontrado.", "NOT_FOUND", 404);
+
+    const redemptionsCount = await db.redemption.count({ where: { productId: id } });
+
+    if (redemptionsCount > 0) {
+      await db.$transaction(async (tx) => {
+        await tx.product.update({
+          where: { id },
+          data: { status: "ARCHIVED" },
+        });
+        await tx.auditLog.create({
+          data: {
+            actorUserId: admin.id,
+            action: "PRODUCT_ARCHIVED",
+            entityType: "Product",
+            entityId: id,
+            metadata: { reason: "Product has redemptions history", redemptionsCount },
+          },
+        });
+      });
+      return NextResponse.json({ ok: true, archived: true, message: "Produto arquivado pois possui histórico de resgates." });
+    }
+
+    await db.$transaction(async (tx) => {
+      await tx.product.delete({ where: { id } });
+      await tx.auditLog.create({
+        data: {
+          actorUserId: admin.id,
+          action: "PRODUCT_DELETED",
+          entityType: "Product",
+          entityId: id,
+          metadata: { productName: product.name },
+        },
+      });
+    });
+
+    return NextResponse.json({ ok: true, deleted: true });
+  } catch (error) {
+    return apiError(error);
+  }
+}

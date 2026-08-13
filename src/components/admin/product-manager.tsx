@@ -1,7 +1,7 @@
 "use client";
 
 import * as Dialog from "@radix-ui/react-dialog";
-import { Boxes, ImagePlus, Package, Pencil, Plus, Search, X } from "lucide-react";
+import { Boxes, ImagePlus, Package, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -227,6 +227,21 @@ export function ProductManager({ products }: { products: AdminProduct[] }) {
   }), [products, query, status]);
   const refresh = () => router.refresh();
 
+  async function deleteProduct(product: AdminProduct) {
+    if (!window.confirm(`Tem certeza que deseja excluir o produto "${product.name}"?`)) return;
+    try {
+      const response = await fetch(`/api/admin/products/${product.id}`, { method: "DELETE" });
+      const data = (await response.json()) as { ok?: boolean; message?: string; error?: string };
+      if (!response.ok) throw new Error(data.error || "Não foi possível excluir o produto.");
+      if (data.message) {
+        window.alert(data.message);
+      }
+      refresh();
+    } catch (caught) {
+      window.alert(caught instanceof Error ? caught.message : "Não foi possível excluir o produto.");
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -247,12 +262,40 @@ export function ProductManager({ products }: { products: AdminProduct[] }) {
             <table className="w-full text-left text-sm">
               <thead className="border-b border-slate-200 bg-slate-50 text-xs text-slate-600"><tr><th scope="col" className="px-5 py-3 font-bold">Produto</th><th scope="col" className="px-4 py-3 font-bold">Pontos</th><th scope="col" className="px-4 py-3 font-bold">Estoque</th><th scope="col" className="px-4 py-3 font-bold">Status</th><th scope="col" className="px-5 py-3 text-right font-bold">Ação</th></tr></thead>
               <tbody className="divide-y divide-slate-200">
-                {filtered.map((product) => <tr key={product.id}><td className="px-5 py-4"><div className="flex items-center gap-3"><ProductThumb product={product} /><div className="min-w-0"><p className="truncate font-bold text-[var(--brand-navy)]">{product.name}</p><p className="mt-1 text-xs text-slate-500">{product.category}{product.featured ? " • Destaque" : ""}</p></div></div></td><td className="px-4 py-4 font-extrabold tabular-nums text-[var(--brand-navy)]">{formatPoints(product.pointsCost)}</td><td className="px-4 py-4"><span className={product.stockQuantity <= 5 ? "font-extrabold tabular-nums text-amber-800" : "font-bold tabular-nums text-slate-700"}>{formatPoints(product.stockQuantity)}</span></td><td className="px-4 py-4"><StatusBadge tone={productTone[product.status]}>{productLabels[product.status]}</StatusBadge></td><td className="px-5 py-4 text-right"><ProductDialog product={product} onSaved={refresh} trigger={<Button variant="ghost" size="sm"><Pencil className="size-4" aria-hidden="true" />Editar</Button>} /></td></tr>)}
+                {filtered.map((product) => (
+                  <tr key={product.id}>
+                    <td className="px-5 py-4"><div className="flex items-center gap-3"><ProductThumb product={product} /><div className="min-w-0"><p className="truncate font-bold text-[var(--brand-navy)]">{product.name}</p><p className="mt-1 text-xs text-slate-500">{product.category}{product.featured ? " • Destaque" : ""}</p></div></div></td>
+                    <td className="px-4 py-4 font-extrabold tabular-nums text-[var(--brand-navy)]">{formatPoints(product.pointsCost)}</td>
+                    <td className="px-4 py-4"><span className={product.stockQuantity <= 5 ? "font-extrabold tabular-nums text-amber-800" : "font-bold tabular-nums text-slate-700"}>{formatPoints(product.stockQuantity)}</span></td>
+                    <td className="px-4 py-4"><StatusBadge tone={productTone[product.status]}>{productLabels[product.status]}</StatusBadge></td>
+                    <td className="px-5 py-4 text-right">
+                      <div className="flex justify-end gap-2">
+                        <ProductDialog product={product} onSaved={refresh} trigger={<Button variant="ghost" size="sm"><Pencil className="size-4" aria-hidden="true" />Editar</Button>} />
+                        <Button variant="ghost" size="sm" className="text-red-700 hover:bg-red-50 hover:text-red-800" onClick={() => deleteProduct(product)}>
+                          <Trash2 className="size-4" aria-hidden="true" />
+                          Excluir
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
           <div className="grid gap-4 md:hidden">
-            {filtered.map((product) => <article key={product.id} className="rounded-[20px] border border-slate-200 bg-white p-4"><div className="flex items-start gap-3"><ProductThumb product={product} /><div className="min-w-0 flex-1"><h2 className="font-extrabold text-[var(--brand-navy)]">{product.name}</h2><p className="mt-1 text-xs text-slate-500">{product.category}</p></div><StatusBadge tone={productTone[product.status]}>{productLabels[product.status]}</StatusBadge></div><dl className="mt-4 grid grid-cols-3 gap-2 rounded-2xl bg-slate-50 p-3 text-xs"><div><dt className="text-slate-500">Pontos</dt><dd className="mt-1 font-extrabold tabular-nums">{formatPoints(product.pointsCost)}</dd></div><div><dt className="text-slate-500">Estoque</dt><dd className="mt-1 font-extrabold tabular-nums">{formatPoints(product.stockQuantity)}</dd></div><div><dt className="text-slate-500">Valor</dt><dd className="mt-1 font-bold tabular-nums">{formatCurrency(product.referenceValueCents) ?? "—"}</dd></div></dl><div className="mt-3"><ProductDialog product={product} onSaved={refresh} trigger={<Button variant="secondary" className="w-full"><Pencil className="size-4" aria-hidden="true" />Editar produto</Button>} /></div></article>)}
+            {filtered.map((product) => (
+              <article key={product.id} className="rounded-[20px] border border-slate-200 bg-white p-4">
+                <div className="flex items-start gap-3"><ProductThumb product={product} /><div className="min-w-0 flex-1"><h2 className="font-extrabold text-[var(--brand-navy)]">{product.name}</h2><p className="mt-1 text-xs text-slate-500">{product.category}</p></div><StatusBadge tone={productTone[product.status]}>{productLabels[product.status]}</StatusBadge></div>
+                <dl className="mt-4 grid grid-cols-3 gap-2 rounded-2xl bg-slate-50 p-3 text-xs"><div><dt className="text-slate-500">Pontos</dt><dd className="mt-1 font-extrabold tabular-nums">{formatPoints(product.pointsCost)}</dd></div><div><dt className="text-slate-500">Estoque</dt><dd className="mt-1 font-extrabold tabular-nums">{formatPoints(product.stockQuantity)}</dd></div><div><dt className="text-slate-500">Valor</dt><dd className="mt-1 font-bold tabular-nums">{formatCurrency(product.referenceValueCents) ?? "—"}</dd></div></dl>
+                <div className="mt-3 flex gap-2">
+                  <ProductDialog product={product} onSaved={refresh} trigger={<Button variant="secondary" className="flex-1"><Pencil className="size-4" aria-hidden="true" />Editar</Button>} />
+                  <Button variant="secondary" className="text-red-700 hover:bg-red-50" onClick={() => deleteProduct(product)}>
+                    <Trash2 className="size-4" aria-hidden="true" />
+                    Excluir
+                  </Button>
+                </div>
+              </article>
+            ))}
           </div>
         </>
       ) : (
