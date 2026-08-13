@@ -75,6 +75,41 @@ function toDraft(product?: AdminProduct): ProductDraft {
   };
 }
 
+async function compressImageFile(file: File, maxWidth = 800, maxHeight = 800, quality = 0.85): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let { width, height } = img;
+      if (width > maxWidth || height > maxHeight) {
+        if (width / height > maxWidth / maxHeight) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        } else {
+          width = Math.round((width * maxHeight) / height);
+          height = maxHeight;
+        }
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        reject(new Error("Não foi possível processar a foto."));
+        return;
+      }
+      ctx.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL("image/jpeg", quality));
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Não foi possível carregar a foto."));
+    };
+    img.src = url;
+  });
+}
+
 function ProductThumb({ product }: { product: Pick<AdminProduct, "name" | "imageUrl"> }) {
   if (!product.imageUrl) return <div className="flex size-12 items-center justify-center rounded-xl bg-blue-50 text-[var(--brand-blue)]"><Package className="size-5" aria-hidden="true" /></div>;
   return (
@@ -103,18 +138,13 @@ function ProductDialog({ product, onSaved, trigger }: { product?: AdminProduct; 
 
   async function handleImage(file?: File) {
     if (!file) return;
-    if (file.size > 2_000_000) {
-      setError("A foto deve ter no máximo 2 MB.");
-      return;
+    try {
+      const compressed = await compressImageFile(file, 800, 800, 0.85);
+      update("imageUrl", compressed);
+      setError("");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Não foi possível ler a foto.");
     }
-    const encoded = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result));
-      reader.onerror = () => reject(new Error("Não foi possível ler a foto."));
-      reader.readAsDataURL(file);
-    });
-    update("imageUrl", encoded);
-    setError("");
   }
 
   async function save(event: FormEvent<HTMLFormElement>) {
