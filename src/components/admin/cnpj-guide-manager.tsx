@@ -1,9 +1,9 @@
 "use client";
 
-import { Check, FileSpreadsheet, Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import { Check, FileSpreadsheet, Pencil, Plus, Search, Trash2, Upload, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type FormEvent, useMemo, useState } from "react";
+import { type FormEvent, useMemo, useRef, useState } from "react";
 
 import { Button, buttonStyles } from "@/components/ui/button";
 import { formatCnpj } from "@/lib/presentation";
@@ -20,7 +20,116 @@ export type CnpjGuideEntryView = {
 
 export type CnpjGuideCourierOption = { id: string; name: string; cnpj: string | null };
 
+export type CnpjImportSummary = {
+  totalRows: number;
+  importedEntries: number;
+  linkedCouriers: number;
+  invalidCnpjs: number;
+  missingNames: number;
+  sheetName: string;
+};
+
 const fieldClass = "min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-[var(--brand-navy)] outline-none focus:border-[var(--brand-blue)] focus:ring-4 focus:ring-blue-100";
+
+function CnpjGuideExcelImporter() {
+  const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
+  const [summary, setSummary] = useState<CnpjImportSummary | null>(null);
+
+  async function handleImport(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!file) return;
+    setPending(true);
+    setError("");
+    setSummary(null);
+
+    try {
+      const formData = new FormData();
+      formData.set("file", file);
+
+      const response = await fetch("/api/admin/cnpj-guide/import", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = (await response.json()) as { ok?: boolean; data?: CnpjImportSummary; error?: string };
+      if (!response.ok || !data.data) {
+        throw new Error(data.error || "Não foi possível importar a planilha de CNPJs.");
+      }
+
+      setSummary(data.data);
+      setFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      router.refresh();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Não foi possível importar a planilha de CNPJs.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+      <div className="mb-4 flex items-start gap-3">
+        <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 shadow-sm">
+          <Upload className="size-5" />
+        </span>
+        <div>
+          <h2 className="text-lg font-extrabold text-[var(--brand-navy)]">Importar Planilha de CNPJs (.xlsx)</h2>
+          <p className="mt-1 text-sm leading-6 text-slate-600">
+            Envie um arquivo Excel com as colunas <strong className="font-semibold text-[var(--brand-navy)]">NOME</strong>, <strong className="font-semibold text-[var(--brand-navy)]">CNPJ</strong> (e opcionalmente <strong className="font-semibold text-[var(--brand-navy)]">UUID</strong> e <strong className="font-semibold text-[var(--brand-navy)]">REGIÃO</strong>) para cadastrar e conciliar em lote.
+          </p>
+        </div>
+      </div>
+
+      <form onSubmit={handleImport} className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+        <div className="flex-1">
+          <label htmlFor="cnpj-excel-file" className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">
+            Arquivo Excel (.xlsx)
+          </label>
+          <input
+            ref={fileInputRef}
+            id="cnpj-excel-file"
+            type="file"
+            accept=".xlsx"
+            required
+            className={`${fieldClass} file:mr-3 file:rounded-xl file:border-0 file:bg-emerald-50 file:px-3 file:py-2 file:text-xs file:font-bold file:text-emerald-800`}
+            onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+          />
+        </div>
+        <Button type="submit" disabled={pending || !file}>
+          <Upload className="size-4" />
+          {pending ? "Processando planilha…" : "Importar CNPJs"}
+        </Button>
+      </form>
+
+      {error ? (
+        <p className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-800" role="alert">
+          {error}
+        </p>
+      ) : null}
+
+      {summary ? (
+        <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900" role="status">
+          <p className="font-extrabold text-emerald-950">Planilha importada com sucesso!</p>
+          <ul className="mt-2 list-disc pl-5 space-y-1 text-xs text-emerald-800">
+            <li><strong>{summary.importedEntries.toLocaleString("pt-BR")}</strong> CNPJs cadastrados/atualizados na Guia.</li>
+            <li><strong>{summary.linkedCouriers.toLocaleString("pt-BR")}</strong> entregadores vinculados automaticamente.</li>
+            {summary.invalidCnpjs > 0 ? (
+              <li className="text-amber-800"><strong>{summary.invalidCnpjs}</strong> CNPJs inválidos foram ignorados.</li>
+            ) : null}
+            {summary.missingNames > 0 ? (
+              <li className="text-amber-800"><strong>{summary.missingNames}</strong> linhas sem nome foram ignoradas.</li>
+            ) : null}
+          </ul>
+        </div>
+      ) : null}
+    </section>
+  );
+}
 
 function GuideForm({
   entry,
@@ -124,8 +233,10 @@ export function CnpjGuideManager({
 
   return (
     <div className="space-y-6">
+      <CnpjGuideExcelImporter />
+
       <section className="rounded-[24px] border border-blue-200 bg-blue-50/70 p-5 shadow-sm sm:p-6">
-        <div className="mb-5 flex items-start gap-3"><span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-white text-[var(--brand-blue)] shadow-sm"><FileSpreadsheet className="size-5" /></span><div><h2 className="text-lg font-extrabold text-[var(--brand-navy)]">Adicionar nome e CNPJ</h2><p className="mt-1 text-sm leading-6 text-blue-900/90">Esta base é usada automaticamente em todas as próximas importações.</p></div></div>
+        <div className="mb-5 flex items-start gap-3"><span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-white text-[var(--brand-blue)] shadow-sm"><FileSpreadsheet className="size-5" /></span><div><h2 className="text-lg font-extrabold text-[var(--brand-navy)]">Adicionar nome e CNPJ manualmente</h2><p className="mt-1 text-sm leading-6 text-blue-900/90">Esta base é usada automaticamente em todas as próximas importações.</p></div></div>
         <GuideForm couriers={couriers} initialCourierId={initialCourierId} />
       </section>
 
@@ -176,7 +287,9 @@ export function CnpjGuideManager({
                       {entry.courier?.externalCourierId ?? "—"}
                     </td>
                     <td className="px-5 py-4 text-xs font-semibold text-slate-550">
-                      {entry.source === "INFORMATIVO"
+                      {entry.source === "PLANILHA_CNPJ"
+                        ? "Planilha CNPJ"
+                        : entry.source === "INFORMATIVO"
                         ? "Informativo"
                         : entry.source === "BASE_EXISTENTE"
                         ? "Base anterior"

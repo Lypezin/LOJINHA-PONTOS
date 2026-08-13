@@ -39,17 +39,22 @@ const MAX_CNPJ_ROWS = 100_000;
 const MAX_WORKSHEET_COLUMNS = 256;
 
 const DATA_ALIASES = {
-  externalCourierId: ["id_da_pessoa_entregadora", "id_pessoa_entregadora", "uuid_entregador"],
-  name: ["pessoa_entregadora", "nome_entregador", "entregador"],
+  externalCourierId: [
+    "id_da_pessoa_entregadora",
+    "id_pessoa_entregadora",
+    "uuid_entregador",
+    "uuid",
+  ],
+  name: ["pessoa_entregadora", "nome_entregador", "entregador", "nome"],
   date: ["data_do_periodo", "data", "competencia"],
-  plaza: ["praca", "praça"],
+  plaza: ["praca", "praça", "regiao", "região"],
   subPlaza: ["sub_praca", "sub_praça"],
   tag: ["tag"],
   source: ["origem", "source"],
 } as const;
 
 const CNPJ_ALIASES = {
-  name: ["entregador", "pessoa_entregadora", "nome_entregador"],
+  name: ["entregador", "pessoa_entregadora", "nome_entregador", "nome"],
   cnpj: ["cnpj"],
 } as const;
 
