@@ -1,5 +1,5 @@
 import ExcelJS from "exceljs";
-import { MatchStatus } from "@prisma/client";
+import { MatchStatus, Prisma } from "@prisma/client";
 
 import {
   isUuid,
@@ -192,113 +192,219 @@ export async function importCnpjGuideWorkbook(
     );
   }
 
+  const allUuids = parsedEntries.flatMap((e) => (e.uuid ? [e.uuid] : []));
+  const allCnpjs = parsedEntries.map((e) => e.cnpj);
+  const allNormalizedNames = parsedEntries.map((e) => e.normalizedName);
+
+  // 1. Bulk pre-fetch existing Couriers
+  const existingCouriers = await db.courier.findMany({
+    where: {
+      OR: [
+        ...(allUuids.length ? [{ externalCourierId: { in: allUuids } }] : []),
+        { cnpj: { in: allCnpjs } },
+        { normalizedName: { in: allNormalizedNames }, status: { not: "INACTIVE" as const } },
+      ],
+    },
+    select: {
+      id: true,
+      externalCourierId: true,
+      cnpj: true,
+      name: true,
+      normalizedName: true,
+      plaza: true,
+    },
+  });
+
+  const courierByUuid = new Map(
+    existingCouriers.flatMap((c) => (c.externalCourierId ? [[c.externalCourierId, c] as const] : [])),
+  );
+  const courierByCnpj = new Map(
+    existingCouriers.flatMap((c) => (c.cnpj ? [[c.cnpj, c] as const] : [])),
+  );
+  const couriersByNormalizedName = new Map<string, typeof existingCouriers>();
+  for (const c of existingCouriers) {
+    const list = couriersByNormalizedName.get(c.normalizedName) ?? [];
+    list.push(c);
+    couriersByNormalizedName.set(c.normalizedName, list);
+  }
+
+  // 2. Pre-fetch existing CnpjGuideEntries
+  const allCourierIds = existingCouriers.map((c) => c.id);
+  const existingGuideEntries = await db.cnpjGuideEntry.findMany({
+    where: {
+      OR: [
+        { cnpj: { in: allCnpjs } },
+        ...(allCourierIds.length ? [{ courierId: { in: allCourierIds } }] : []),
+      ],
+    },
+    select: { id: true, cnpj: true, courierId: true },
+  });
+
+  const guideByCnpj = new Map(existingGuideEntries.map((g) => [g.cnpj, g]));
+  const guideByCourierId = new Map(
+    existingGuideEntries.flatMap((g) => (g.courierId ? [[g.courierId, g] as const] : [])),
+  );
+
   let importedEntries = 0;
   let linkedCouriers = 0;
 
-  await db.$transaction(async (tx) => {
-    for (const entry of parsedEntries) {
-      try {
-        // Find existing courier by UUID, CNPJ, or unique normalized name
-        let courier = entry.uuid
-          ? await tx.courier.findUnique({ where: { externalCourierId: entry.uuid } })
-          : null;
+  // 3. Process matches in-memory
+  const guideUpserts: Array<{
+    name: string;
+    normalizedName: string;
+    cnpj: string;
+    courierId: string | null;
+  }> = [];
 
-        if (!courier) {
-          courier = await tx.courier.findUnique({ where: { cnpj: entry.cnpj } });
-        }
+  const courierUpdates: Array<{
+    id: string;
+    cnpj: string;
+    sourceCnpjName: string;
+    plaza: string | null;
+  }> = [];
 
-        if (!courier) {
-          const matches = await tx.courier.findMany({
-            where: { normalizedName: entry.normalizedName, status: { not: "INACTIVE" } },
-          });
-          if (matches.length === 1) {
-            courier = matches[0]!;
-          }
-        }
+  const courierPlazaUpdates: Array<{
+    uuid: string;
+    plaza: string;
+  }> = [];
 
-        // Verify if courier or CNPJ is already owned by another record to avoid unique constraints
-        let targetCourierId = courier?.id ?? null;
+  const guideCourierUnlinks: string[] = [];
+  const assignedCourierIds = new Set<string>();
 
-        if (targetCourierId) {
-          // Check if another Courier has this CNPJ
-          const cnpjOwner = await tx.courier.findUnique({ where: { cnpj: entry.cnpj } });
-          if (cnpjOwner && cnpjOwner.id !== targetCourierId) {
-            // Cannot reassign CNPJ to this courier if already owned by a different courier
-            targetCourierId = null;
-          }
-        }
+  for (const entry of parsedEntries) {
+    let courier = entry.uuid ? courierByUuid.get(entry.uuid) ?? null : null;
+    if (!courier) courier = courierByCnpj.get(entry.cnpj) ?? null;
+    if (!courier) {
+      const candidates = couriersByNormalizedName.get(entry.normalizedName) ?? [];
+      if (candidates.length === 1) courier = candidates[0]!;
+    }
 
-        if (targetCourierId) {
-          // Check if another CnpjGuideEntry has this courierId
-          const existingGuideForCourier = await tx.cnpjGuideEntry.findUnique({
-            where: { courierId: targetCourierId },
-          });
-          if (existingGuideForCourier && existingGuideForCourier.cnpj !== entry.cnpj) {
-            // Clear old link to prevent unique constraint on CnpjGuideEntry.courierId
-            await tx.cnpjGuideEntry.update({
-              where: { id: existingGuideForCourier.id },
-              data: { courierId: null },
-            });
-          }
-        }
+    let targetCourierId = courier?.id ?? null;
 
-        await tx.cnpjGuideEntry.upsert({
-          where: { cnpj: entry.cnpj },
-          create: {
-            name: entry.name,
-            normalizedName: entry.normalizedName,
-            cnpj: entry.cnpj,
-            courierId: targetCourierId,
-            source: "PLANILHA_CNPJ",
-          },
-          update: {
-            name: entry.name,
-            normalizedName: entry.normalizedName,
-            ...(targetCourierId ? { courierId: targetCourierId } : {}),
-          },
-        });
-
-        if (targetCourierId) {
-          linkedCouriers += 1;
-          await tx.courier.update({
-            where: { id: targetCourierId },
-            data: {
-              cnpj: entry.cnpj,
-              sourceCnpjName: entry.name,
-              cnpjMatchStatus: MatchStatus.AUTO_MATCHED,
-              cnpjMatchScore: 1,
-              ...(entry.region ? { plaza: entry.region } : {}),
-            },
-          });
-        } else if (entry.uuid && entry.region) {
-          await tx.courier.updateMany({
-            where: { externalCourierId: entry.uuid },
-            data: { plaza: entry.region },
-          });
-        }
-
-        importedEntries += 1;
-      } catch (rowError) {
-        console.warn(`[CNPJ Import Warning] Skipping row for CNPJ ${entry.cnpj}:`, rowError);
+    if (targetCourierId) {
+      const owner = courierByCnpj.get(entry.cnpj);
+      if (owner && owner.id !== targetCourierId) {
+        targetCourierId = null;
       }
     }
 
-    await tx.auditLog.create({
-      data: {
-        actorUserId: adminUserId,
-        action: "CNPJ_GUIDE_BULK_IMPORTED",
-        entityType: "CnpjGuideEntry",
-        metadata: {
-          totalRows,
-          importedEntries,
-          linkedCouriers,
-          invalidCnpjs,
-          missingNames,
-          sheetName: targetSheet.name,
-        },
-      },
+    if (targetCourierId && assignedCourierIds.has(targetCourierId)) {
+      targetCourierId = null;
+    }
+
+    if (targetCourierId) {
+      assignedCourierIds.add(targetCourierId);
+      const existingGuideForCourier = guideByCourierId.get(targetCourierId);
+      if (existingGuideForCourier && existingGuideForCourier.cnpj !== entry.cnpj) {
+        guideCourierUnlinks.push(existingGuideForCourier.id);
+      }
+    }
+
+    guideUpserts.push({
+      name: entry.name,
+      normalizedName: entry.normalizedName,
+      cnpj: entry.cnpj,
+      courierId: targetCourierId,
     });
-  });
+
+    if (targetCourierId && courier) {
+      linkedCouriers += 1;
+      courierUpdates.push({
+        id: targetCourierId,
+        cnpj: entry.cnpj,
+        sourceCnpjName: entry.name,
+        plaza: entry.region || courier.plaza,
+      });
+    } else if (entry.uuid && entry.region) {
+      courierPlazaUpdates.push({
+        uuid: entry.uuid,
+        plaza: entry.region,
+      });
+    }
+
+    importedEntries += 1;
+  }
+
+  // 4. Fast bulk database execution inside transaction with high timeout limit (60s)
+  await db.$transaction(
+    async (tx) => {
+      // Clear conflicting courier links in CnpjGuideEntry if any
+      if (guideCourierUnlinks.length) {
+        await tx.cnpjGuideEntry.updateMany({
+          where: { id: { in: guideCourierUnlinks } },
+          data: { courierId: null },
+        });
+      }
+
+      // Upsert CnpjGuideEntries in chunks
+      const CHUNK_SIZE = 500;
+      for (let i = 0; i < guideUpserts.length; i += CHUNK_SIZE) {
+        const chunk = guideUpserts.slice(i, i + CHUNK_SIZE);
+        for (const item of chunk) {
+          await tx.cnpjGuideEntry.upsert({
+            where: { cnpj: item.cnpj },
+            create: {
+              name: item.name,
+              normalizedName: item.normalizedName,
+              cnpj: item.cnpj,
+              courierId: item.courierId,
+              source: "PLANILHA_CNPJ",
+            },
+            update: {
+              name: item.name,
+              normalizedName: item.normalizedName,
+              ...(item.courierId ? { courierId: item.courierId } : {}),
+            },
+          });
+        }
+      }
+
+      // Update Couriers in chunks
+      for (let i = 0; i < courierUpdates.length; i += CHUNK_SIZE) {
+        const chunk = courierUpdates.slice(i, i + CHUNK_SIZE);
+        for (const item of chunk) {
+          await tx.courier.update({
+            where: { id: item.id },
+            data: {
+              cnpj: item.cnpj,
+              sourceCnpjName: item.sourceCnpjName,
+              cnpjMatchStatus: MatchStatus.AUTO_MATCHED,
+              cnpjMatchScore: 1,
+              ...(item.plaza ? { plaza: item.plaza } : {}),
+            },
+          });
+        }
+      }
+
+      // Update plaza for unmatched couriers by UUID
+      for (const item of courierPlazaUpdates) {
+        await tx.courier.updateMany({
+          where: { externalCourierId: item.uuid },
+          data: { plaza: item.plaza },
+        });
+      }
+
+      await tx.auditLog.create({
+        data: {
+          actorUserId: adminUserId,
+          action: "CNPJ_GUIDE_BULK_IMPORTED",
+          entityType: "CnpjGuideEntry",
+          metadata: {
+            totalRows,
+            importedEntries,
+            linkedCouriers,
+            invalidCnpjs,
+            missingNames,
+            sheetName: targetSheet.name,
+          },
+        },
+      });
+    },
+    {
+      maxWait: 20_000,
+      timeout: 60_000,
+    },
+  );
 
   return {
     totalRows,
