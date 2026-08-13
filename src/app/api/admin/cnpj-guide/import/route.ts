@@ -24,14 +24,16 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true, data: summary });
   } catch (error) {
+    console.error("[CNPJ Guide Import API Error]", error);
     if (error instanceof DomainError) {
       return NextResponse.json(
         { ok: false, error: error.message, code: error.code },
         { status: error.status },
       );
     }
+    const message = error instanceof Error ? error.message : "Erro ao importar a planilha de CNPJs.";
     return NextResponse.json(
-      { ok: false, error: "Erro ao importar a planilha de CNPJs." },
+      { ok: false, error: message },
       { status: 500 },
     );
   }
