@@ -1,5 +1,5 @@
 import type { Prisma } from "@prisma/client";
-import { CircleAlert, FileSpreadsheet, UsersRound } from "lucide-react";
+import { CircleAlert, FileSpreadsheet, MapPin, UsersRound } from "lucide-react";
 import Link from "next/link";
 
 import { CnpjGuideManager, type CnpjGuideCourierOption, type CnpjGuideEntryView } from "@/components/admin/cnpj-guide-manager";
@@ -39,8 +39,22 @@ export default async function AdminReconciliationPage({ searchParams }: { search
     const filteredTotal = await db.cnpjGuideEntry.count({ where });
     const pageCount = Math.max(1, Math.ceil(filteredTotal / 40));
     const page = Number.isInteger(requestedPage) ? Math.min(Math.max(requestedPage, 1), pageCount) : 1;
-    const entries = await db.cnpjGuideEntry.findMany({ where, orderBy: { name: "asc" }, skip: (page - 1) * 40, take: 40, select: { id: true, name: true, cnpj: true, courierId: true, courier: { select: { name: true, externalCourierId: true } }, source: true, notes: true } });
-    const linkedCourierIds = entries.flatMap((entry) => entry.courierId ? [entry.courierId] : []);
+    const entries = await db.cnpjGuideEntry.findMany({
+      where,
+      orderBy: { name: "asc" },
+      skip: (page - 1) * 40,
+      take: 40,
+      select: {
+        id: true,
+        name: true,
+        cnpj: true,
+        courierId: true,
+        courier: { select: { name: true, externalCourierId: true, plaza: true } },
+        source: true,
+        notes: true,
+      },
+    });
+    const linkedCourierIds = entries.flatMap((entry) => (entry.courierId ? [entry.courierId] : []));
     const couriers = await db.courier.findMany({
       where: {
         status: { not: "INACTIVE" },
@@ -49,11 +63,26 @@ export default async function AdminReconciliationPage({ searchParams }: { search
       orderBy: { name: "asc" },
       select: { id: true, name: true, cnpj: true },
     });
-    content = <CnpjGuideManager entries={entries satisfies CnpjGuideEntryView[]} couriers={couriers satisfies CnpjGuideCourierOption[]} page={page} total={filteredTotal} query={query} initialCourierId={params.courierId} />;
+    content = (
+      <CnpjGuideManager
+        entries={entries satisfies CnpjGuideEntryView[]}
+        couriers={couriers satisfies CnpjGuideCourierOption[]}
+        page={page}
+        total={filteredTotal}
+        query={query}
+        initialCourierId={params.courierId}
+      />
+    );
   } else {
     const pageCount = Math.max(1, Math.ceil(pendingTotal / 30));
     const page = Number.isInteger(requestedPage) ? Math.min(Math.max(requestedPage, 1), pageCount) : 1;
-    const couriers = await db.courier.findMany({ where: { cnpj: null, status: { not: "INACTIVE" } }, orderBy: { name: "asc" }, skip: (page - 1) * 30, take: 30, select: { id: true, name: true, externalCourierId: true } });
+    const couriers = await db.courier.findMany({
+      where: { cnpj: null, status: { not: "INACTIVE" } },
+      orderBy: { name: "asc" },
+      skip: (page - 1) * 30,
+      take: 30,
+      select: { id: true, name: true, externalCourierId: true, plaza: true },
+    });
     content = couriers.length ? (
       <div className="space-y-5">
         <div className="grid gap-4 xl:grid-cols-2">
@@ -66,6 +95,12 @@ export default async function AdminReconciliationPage({ searchParams }: { search
                 <div className="min-w-0 flex-1">
                   <h2 className="text-balance font-extrabold text-[var(--brand-navy)]">{courier.name}</h2>
                   <p className="mt-1 truncate text-xs tabular-nums text-slate-500">{courier.externalCourierId}</p>
+                  {courier.plaza ? (
+                    <span className="mt-2 inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
+                      <MapPin className="size-3 text-slate-500" />
+                      {courier.plaza}
+                    </span>
+                  ) : null}
                 </div>
               </div>
               <div className="mt-5 flex justify-end">
@@ -100,5 +135,22 @@ export default async function AdminReconciliationPage({ searchParams }: { search
     );
   }
 
-  return <div className="space-y-8"><PageHeader eyebrow="Nomes e CNPJ" title="Conciliação" description={`${matchedTotal.toLocaleString("pt-BR")} entregadores com CNPJ. Mantenha a guia interna atualizada e ela será usada automaticamente nas importações mensais.`} /><nav className="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm" aria-label="Seções da conciliação">{tabs.map(({ id, label, icon: Icon }) => <Link key={id} href={`/admin/conciliacao?tab=${id}`} className={buttonStyles({ variant: tab === id ? "primary" : "ghost", size: "sm" })}><Icon className="size-4" />{label}</Link>)}</nav>{content}</div>;
+  return (
+    <div className="space-y-8">
+      <PageHeader
+        eyebrow="Nomes e CNPJ"
+        title="Conciliação"
+        description={`${matchedTotal.toLocaleString("pt-BR")} entregadores com CNPJ. Mantenha a guia interna atualizada e ela será usada automaticamente nas importações mensais.`}
+      />
+      <nav className="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm" aria-label="Seções da conciliação">
+        {tabs.map(({ id, label, icon: Icon }) => (
+          <Link key={id} href={`/admin/conciliacao?tab=${id}`} className={buttonStyles({ variant: tab === id ? "primary" : "ghost", size: "sm" })}>
+            <Icon className="size-4" />
+            {label}
+          </Link>
+        ))}
+      </nav>
+      {content}
+    </div>
+  );
 }

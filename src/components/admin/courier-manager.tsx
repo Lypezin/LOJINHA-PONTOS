@@ -2,7 +2,7 @@
 
 import * as AlertDialog from "@radix-ui/react-alert-dialog";
 import * as Dialog from "@radix-ui/react-dialog";
-import { CircleDollarSign, Pencil, Search, UsersRound, X } from "lucide-react";
+import { CircleDollarSign, MapPin, Pencil, Search, UsersRound, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
@@ -19,6 +19,7 @@ export type AdminCourier = {
   id: string;
   name: string;
   cnpj: string | null;
+  plaza: string | null;
   status: CourierStatus;
   cnpjMatchStatus: MatchStatus;
   email: string | null;
@@ -40,14 +41,14 @@ function courierLabel(status: CourierStatus) {
 
 function EditCourierDialog({ courier, onSaved }: { courier: AdminCourier; onSaved: () => void }) {
   const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState({ name: courier.name, cnpj: courier.cnpj ?? "", status: courier.status });
+  const [draft, setDraft] = useState({ name: courier.name, cnpj: courier.cnpj ?? "", status: courier.status, plaza: courier.plaza ?? "" });
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
 
   function handleOpen(next: boolean) {
     setOpen(next);
     if (next) {
-      setDraft({ name: courier.name, cnpj: courier.cnpj ?? "", status: courier.status });
+      setDraft({ name: courier.name, cnpj: courier.cnpj ?? "", status: courier.status, plaza: courier.plaza ?? "" });
       setError("");
     }
   }
@@ -60,7 +61,7 @@ function EditCourierDialog({ courier, onSaved }: { courier: AdminCourier; onSave
       const response = await fetch(`/api/admin/couriers/${courier.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...draft, cnpj: draft.cnpj || null }),
+        body: JSON.stringify({ ...draft, cnpj: draft.cnpj || null, plaza: draft.plaza || null }),
       });
       const data = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(data.error || "Não foi possível atualizar o entregador.");
@@ -82,7 +83,10 @@ function EditCourierDialog({ courier, onSaved }: { courier: AdminCourier; onSave
           <div className="flex items-start justify-between gap-4"><div><Dialog.Title className="text-balance text-xl font-extrabold text-[var(--brand-navy)]">Editar entregador</Dialog.Title><Dialog.Description className="mt-2 text-pretty text-sm leading-6 text-slate-600">Corrija os dados de cadastro usados no vínculo com a planilha.</Dialog.Description></div><Dialog.Close asChild><button className="flex size-11 shrink-0 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100" aria-label="Fechar edição"><X className="size-5" aria-hidden="true" /></button></Dialog.Close></div>
           <form onSubmit={save} className="mt-6 space-y-4">
             <div><label htmlFor={`courier-name-${courier.id}`} className="mb-1.5 block text-sm font-bold">Nome completo</label><input id={`courier-name-${courier.id}`} className={fieldClass} value={draft.name} minLength={2} required onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))} /></div>
-            <div><label htmlFor={`courier-cnpj-${courier.id}`} className="mb-1.5 block text-sm font-bold">CNPJ</label><input id={`courier-cnpj-${courier.id}`} className={`${fieldClass} tabular-nums`} value={draft.cnpj} inputMode="numeric" onChange={(event) => setDraft((current) => ({ ...current, cnpj: event.target.value }))} placeholder="00.000.000/0000-00" /></div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div><label htmlFor={`courier-cnpj-${courier.id}`} className="mb-1.5 block text-sm font-bold">CNPJ</label><input id={`courier-cnpj-${courier.id}`} className={`${fieldClass} tabular-nums`} value={draft.cnpj} inputMode="numeric" onChange={(event) => setDraft((current) => ({ ...current, cnpj: event.target.value }))} placeholder="00.000.000/0000-00" /></div>
+              <div><label htmlFor={`courier-plaza-${courier.id}`} className="mb-1.5 block text-sm font-bold">Região / Praça</label><input id={`courier-plaza-${courier.id}`} className={fieldClass} value={draft.plaza} onChange={(event) => setDraft((current) => ({ ...current, plaza: event.target.value }))} placeholder="Ex.: São Paulo, Rio de Janeiro" /></div>
+            </div>
             <div><label htmlFor={`courier-status-${courier.id}`} className="mb-1.5 block text-sm font-bold">Status do cadastro</label><select id={`courier-status-${courier.id}`} className={fieldClass} value={draft.status} onChange={(event) => setDraft((current) => ({ ...current, status: event.target.value as CourierStatus }))}><option value="PENDING">Pendente</option><option value="ACTIVE">Ativo</option><option value="INACTIVE">Inativo</option></select></div>
             {error ? <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-800" role="alert">{error}</p> : null}
             <div className="flex flex-col-reverse gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:justify-end"><Dialog.Close asChild><Button variant="secondary" disabled={pending}>Cancelar</Button></Dialog.Close><Button type="submit" disabled={pending}>{pending ? "Salvando…" : "Salvar alterações"}</Button></div>
@@ -168,19 +172,63 @@ export function CourierManager({ couriers, total, page, query, status }: { couri
 
   return (
     <div className="space-y-6">
-      <form method="get" className="flex flex-col gap-3 sm:flex-row"><label className="relative block max-w-lg flex-1"><span className="sr-only">Buscar entregador</span><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" aria-hidden="true" /><input name="q" className={`${fieldClass} pl-10`} defaultValue={query} placeholder="Buscar por nome, CNPJ ou e-mail" /></label><label><span className="sr-only">Filtrar cadastro por status</span><select name="status" className={`${fieldClass} sm:w-48`} defaultValue={status}><option value="ALL">Todos os status</option><option value="ACTIVE">Ativos</option><option value="PENDING">Pendentes</option><option value="INACTIVE">Inativos</option></select></label><Button type="submit" variant="secondary">Buscar</Button></form>
+      <form method="get" className="flex flex-col gap-3 sm:flex-row"><label className="relative block max-w-lg flex-1"><span className="sr-only">Buscar entregador</span><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" aria-hidden="true" /><input name="q" className={`${fieldClass} pl-10`} defaultValue={query} placeholder="Buscar por nome, CNPJ, região ou e-mail" /></label><label><span className="sr-only">Filtrar cadastro por status</span><select name="status" className={`${fieldClass} sm:w-48`} defaultValue={status}><option value="ALL">Todos os status</option><option value="ACTIVE">Ativos</option><option value="PENDING">Pendentes</option><option value="INACTIVE">Inativos</option></select></label><Button type="submit" variant="secondary">Buscar</Button></form>
       {couriers.length ? (
         <>
           <div className="grid gap-4 xl:grid-cols-2">
-          {couriers.map((courier) => (
-            <article key={courier.id} className="rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0"><h2 className="line-clamp-2 text-balance text-lg font-extrabold text-[var(--brand-navy)]">{courier.name}</h2><p className="mt-1 truncate text-sm text-slate-600">{courier.email || "Ainda sem conta de acesso"}</p></div><StatusBadge tone={courierTone(courier.status)}>{courierLabel(courier.status)}</StatusBadge></div>
-              <dl className="mt-5 grid gap-3 rounded-2xl bg-slate-50 p-4 text-sm sm:grid-cols-2"><div><dt className="text-xs font-semibold text-slate-500">CNPJ</dt><dd className="mt-1 font-bold tabular-nums text-[var(--brand-navy)]">{formatCnpj(courier.cnpj)}</dd></div><div><dt className="text-xs font-semibold text-slate-500">Conciliação</dt><dd className="mt-1 font-bold text-[var(--brand-navy)]">{matchLabels[courier.cnpjMatchStatus]}</dd></div></dl>
-              <div className="mt-4 grid grid-cols-3 gap-2"><div className="rounded-xl border border-slate-200 p-3"><p className="text-xs text-slate-500">Saldo</p><p className="mt-1 font-extrabold tabular-nums text-[var(--brand-navy)]">{formatPoints(courier.balance)}</p></div><div className="rounded-xl border border-slate-200 p-3"><p className="text-xs text-slate-500">Importados</p><p className="mt-1 font-extrabold tabular-nums text-[var(--brand-navy)]">{formatPoints(courier.importedPoints)}</p></div><div className="rounded-xl border border-slate-200 p-3"><p className="text-xs text-slate-500">Usados</p><p className="mt-1 font-extrabold tabular-nums text-[var(--brand-navy)]">{formatPoints(courier.redeemedPoints)}</p></div></div>
-              {courier.lastImportedAt ? <p className="mt-3 text-xs tabular-nums text-slate-500">Atualizado pela planilha em {formatDate(courier.lastImportedAt)}</p> : null}
-              <div className="mt-5 flex flex-wrap justify-end gap-2"><EditCourierDialog courier={courier} onSaved={refresh} /><AdjustPointsDialog courier={courier} onSaved={refresh} /></div>
-            </article>
-          ))}
+            {couriers.map((courier) => (
+              <article key={courier.id} className="rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h2 className="line-clamp-2 text-balance text-lg font-extrabold text-[var(--brand-navy)]">{courier.name}</h2>
+                    <p className="mt-1 truncate text-sm text-slate-600">{courier.email || "Ainda sem conta de acesso"}</p>
+                  </div>
+                  <StatusBadge tone={courierTone(courier.status)}>{courierLabel(courier.status)}</StatusBadge>
+                </div>
+                <dl className="mt-5 grid gap-3 rounded-2xl bg-slate-50 p-4 text-sm sm:grid-cols-3">
+                  <div>
+                    <dt className="text-xs font-semibold text-slate-500">CNPJ</dt>
+                    <dd className="mt-1 font-bold tabular-nums text-[var(--brand-navy)]">{formatCnpj(courier.cnpj)}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs font-semibold text-slate-500">Região / Praça</dt>
+                    <dd className="mt-1 font-bold text-[var(--brand-navy)]">
+                      {courier.plaza ? (
+                        <span className="inline-flex items-center gap-1 rounded bg-slate-200/70 px-1.5 py-0.5 text-xs font-semibold text-slate-800">
+                          <MapPin className="size-3 text-slate-500" />
+                          {courier.plaza}
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs font-semibold text-slate-500">Conciliação</dt>
+                    <dd className="mt-1 font-bold text-[var(--brand-navy)]">{matchLabels[courier.cnpjMatchStatus]}</dd>
+                  </div>
+                </dl>
+                <div className="mt-4 grid grid-cols-3 gap-2">
+                  <div className="rounded-xl border border-slate-200 p-3">
+                    <p className="text-xs text-slate-500">Saldo</p>
+                    <p className="mt-1 font-extrabold tabular-nums text-[var(--brand-navy)]">{formatPoints(courier.balance)}</p>
+                  </div>
+                  <div className="rounded-xl border border-slate-200 p-3">
+                    <p className="text-xs text-slate-500">Importados</p>
+                    <p className="mt-1 font-extrabold tabular-nums text-[var(--brand-navy)]">{formatPoints(courier.importedPoints)}</p>
+                  </div>
+                  <div className="rounded-xl border border-slate-200 p-3">
+                    <p className="text-xs text-slate-500">Usados</p>
+                    <p className="mt-1 font-extrabold tabular-nums text-[var(--brand-navy)]">{formatPoints(courier.redeemedPoints)}</p>
+                  </div>
+                </div>
+                {courier.lastImportedAt ? <p className="mt-3 text-xs tabular-nums text-slate-500">Atualizado pela planilha em {formatDate(courier.lastImportedAt)}</p> : null}
+                <div className="mt-5 flex flex-wrap justify-end gap-2">
+                  <EditCourierDialog courier={courier} onSaved={refresh} />
+                  <AdjustPointsDialog courier={courier} onSaved={refresh} />
+                </div>
+              </article>
+            ))}
           </div>
           {pageCount > 1 ? (
             <nav className="flex flex-col items-center justify-between gap-3 rounded-[20px] border border-slate-200 bg-white p-4 sm:flex-row" aria-label="Páginas de entregadores">
@@ -189,7 +237,9 @@ export function CourierManager({ couriers, total, page, query, status }: { couri
             </nav>
           ) : null}
         </>
-      ) : <EmptyState icon={<UsersRound className="size-6" />} title={query || status !== "ALL" ? "Nenhum entregador encontrado" : "Nenhum entregador importado"} description={query || status !== "ALL" ? "Revise a busca ou o filtro selecionado." : "Importe a planilha mensal para criar a base de entregadores."} action={query || status !== "ALL" ? <Link href="/admin/entregadores" className={buttonStyles({ variant: "secondary" })}>Limpar filtros</Link> : undefined} />}
+      ) : (
+        <EmptyState icon={<UsersRound className="size-6" />} title={query || status !== "ALL" ? "Nenhum entregador encontrado" : "Nenhum entregador importado"} description={query || status !== "ALL" ? "Revise a busca ou o filtro selecionado." : "Importe a planilha mensal para criar a base de entregadores."} action={query || status !== "ALL" ? <Link href="/admin/entregadores" className={buttonStyles({ variant: "secondary" })}>Limpar filtros</Link> : undefined} />
+      )}
     </div>
   );
 }

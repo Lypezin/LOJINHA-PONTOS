@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, FileSpreadsheet, Pencil, Plus, Search, Trash2, Upload, X } from "lucide-react";
+import { Check, FileSpreadsheet, MapPin, Pencil, Plus, Search, Trash2, Upload, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useMemo, useRef, useState } from "react";
@@ -13,7 +13,7 @@ export type CnpjGuideEntryView = {
   name: string;
   cnpj: string;
   courierId: string | null;
-  courier: { name: string; externalCourierId: string | null } | null;
+  courier: { name: string; externalCourierId: string | null; plaza: string | null } | null;
   source: string;
   notes: string | null;
 };
@@ -270,11 +270,12 @@ export function CnpjGuideManager({
 
       <div className="overflow-hidden rounded-[20px] border border-slate-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[760px] text-left text-sm">
+          <table className="w-full min-w-[840px] text-left text-sm">
             <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
               <tr>
                 <th className="px-5 py-4">Nome na guia</th>
                 <th className="px-5 py-4">CNPJ</th>
+                <th className="px-5 py-4">Região</th>
                 <th className="px-5 py-4">Vínculo</th>
                 <th className="px-5 py-4">ID Entregador</th>
                 <th className="px-5 py-4">Origem</th>
@@ -286,7 +287,7 @@ export function CnpjGuideManager({
                 if (editingId === entry.id) {
                   return (
                     <tr key={entry.id}>
-                      <td colSpan={6} className="bg-blue-50/40 p-5">
+                      <td colSpan={7} className="bg-blue-50/40 p-5">
                         <GuideForm entry={entry} couriers={couriers} onDone={() => setEditingId(null)} />
                       </td>
                     </tr>
@@ -305,6 +306,16 @@ export function CnpjGuideManager({
                     </td>
                     <td className="px-5 py-4 font-bold tabular-nums text-slate-700">
                       {formatCnpj(entry.cnpj)}
+                    </td>
+                    <td className="px-5 py-4 font-semibold text-slate-700">
+                      {entry.courier?.plaza ? (
+                        <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
+                          <MapPin className="size-3 text-slate-400" />
+                          {entry.courier.plaza}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400">—</span>
+                      )}
                     </td>
                     <td className="px-5 py-4 text-slate-600">
                       {entry.courier?.name ?? <span className="text-amber-700">Somente por nome</span>}

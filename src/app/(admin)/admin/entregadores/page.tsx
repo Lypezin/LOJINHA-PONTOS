@@ -15,16 +15,21 @@ export default async function AdminCouriersPage({ searchParams }: { searchParams
   await requirePageAdmin();
   const params = await searchParams;
   const query = params.q?.trim().slice(0, 120) ?? "";
-  const status = statuses.has(params.status as CourierStatus) ? params.status as CourierStatus : "ALL";
+  const status = statuses.has(params.status as CourierStatus) ? (params.status as CourierStatus) : "ALL";
   const requestedPage = Number(params.page ?? 1);
   const digits = query.replace(/\D/g, "");
   const where: Prisma.CourierWhereInput = {
     ...(status === "ALL" ? {} : { status }),
-    ...(query ? { OR: [
-      { name: { contains: query, mode: "insensitive" } },
-      ...(digits ? [{ cnpj: { contains: digits } } as const] : []),
-      { user: { is: { email: { contains: query, mode: "insensitive" } } } },
-    ] } : {}),
+    ...(query
+      ? {
+          OR: [
+            { name: { contains: query, mode: "insensitive" } },
+            ...(digits ? ([{ cnpj: { contains: digits } }] as const) : []),
+            { user: { is: { email: { contains: query, mode: "insensitive" } } } },
+            { plaza: { contains: query, mode: "insensitive" } },
+          ],
+        }
+      : {}),
   };
 
   const period = await ensureCurrentPeriod();
@@ -40,17 +45,23 @@ export default async function AdminCouriersPage({ searchParams }: { searchParams
       id: true,
       name: true,
       cnpj: true,
+      plaza: true,
       status: true,
       cnpjMatchStatus: true,
       lastImportedAt: true,
       user: { select: { email: true } },
-      pointAccounts: { where: { periodId: period.id }, take: 1, select: { balancePoints: true, importedPoints: true, redeemedPoints: true } },
+      pointAccounts: {
+        where: { periodId: period.id },
+        take: 1,
+        select: { balancePoints: true, importedPoints: true, redeemedPoints: true },
+      },
     },
   });
   const data: AdminCourier[] = couriers.map((courier) => ({
     id: courier.id,
     name: courier.name,
     cnpj: courier.cnpj,
+    plaza: courier.plaza,
     status: courier.status,
     cnpjMatchStatus: courier.cnpjMatchStatus,
     email: courier.user?.email ?? null,
@@ -62,7 +73,11 @@ export default async function AdminCouriersPage({ searchParams }: { searchParams
 
   return (
     <div className="space-y-8">
-      <PageHeader eyebrow={`Competência ${period.key}`} title="Entregadores" description="Consulte o saldo atual, corrija dados cadastrais e registre ajustes de pontos com motivo e saldo antes/depois." />
+      <PageHeader
+        eyebrow={`Competência ${period.key}`}
+        title="Entregadores"
+        description="Consulte o saldo atual, corrija dados cadastrais e registre ajustes de pontos com motivo e saldo antes/depois."
+      />
       <CourierManager couriers={data} total={total} page={page} query={query} status={status} />
     </div>
   );
