@@ -1,5 +1,5 @@
 import ExcelJS from "exceljs";
-import { MatchStatus } from "@prisma/client";
+import { MatchStatus, Prisma } from "@prisma/client";
 
 import {
   isUuid,
@@ -390,10 +390,10 @@ export async function importCnpjGuideWorkbook(
     importedEntries += 1;
   }
 
-  // 4. Fast bulk database execution inside transaction with high timeout limit (60s)
+  // 4. Ultra-fast bulk SQL database execution in a single fast transaction
   await db.$transaction(
     async (tx) => {
-      // Clear conflicting courier links in CnpjGuideEntry if any
+      // Unlink conflicting courierIds in CnpjGuideEntry if any
       if (guideCourierUnlinks.length) {
         for (let i = 0; i < guideCourierUnlinks.length; i += 1000) {
           const chunk = guideCourierUnlinks.slice(i, i + 1000);
@@ -404,54 +404,67 @@ export async function importCnpjGuideWorkbook(
         }
       }
 
-      // Upsert CnpjGuideEntries in chunks
-      const CHUNK_SIZE = 500;
-      for (let i = 0; i < guideUpserts.length; i += CHUNK_SIZE) {
-        const chunk = guideUpserts.slice(i, i + CHUNK_SIZE);
-        for (const item of chunk) {
-          await tx.cnpjGuideEntry.upsert({
-            where: { cnpj: item.cnpj },
-            create: {
-              name: item.name,
-              normalizedName: item.normalizedName,
-              cnpj: item.cnpj,
-              courierId: item.courierId,
-              source: "PLANILHA_CNPJ",
-            },
-            update: {
-              name: item.name,
-              normalizedName: item.normalizedName,
-              ...(item.courierId ? { courierId: item.courierId } : {}),
-            },
-          });
+      // Bulk Upsert CnpjGuideEntries using native raw SQL ON CONFLICT in chunks of 500
+      if (guideUpserts.length) {
+        const CHUNK_SIZE = 500;
+        for (let i = 0; i < guideUpserts.length; i += CHUNK_SIZE) {
+          const chunk = guideUpserts.slice(i, i + CHUNK_SIZE);
+          const sqlValues = chunk.map(
+            (item) =>
+              Prisma.sql`(${item.name}, ${item.normalizedName}, ${item.cnpj}, ${item.courierId}, 'PLANILHA_CNPJ'::text, NOW(), NOW())`,
+          );
+          await tx.$executeRaw(Prisma.sql`
+            INSERT INTO "CnpjGuideEntry" ("name", "normalizedName", "cnpj", "courierId", "source", "createdAt", "updatedAt")
+            VALUES ${Prisma.join(sqlValues)}
+            ON CONFLICT ("cnpj") DO UPDATE SET
+              "name" = EXCLUDED."name",
+              "normalizedName" = EXCLUDED."normalizedName",
+              "courierId" = COALESCE(EXCLUDED."courierId", "CnpjGuideEntry"."courierId"),
+              "updatedAt" = NOW()
+          `);
         }
       }
 
-      // Update Couriers in chunks
-      for (let i = 0; i < courierUpdates.length; i += CHUNK_SIZE) {
-        const chunk = courierUpdates.slice(i, i + CHUNK_SIZE);
-        for (const item of chunk) {
-          await tx.courier.update({
-            where: { id: item.id },
-            data: {
-              cnpj: item.cnpj,
-              sourceCnpjName: item.sourceCnpjName,
-              cnpjMatchStatus: MatchStatus.AUTO_MATCHED,
-              cnpjMatchScore: 1,
-              ...(item.plaza ? { plaza: item.plaza } : {}),
-            },
-          });
+      // Bulk Update Couriers using native raw SQL in chunks of 500
+      if (courierUpdates.length) {
+        const CHUNK_SIZE = 500;
+        for (let i = 0; i < courierUpdates.length; i += CHUNK_SIZE) {
+          const chunk = courierUpdates.slice(i, i + CHUNK_SIZE);
+          const sqlValues = chunk.map(
+            (item) =>
+              Prisma.sql`(${item.id}, ${item.cnpj}, ${item.sourceCnpjName}, ${item.plaza})`,
+          );
+          await tx.$executeRaw(Prisma.sql`
+            UPDATE "Courier" AS courier
+            SET
+              "cnpj" = incoming."cnpj"::text,
+              "sourceCnpjName" = incoming."sourceCnpjName"::text,
+              "cnpjMatchStatus" = 'AUTO_MATCHED'::"MatchStatus",
+              "cnpjMatchScore" = 1.0,
+              "plaza" = COALESCE(incoming."plaza"::text, courier."plaza"),
+              "updatedAt" = NOW()
+            FROM (VALUES ${Prisma.join(sqlValues)}) AS incoming("id", "cnpj", "sourceCnpjName", "plaza")
+            WHERE courier."id" = incoming."id"::text
+          `);
         }
       }
 
-      // Update plaza for unmatched couriers by UUID in chunks
-      for (let i = 0; i < courierPlazaUpdates.length; i += 1000) {
-        const chunk = courierPlazaUpdates.slice(i, i + 1000);
-        for (const item of chunk) {
-          await tx.courier.updateMany({
-            where: { externalCourierId: item.uuid },
-            data: { plaza: item.plaza },
-          });
+      // Bulk Update Courier plaza by UUID for unmatched couriers in chunks of 500
+      if (courierPlazaUpdates.length) {
+        const CHUNK_SIZE = 500;
+        for (let i = 0; i < courierPlazaUpdates.length; i += CHUNK_SIZE) {
+          const chunk = courierPlazaUpdates.slice(i, i + CHUNK_SIZE);
+          const sqlValues = chunk.map(
+            (item) => Prisma.sql`(${item.uuid}, ${item.plaza})`,
+          );
+          await tx.$executeRaw(Prisma.sql`
+            UPDATE "Courier" AS courier
+            SET
+              "plaza" = incoming."plaza"::text,
+              "updatedAt" = NOW()
+            FROM (VALUES ${Prisma.join(sqlValues)}) AS incoming("uuid", "plaza")
+            WHERE courier."externalCourierId" = incoming."uuid"::text
+          `);
         }
       }
 
@@ -472,8 +485,8 @@ export async function importCnpjGuideWorkbook(
       });
     },
     {
-      maxWait: 20_000,
-      timeout: 60_000,
+      maxWait: 10_000,
+      timeout: 30_000,
     },
   );
 
