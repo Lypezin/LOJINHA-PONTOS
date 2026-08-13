@@ -84,6 +84,13 @@ async function fetchInChunks<T, Item>(
   return results;
 }
 
+export type InvalidCnpjDetail = {
+  row: number;
+  name: string;
+  cnpj: string;
+  reason: string;
+};
+
 export interface CnpjGuideImportSummary {
   totalRows: number;
   importedEntries: number;
@@ -91,6 +98,7 @@ export interface CnpjGuideImportSummary {
   invalidCnpjs: number;
   missingNames: number;
   sheetName: string;
+  invalidCnpjDetails?: InvalidCnpjDetail[];
 }
 
 export async function importCnpjGuideWorkbook(
@@ -153,6 +161,7 @@ export async function importCnpjGuideWorkbook(
   let totalRows = 0;
   let invalidCnpjs = 0;
   let missingNames = 0;
+  const invalidCnpjDetails: InvalidCnpjDetail[] = [];
 
   type ParsedEntry = {
     name: string;
@@ -172,7 +181,8 @@ export async function importCnpjGuideWorkbook(
 
     const rawName = repairTextEncoding(row[nameIndex]).trim();
     const normalizedName = normalizeName(rawName);
-    const cnpj = onlyDigits(row[cnpjIndex]);
+    const rawCnpjVal = String(row[cnpjIndex] ?? "").trim();
+    const cnpj = onlyDigits(rawCnpjVal);
     const rawUuid = uuidIndex >= 0 ? normalizeUuid(row[uuidIndex]) : "";
     const uuid = isUuid(rawUuid) ? rawUuid : null;
     const region = regionIndex >= 0 ? repairTextEncoding(row[regionIndex]).trim() || null : null;
@@ -184,6 +194,22 @@ export async function importCnpjGuideWorkbook(
 
     if (!isValidCnpj(cnpj)) {
       invalidCnpjs += 1;
+      let reason = "Dígitos verificadores inválidos";
+      if (!cnpj) {
+        reason = "CNPJ em branco ou sem números";
+      } else if (cnpj.length !== 14) {
+        reason = `Possui ${cnpj.length} dígitos (esperado 14)`;
+      } else if (/^(\d)\1{13}$/.test(cnpj)) {
+        reason = "Sequência repetida fictícia";
+      }
+      if (invalidCnpjDetails.length < 100) {
+        invalidCnpjDetails.push({
+          row: offset + 1,
+          name: rawName || "Sem nome",
+          cnpj: rawCnpjVal || "Em branco",
+          reason,
+        });
+      }
       continue;
     }
 
@@ -498,5 +524,6 @@ export async function importCnpjGuideWorkbook(
     invalidCnpjs,
     missingNames,
     sheetName: targetSheet.name,
+    invalidCnpjDetails,
   };
 }

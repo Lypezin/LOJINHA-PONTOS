@@ -27,6 +27,12 @@ export type CnpjImportSummary = {
   invalidCnpjs: number;
   missingNames: number;
   sheetName: string;
+  invalidCnpjDetails?: Array<{
+    row: number;
+    name: string;
+    cnpj: string;
+    reason: string;
+  }>;
 };
 
 const fieldClass = "min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-[var(--brand-navy)] outline-none focus:border-[var(--brand-blue)] focus:ring-4 focus:ring-blue-100";
@@ -119,12 +125,32 @@ function CnpjGuideExcelImporter() {
             <li><strong>{summary.importedEntries.toLocaleString("pt-BR")}</strong> CNPJs cadastrados/atualizados na Guia.</li>
             <li><strong>{summary.linkedCouriers.toLocaleString("pt-BR")}</strong> entregadores vinculados automaticamente.</li>
             {summary.invalidCnpjs > 0 ? (
-              <li className="text-amber-800"><strong>{summary.invalidCnpjs}</strong> CNPJs inválidos foram ignorados.</li>
+              <li className="text-amber-900 font-medium">
+                <strong>{summary.invalidCnpjs}</strong> CNPJs inválidos foram ignorados.
+              </li>
             ) : null}
             {summary.missingNames > 0 ? (
-              <li className="text-amber-800"><strong>{summary.missingNames}</strong> linhas sem nome foram ignoradas.</li>
+              <li className="text-amber-900 font-medium">
+                <strong>{summary.missingNames}</strong> linhas sem nome foram ignoradas.
+              </li>
             ) : null}
           </ul>
+
+          {summary.invalidCnpjDetails?.length ? (
+            <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50/90 p-3 text-xs text-amber-900">
+              <p className="font-bold">Detalhamento das linhas com CNPJ inválido:</p>
+              <ul className="mt-2 max-h-48 overflow-y-auto space-y-1.5 pr-1 font-mono text-[11px]">
+                {summary.invalidCnpjDetails.map((detail, idx) => (
+                  <li key={idx} className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-200/60 pb-1 last:border-0">
+                    <span>
+                      <strong className="text-amber-950 font-sans">Linha {detail.row}:</strong> {detail.name} — <code className="rounded bg-amber-100/80 px-1 py-0.5">{detail.cnpj}</code>
+                    </span>
+                    <span className="text-amber-800 font-sans italic">({detail.reason})</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
         </div>
       ) : null}
     </section>
