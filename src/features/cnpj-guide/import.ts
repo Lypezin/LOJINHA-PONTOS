@@ -355,13 +355,19 @@ export async function importCnpjGuideWorkbook(
     plaza: string | null;
   }> = [];
 
-  const courierPlazaUpdates: Array<{
-    uuid: string;
-    plaza: string;
+  const newCouriersToCreate: Array<{
+    id: string;
+    externalCourierId: string;
+    name: string;
+    normalizedName: string;
+    cnpj: string;
+    sourceCnpjName: string;
+    plaza: string | null;
   }> = [];
 
   const guideCourierUnlinks: string[] = [];
   const assignedCourierIds = new Set<string>();
+  const createdUuids = new Set<string>();
 
   for (const entry of parsedEntries) {
     let courier = entry.uuid ? courierByUuid.get(entry.uuid) ?? null : null;
@@ -372,6 +378,22 @@ export async function importCnpjGuideWorkbook(
     }
 
     let targetCourierId = courier?.id ?? null;
+
+    // If courier does not exist yet, but entry has a valid UUID, create the Courier profile automatically!
+    if (!targetCourierId && entry.uuid && !createdUuids.has(entry.uuid)) {
+      createdUuids.add(entry.uuid);
+      const newId = randomUUID();
+      newCouriersToCreate.push({
+        id: newId,
+        externalCourierId: entry.uuid,
+        name: entry.name,
+        normalizedName: entry.normalizedName,
+        cnpj: entry.cnpj,
+        sourceCnpjName: entry.name,
+        plaza: entry.region,
+      });
+      targetCourierId = newId;
+    }
 
     if (targetCourierId) {
       const owner = courierByCnpj.get(entry.cnpj);
@@ -399,19 +421,16 @@ export async function importCnpjGuideWorkbook(
       courierId: targetCourierId,
     });
 
-    if (targetCourierId && courier) {
+    if (targetCourierId) {
       linkedCouriers += 1;
-      courierUpdates.push({
-        id: targetCourierId,
-        cnpj: entry.cnpj,
-        sourceCnpjName: entry.name,
-        plaza: entry.region || courier.plaza,
-      });
-    } else if (entry.uuid && entry.region) {
-      courierPlazaUpdates.push({
-        uuid: entry.uuid,
-        plaza: entry.region,
-      });
+      if (courier) {
+        courierUpdates.push({
+          id: targetCourierId,
+          cnpj: entry.cnpj,
+          sourceCnpjName: entry.name,
+          plaza: entry.region || courier.plaza,
+        });
+      }
     }
 
     importedEntries += 1;
@@ -428,6 +447,29 @@ export async function importCnpjGuideWorkbook(
             where: { id: { in: chunk } },
             data: { courierId: null },
           });
+        }
+      }
+
+      // Create new Couriers for rows with UUID in chunks of 500
+      if (newCouriersToCreate.length) {
+        const CHUNK_SIZE = 500;
+        for (let i = 0; i < newCouriersToCreate.length; i += CHUNK_SIZE) {
+          const chunk = newCouriersToCreate.slice(i, i + CHUNK_SIZE);
+          const sqlValues = chunk.map(
+            (item) =>
+              Prisma.sql`(${item.id}, ${item.externalCourierId}, ${item.name}, ${item.normalizedName}, ${item.cnpj}, ${item.sourceCnpjName}, 'AUTO_MATCHED'::"MatchStatus", 1.0, 'PENDING'::"CourierStatus", ${item.plaza}, NOW(), NOW())`,
+          );
+          await tx.$executeRaw(Prisma.sql`
+            INSERT INTO "Courier" ("id", "externalCourierId", "name", "normalizedName", "cnpj", "sourceCnpjName", "cnpjMatchStatus", "cnpjMatchScore", "status", "plaza", "createdAt", "updatedAt")
+            VALUES ${Prisma.join(sqlValues)}
+            ON CONFLICT ("externalCourierId") DO UPDATE SET
+              "cnpj" = EXCLUDED."cnpj",
+              "sourceCnpjName" = EXCLUDED."sourceCnpjName",
+              "cnpjMatchStatus" = EXCLUDED."cnpjMatchStatus",
+              "cnpjMatchScore" = EXCLUDED."cnpjMatchScore",
+              "plaza" = COALESCE(EXCLUDED."plaza", "Courier"."plaza"),
+              "updatedAt" = NOW()
+          `);
         }
       }
 
@@ -452,7 +494,7 @@ export async function importCnpjGuideWorkbook(
         }
       }
 
-      // Bulk Update Couriers using native raw SQL in chunks of 500
+      // Bulk Update existing Couriers using native raw SQL in chunks of 500
       if (courierUpdates.length) {
         const CHUNK_SIZE = 500;
         for (let i = 0; i < courierUpdates.length; i += CHUNK_SIZE) {
@@ -476,25 +518,6 @@ export async function importCnpjGuideWorkbook(
         }
       }
 
-      // Bulk Update Courier plaza by UUID for unmatched couriers in chunks of 500
-      if (courierPlazaUpdates.length) {
-        const CHUNK_SIZE = 500;
-        for (let i = 0; i < courierPlazaUpdates.length; i += CHUNK_SIZE) {
-          const chunk = courierPlazaUpdates.slice(i, i + CHUNK_SIZE);
-          const sqlValues = chunk.map(
-            (item) => Prisma.sql`(${item.uuid}, ${item.plaza})`,
-          );
-          await tx.$executeRaw(Prisma.sql`
-            UPDATE "Courier" AS courier
-            SET
-              "plaza" = incoming."plaza"::text,
-              "updatedAt" = NOW()
-            FROM (VALUES ${Prisma.join(sqlValues)}) AS incoming("uuid", "plaza")
-            WHERE courier."externalCourierId" = incoming."uuid"::text
-          `);
-        }
-      }
-
       await tx.auditLog.create({
         data: {
           actorUserId: adminUserId,
@@ -512,8 +535,8 @@ export async function importCnpjGuideWorkbook(
       });
     },
     {
-      maxWait: 10_000,
-      timeout: 30_000,
+      maxWait: 15_000,
+      timeout: 45_000,
     },
   );
 
