@@ -1,5 +1,5 @@
 import ExcelJS from "exceljs";
-import { MatchStatus, Prisma } from "@prisma/client";
+import { MatchStatus } from "@prisma/client";
 
 import {
   isUuid,
@@ -67,6 +67,20 @@ function findColumnIndex(headers: Row, aliases: readonly string[]): number {
 
 function rowIsEmpty(row: Row): boolean {
   return !row.some((value) => value !== null && value !== undefined && String(value).trim() !== "");
+}
+
+async function fetchInChunks<T, Item>(
+  items: Item[],
+  chunkSize: number,
+  fetcher: (chunk: Item[]) => Promise<T[]>,
+): Promise<T[]> {
+  const results: T[] = [];
+  for (let i = 0; i < items.length; i += chunkSize) {
+    const chunk = items.slice(i, i + chunkSize);
+    const chunkResults = await fetcher(chunk);
+    results.push(...chunkResults);
+  }
+  return results;
 }
 
 export interface CnpjGuideImportSummary {
@@ -192,28 +206,64 @@ export async function importCnpjGuideWorkbook(
     );
   }
 
-  const allUuids = parsedEntries.flatMap((e) => (e.uuid ? [e.uuid] : []));
-  const allCnpjs = parsedEntries.map((e) => e.cnpj);
-  const allNormalizedNames = parsedEntries.map((e) => e.normalizedName);
+  const allUuids = [...new Set(parsedEntries.flatMap((e) => (e.uuid ? [e.uuid] : [])))];
+  const allCnpjs = [...new Set(parsedEntries.map((e) => e.cnpj))];
+  const allNormalizedNames = [...new Set(parsedEntries.map((e) => e.normalizedName))];
 
-  // 1. Bulk pre-fetch existing Couriers
-  const existingCouriers = await db.courier.findMany({
-    where: {
-      OR: [
-        ...(allUuids.length ? [{ externalCourierId: { in: allUuids } }] : []),
-        { cnpj: { in: allCnpjs } },
-        { normalizedName: { in: allNormalizedNames }, status: { not: "INACTIVE" as const } },
-      ],
-    },
-    select: {
-      id: true,
-      externalCourierId: true,
-      cnpj: true,
-      name: true,
-      normalizedName: true,
-      plaza: true,
-    },
-  });
+  // 1. Bulk pre-fetch existing Couriers in parameter chunks of max 1,000
+  const couriersByUuidList = allUuids.length
+    ? await fetchInChunks(allUuids, 1000, (uuidsChunk) =>
+        db.courier.findMany({
+          where: { externalCourierId: { in: uuidsChunk } },
+          select: {
+            id: true,
+            externalCourierId: true,
+            cnpj: true,
+            name: true,
+            normalizedName: true,
+            plaza: true,
+          },
+        }),
+      )
+    : [];
+
+  const couriersByCnpjList = allCnpjs.length
+    ? await fetchInChunks(allCnpjs, 1000, (cnpjsChunk) =>
+        db.courier.findMany({
+          where: { cnpj: { in: cnpjsChunk } },
+          select: {
+            id: true,
+            externalCourierId: true,
+            cnpj: true,
+            name: true,
+            normalizedName: true,
+            plaza: true,
+          },
+        }),
+      )
+    : [];
+
+  const couriersByNameList = allNormalizedNames.length
+    ? await fetchInChunks(allNormalizedNames, 1000, (namesChunk) =>
+        db.courier.findMany({
+          where: { normalizedName: { in: namesChunk }, status: { not: "INACTIVE" as const } },
+          select: {
+            id: true,
+            externalCourierId: true,
+            cnpj: true,
+            name: true,
+            normalizedName: true,
+            plaza: true,
+          },
+        }),
+      )
+    : [];
+
+  const existingCouriersMap = new Map<string, (typeof couriersByUuidList)[0]>();
+  for (const c of [...couriersByUuidList, ...couriersByCnpjList, ...couriersByNameList]) {
+    existingCouriersMap.set(c.id, c);
+  }
+  const existingCouriers = [...existingCouriersMap.values()];
 
   const courierByUuid = new Map(
     existingCouriers.flatMap((c) => (c.externalCourierId ? [[c.externalCourierId, c] as const] : [])),
@@ -228,17 +278,32 @@ export async function importCnpjGuideWorkbook(
     couriersByNormalizedName.set(c.normalizedName, list);
   }
 
-  // 2. Pre-fetch existing CnpjGuideEntries
+  // 2. Pre-fetch existing CnpjGuideEntries in parameter chunks of max 1,000
   const allCourierIds = existingCouriers.map((c) => c.id);
-  const existingGuideEntries = await db.cnpjGuideEntry.findMany({
-    where: {
-      OR: [
-        { cnpj: { in: allCnpjs } },
-        ...(allCourierIds.length ? [{ courierId: { in: allCourierIds } }] : []),
-      ],
-    },
-    select: { id: true, cnpj: true, courierId: true },
-  });
+
+  const guidesByCnpjList = allCnpjs.length
+    ? await fetchInChunks(allCnpjs, 1000, (cnpjsChunk) =>
+        db.cnpjGuideEntry.findMany({
+          where: { cnpj: { in: cnpjsChunk } },
+          select: { id: true, cnpj: true, courierId: true },
+        }),
+      )
+    : [];
+
+  const guidesByCourierIdList = allCourierIds.length
+    ? await fetchInChunks(allCourierIds, 1000, (idsChunk) =>
+        db.cnpjGuideEntry.findMany({
+          where: { courierId: { in: idsChunk } },
+          select: { id: true, cnpj: true, courierId: true },
+        }),
+      )
+    : [];
+
+  const existingGuideEntriesMap = new Map<string, (typeof guidesByCnpjList)[0]>();
+  for (const g of [...guidesByCnpjList, ...guidesByCourierIdList]) {
+    existingGuideEntriesMap.set(g.id, g);
+  }
+  const existingGuideEntries = [...existingGuideEntriesMap.values()];
 
   const guideByCnpj = new Map(existingGuideEntries.map((g) => [g.cnpj, g]));
   const guideByCourierId = new Map(
@@ -330,10 +395,13 @@ export async function importCnpjGuideWorkbook(
     async (tx) => {
       // Clear conflicting courier links in CnpjGuideEntry if any
       if (guideCourierUnlinks.length) {
-        await tx.cnpjGuideEntry.updateMany({
-          where: { id: { in: guideCourierUnlinks } },
-          data: { courierId: null },
-        });
+        for (let i = 0; i < guideCourierUnlinks.length; i += 1000) {
+          const chunk = guideCourierUnlinks.slice(i, i + 1000);
+          await tx.cnpjGuideEntry.updateMany({
+            where: { id: { in: chunk } },
+            data: { courierId: null },
+          });
+        }
       }
 
       // Upsert CnpjGuideEntries in chunks
@@ -376,12 +444,15 @@ export async function importCnpjGuideWorkbook(
         }
       }
 
-      // Update plaza for unmatched couriers by UUID
-      for (const item of courierPlazaUpdates) {
-        await tx.courier.updateMany({
-          where: { externalCourierId: item.uuid },
-          data: { plaza: item.plaza },
-        });
+      // Update plaza for unmatched couriers by UUID in chunks
+      for (let i = 0; i < courierPlazaUpdates.length; i += 1000) {
+        const chunk = courierPlazaUpdates.slice(i, i + 1000);
+        for (const item of chunk) {
+          await tx.courier.updateMany({
+            where: { externalCourierId: item.uuid },
+            data: { plaza: item.plaza },
+          });
+        }
       }
 
       await tx.auditLog.create({
