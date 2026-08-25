@@ -2,6 +2,7 @@ import {
   PointEntryType,
   Prisma,
   ProductStatus,
+  RedemptionFulfillmentType,
   RedemptionStatus,
 } from "@prisma/client";
 import { db } from "@/lib/db";
@@ -14,17 +15,30 @@ type RedeemInput = {
   productId: string;
   quantity: number;
   idempotencyKey: string;
+  fulfillmentType?: RedemptionFulfillmentType;
+  pixKey?: string;
   notes?: string;
 };
 
 function sameRedemptionRequest(
-  existing: { courierId: string; productId: string; quantity: number; notes: string | null },
+  existing: {
+    courierId: string;
+    productId: string;
+    quantity: number;
+    fulfillmentType: RedemptionFulfillmentType;
+    pixKey: string | null;
+    notes: string | null;
+  },
   input: RedeemInput,
 ) {
-  return existing.courierId === input.courierId &&
+  return (
+    existing.courierId === input.courierId &&
     existing.productId === input.productId &&
     existing.quantity === input.quantity &&
-    (existing.notes ?? "") === (input.notes ?? "");
+    existing.fulfillmentType === (input.fulfillmentType ?? RedemptionFulfillmentType.PRODUCT) &&
+    (existing.pixKey ?? "") === (input.pixKey?.trim() ?? "") &&
+    (existing.notes ?? "") === (input.notes ?? "")
+  );
 }
 
 function redemptionCode() {
@@ -71,6 +85,21 @@ export async function redeemProduct(input: RedeemInput) {
           }
           if (product.stockQuantity < input.quantity) {
             throw new DomainError("Estoque insuficiente para esta quantidade.", "OUT_OF_STOCK", 409);
+          }
+
+          const fulfillmentType = input.fulfillmentType ?? RedemptionFulfillmentType.PRODUCT;
+          let cashAmountCents: number | null = null;
+          let pixKey: string | null = null;
+
+          if (fulfillmentType === RedemptionFulfillmentType.CASH) {
+            if (!product.referenceValueCents || product.referenceValueCents <= 0) {
+              throw new DomainError("Este item não possui valor de referência configurado para resgate em dinheiro.", "CASH_REDEMPTION_UNAVAILABLE", 422);
+            }
+            if (!input.pixKey || !input.pixKey.trim()) {
+              throw new DomainError("Informe sua chave PIX para o resgate em dinheiro.", "PIX_KEY_REQUIRED", 422);
+            }
+            pixKey = input.pixKey.trim();
+            cashAmountCents = Math.round(product.referenceValueCents * 0.50) * input.quantity;
           }
 
           const pointsSpent = product.pointsCost * input.quantity;
@@ -145,6 +174,9 @@ export async function redeemProduct(input: RedeemInput) {
               pointsSpent,
               productNameSnapshot: product.name,
               imageUrlSnapshot: product.imageUrl,
+              fulfillmentType,
+              cashAmountCents,
+              pixKey,
               notes: input.notes,
             },
           });
@@ -156,7 +188,9 @@ export async function redeemProduct(input: RedeemInput) {
                 type: PointEntryType.REDEMPTION,
                 amount: -pointsSpent,
                 balanceAfter: account.balancePoints - pointsSpent,
-                description: `Resgate de ${input.quantity}x ${product.name}`,
+                description: fulfillmentType === RedemptionFulfillmentType.CASH
+                  ? `Resgate em Dinheiro (PIX) de ${input.quantity}x ${product.name}`
+                  : `Resgate de ${input.quantity}x ${product.name}`,
                 referenceType: "REDEMPTION",
                 referenceId: redemption.id,
                 actorUserId: input.userId,
@@ -168,7 +202,7 @@ export async function redeemProduct(input: RedeemInput) {
                 action: "REDEMPTION_CREATED",
                 entityType: "Redemption",
                 entityId: redemption.id,
-                metadata: { productId: product.id, quantity: input.quantity, pointsSpent },
+                metadata: { productId: product.id, quantity: input.quantity, pointsSpent, fulfillmentType, cashAmountCents, pixKey },
               },
             }),
           ]);

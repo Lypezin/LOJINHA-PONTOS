@@ -42,17 +42,26 @@ function RedeemDialog({ product, balance }: { product: StoreProduct; balance: nu
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);
+  const [fulfillmentType, setFulfillmentType] = useState<"PRODUCT" | "CASH">("PRODUCT");
+  const [pixKey, setPixKey] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
-  const [result, setResult] = useState<{ code: string; pointsSpent: number } | null>(null);
+  const [result, setResult] = useState<{ code: string; pointsSpent: number; fulfillmentType: string; cashAmountCents?: number | null } | null>(null);
+
   const maxQuantity = Math.max(1, Math.min(10, product.stockQuantity, product.maxPerCourierPerPeriod ?? 10));
-  const total = product.pointsCost * quantity;
+  const totalPoints = product.pointsCost * quantity;
   const unavailable = product.stockQuantity < 1 || balance < product.pointsCost;
+
+  const referenceValue = product.referenceValueCents ? product.referenceValueCents / 100 : null;
+  const cashAmountPerUnit = product.referenceValueCents ? Math.round(product.referenceValueCents * 0.50) / 100 : null;
+  const totalCashAmount = cashAmountPerUnit ? cashAmountPerUnit * quantity : null;
 
   function handleOpen(next: boolean) {
     setOpen(next);
     if (next) {
       setQuantity(1);
+      setFulfillmentType("PRODUCT");
+      setPixKey("");
       setError("");
       setResult(null);
     }
@@ -61,15 +70,40 @@ function RedeemDialog({ product, balance }: { product: StoreProduct; balance: nu
   async function redeem() {
     setPending(true);
     setError("");
+
+    if (fulfillmentType === "CASH") {
+      if (!product.referenceValueCents || product.referenceValueCents <= 0) {
+        setError("Este produto não possui valor de referência para resgate em dinheiro.");
+        setPending(false);
+        return;
+      }
+      if (!pixKey.trim()) {
+        setError("Por favor, digite sua chave PIX.");
+        setPending(false);
+        return;
+      }
+    }
+
     try {
       const response = await fetch("/api/redemptions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ productId: product.id, quantity, idempotencyKey: crypto.randomUUID() }),
+        body: JSON.stringify({
+          productId: product.id,
+          quantity,
+          fulfillmentType,
+          pixKey: fulfillmentType === "CASH" ? pixKey.trim() : undefined,
+          idempotencyKey: crypto.randomUUID(),
+        }),
       });
-      const data = (await response.json()) as { error?: string; redemption?: { code: string; pointsSpent: number } };
+      const data = (await response.json()) as { error?: string; redemption?: { code: string; pointsSpent: number; fulfillmentType: string; cashAmountCents?: number | null } };
       if (!response.ok || !data.redemption) throw new Error(data.error || "Não foi possível concluir o resgate.");
-      setResult({ code: data.redemption.code, pointsSpent: data.redemption.pointsSpent });
+      setResult({
+        code: data.redemption.code,
+        pointsSpent: data.redemption.pointsSpent,
+        fulfillmentType: data.redemption.fulfillmentType,
+        cashAmountCents: data.redemption.cashAmountCents,
+      });
       router.refresh();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Não foi possível concluir o resgate. Atualize a página e tente novamente.");
@@ -94,14 +128,26 @@ function RedeemDialog({ product, balance }: { product: StoreProduct; balance: nu
               <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-emerald-50 text-[var(--brand-mint-ink)]" aria-hidden="true">
                 <CheckCircle2 className="size-7" />
               </div>
-              <AlertDialog.Title className="mt-5 text-balance text-2xl font-extrabold text-[var(--brand-navy)]">Resgate solicitado</AlertDialog.Title>
+              <AlertDialog.Title className="mt-5 text-balance text-2xl font-extrabold text-[var(--brand-navy)]">
+                Resgate solicitado
+              </AlertDialog.Title>
               <AlertDialog.Description className="mt-2 text-pretty text-sm leading-6 text-slate-600">
-                Guarde o código abaixo. Você pode acompanhar o andamento em Meus resgates.
+                {result.fulfillmentType === "CASH"
+                  ? "Sua solicitação de resgate em dinheiro via PIX foi registrada. O pagamento será processado em breve."
+                  : "Guarde o código abaixo. Você pode acompanhar o andamento em Meus resgates."}
               </AlertDialog.Description>
               <div className="mt-6 rounded-2xl bg-blue-50 p-5">
                 <p className="text-xs font-bold text-slate-600">Código do resgate</p>
                 <p className="mt-1 text-xl font-extrabold tabular-nums text-[var(--brand-blue-dark)]">{result.code}</p>
                 <p className="mt-2 text-sm font-semibold tabular-nums text-slate-600">{formatPoints(result.pointsSpent)} pontos debitados</p>
+                {result.fulfillmentType === "CASH" && result.cashAmountCents ? (
+                  <div className="mt-3 rounded-xl bg-emerald-100/70 p-3 text-emerald-950">
+                    <p className="text-xs font-bold">Valor a receber via PIX:</p>
+                    <p className="text-lg font-extrabold tabular-nums">
+                      {formatCurrency(result.cashAmountCents)}
+                    </p>
+                  </div>
+                ) : null}
               </div>
               <div className="mt-6 grid gap-3 sm:grid-cols-2">
                 <a href="/historico" className="inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--brand-blue)] px-5 text-sm font-bold text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200">
@@ -126,10 +172,79 @@ function RedeemDialog({ product, balance }: { product: StoreProduct; balance: nu
                 </AlertDialog.Cancel>
               </div>
               <AlertDialog.Description className="mt-3 text-pretty text-sm leading-6 text-slate-600">
-                Confira a quantidade, o custo e o saldo depois do resgate antes de confirmar.
+                Escolha o formato de recebimento e confira os pontos do resgate.
               </AlertDialog.Description>
 
-              <div className="mt-6 flex items-center justify-between gap-4 rounded-2xl border border-slate-200 p-4">
+              {/* Opção de formato de recebimento */}
+              <div className="mt-5 space-y-2">
+                <p className="text-xs font-bold text-[var(--brand-navy)]">Como deseja receber seu prêmio?</p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => setFulfillmentType("PRODUCT")}
+                    className={cn(
+                      "flex flex-col items-start rounded-2xl border p-4 text-left transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200",
+                      fulfillmentType === "PRODUCT"
+                        ? "border-[var(--brand-blue)] bg-blue-50/70 ring-2 ring-[var(--brand-blue)]"
+                        : "border-slate-200 bg-white hover:border-slate-300",
+                    )}
+                  >
+                    <div className="flex items-center gap-2 font-bold text-[var(--brand-navy)]">
+                      <Package className="size-4 text-[var(--brand-blue)]" />
+                      <span>Produto Físico</span>
+                    </div>
+                    <p className="mt-1 text-xs text-slate-500">Receba o item físico cadastrado</p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setFulfillmentType("CASH")}
+                    disabled={!cashAmountPerUnit}
+                    className={cn(
+                      "flex flex-col items-start rounded-2xl border p-4 text-left transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 disabled:opacity-50",
+                      fulfillmentType === "CASH"
+                        ? "border-emerald-600 bg-emerald-50/70 ring-2 ring-emerald-600"
+                        : "border-slate-200 bg-white hover:border-slate-300",
+                    )}
+                  >
+                    <div className="flex items-center gap-2 font-bold text-emerald-950">
+                      <ShoppingBag className="size-4 text-emerald-600" />
+                      <span>Dinheiro via PIX</span>
+                    </div>
+                    <p className="mt-1 text-xs text-slate-600 font-medium">
+                      {cashAmountPerUnit ? `50% do valor (${formatCurrency(Math.round((product.referenceValueCents ?? 0) * 0.50))})` : "Indisponível"}
+                    </p>
+                  </button>
+                </div>
+              </div>
+
+              {/* Se resgate em dinheiro for selecionado, pede a chave PIX */}
+              {fulfillmentType === "CASH" ? (
+                <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50/50 p-4">
+                  <p className="text-xs font-bold text-emerald-950">Detalhes do Resgate em Dinheiro</p>
+                  {referenceValue && totalCashAmount ? (
+                    <div className="mt-2 text-xs text-emerald-900 space-y-1">
+                      <p>Valor de referência do produto: <strong className="tabular-nums">{formatCurrency(product.referenceValueCents)}</strong></p>
+                      <p className="text-sm font-extrabold text-emerald-950">
+                        Valor a receber no PIX (50%): <span className="tabular-nums">{formatCurrency(Math.round((product.referenceValueCents ?? 0) * 0.50 * quantity))}</span>
+                      </p>
+                    </div>
+                  ) : null}
+
+                  <label className="mt-3 block">
+                    <span className="text-xs font-bold text-slate-700">Sua Chave PIX (CPF, CNPJ, E-mail, Celular ou Aleatória)</span>
+                    <input
+                      type="text"
+                      value={pixKey}
+                      onChange={(e) => setPixKey(e.target.value)}
+                      placeholder="Cole ou digite sua chave PIX aqui"
+                      className="mt-1 w-full rounded-xl border border-emerald-300 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+                    />
+                  </label>
+                </div>
+              ) : null}
+
+              <div className="mt-5 flex items-center justify-between gap-4 rounded-2xl border border-slate-200 p-4">
                 <div>
                   <p className="text-sm font-bold text-[var(--brand-navy)]">Quantidade</p>
                   <p className="mt-1 text-xs text-slate-500">Máximo nesta solicitação: {maxQuantity}</p>
@@ -147,8 +262,8 @@ function RedeemDialog({ product, balance }: { product: StoreProduct; balance: nu
 
               <dl className="mt-4 divide-y divide-slate-200 rounded-2xl bg-slate-50 px-4">
                 <div className="flex items-center justify-between gap-4 py-3 text-sm">
-                  <dt className="text-slate-600">Custo total</dt>
-                  <dd className="font-extrabold tabular-nums text-[var(--brand-navy)]">{formatPoints(total)} pts</dd>
+                  <dt className="text-slate-600">Custo em pontos</dt>
+                  <dd className="font-extrabold tabular-nums text-[var(--brand-navy)]">{formatPoints(totalPoints)} pts</dd>
                 </div>
                 <div className="flex items-center justify-between gap-4 py-3 text-sm">
                   <dt className="text-slate-600">Saldo atual</dt>
@@ -156,13 +271,14 @@ function RedeemDialog({ product, balance }: { product: StoreProduct; balance: nu
                 </div>
                 <div className="flex items-center justify-between gap-4 py-3 text-sm">
                   <dt className="text-slate-600">Saldo depois</dt>
-                  <dd className="font-extrabold tabular-nums text-[var(--brand-mint-ink)]">{formatPoints(balance - total)} pts</dd>
+                  <dd className="font-extrabold tabular-nums text-[var(--brand-mint-ink)]">{formatPoints(balance - totalPoints)} pts</dd>
                 </div>
               </dl>
+
               {product.maxPerCourierPerPeriod ? <p className="mt-3 text-pretty text-xs leading-5 text-slate-500">Limite do item: {product.maxPerCourierPerPeriod} unidade(s) por competência.</p> : null}
               {error ? <p className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-800" role="alert">{error}</p> : null}
               <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                <Button onClick={redeem} disabled={pending || total > balance}>
+                <Button onClick={redeem} disabled={pending || totalPoints > balance}>
                   {pending ? "Confirmando…" : "Confirmar resgate"}
                 </Button>
                 <AlertDialog.Cancel asChild>

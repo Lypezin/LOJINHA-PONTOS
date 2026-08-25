@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CalendarClock, ChevronRight, Clock3, WalletCards } from "lucide-react";
 import { ProductCatalog, type StoreProduct } from "@/components/store/product-catalog";
+import { ProgramRulesBanner } from "@/components/store/program-rules-banner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { getCurrentAccount } from "@/features/points/period";
@@ -48,6 +49,8 @@ export default async function StorePage() {
         title="Seus pedidos viram conquistas"
         description="Use seus pontos da competência atual. O saldo que não for usado expira automaticamente na virada do mês."
       />
+
+      <ProgramRulesBanner />
 
       <section className="relative overflow-hidden rounded-[20px] border border-blue-900 bg-[var(--brand-blue-dark)] p-6 text-white shadow-lg sm:p-8" aria-labelledby="balance-title">
         <span className="absolute -right-10 -top-16 size-52 rounded-full border-[28px] border-white/[0.06]" aria-hidden="true" />

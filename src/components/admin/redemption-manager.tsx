@@ -8,7 +8,7 @@ import { useState } from "react";
 import { Button, buttonStyles } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { formatDateTime, formatPoints } from "@/lib/format";
+import { formatCurrency, formatDateTime, formatPoints } from "@/lib/format";
 import { formatCnpj, redemptionLabels, redemptionTone } from "@/lib/presentation";
 
 type RedemptionStatus = keyof typeof redemptionLabels;
@@ -21,6 +21,9 @@ export type AdminRedemption = {
   productName: string;
   quantity: number;
   pointsSpent: number;
+  fulfillmentType: "PRODUCT" | "CASH";
+  cashAmountCents: number | null;
+  pixKey: string | null;
   status: RedemptionStatus;
   periodKey: string;
   requestedAt: string;
@@ -115,12 +118,93 @@ export function RedemptionManager({
             <table className="w-full text-left text-sm">
               <thead className="border-b border-slate-200 bg-slate-50 text-xs text-slate-600"><tr><th scope="col" className="px-5 py-3 font-bold">Resgate</th><th scope="col" className="px-4 py-3 font-bold">Entregador</th><th scope="col" className="px-4 py-3 font-bold">Item</th><th scope="col" className="px-4 py-3 font-bold">Status</th><th scope="col" className="px-5 py-3 text-right font-bold">Próximo passo</th></tr></thead>
               <tbody className="divide-y divide-slate-200">
-                {filtered.map((item) => <tr key={item.id} className="align-top"><td className="px-5 py-4"><p className="font-extrabold tabular-nums text-[var(--brand-navy)]">{item.code}</p><p className="mt-1 text-xs tabular-nums text-slate-500">{formatDateTime(item.requestedAt)} • {item.periodKey}</p></td><td className="px-4 py-4"><p className="font-bold text-[var(--brand-navy)]">{item.courierName}</p><p className="mt-1 text-xs tabular-nums text-slate-500">{formatCnpj(item.courierCnpj)}</p></td><td className="px-4 py-4"><p className="font-bold text-[var(--brand-navy)]">{item.productName}</p><p className="mt-1 text-xs tabular-nums text-slate-500">{item.quantity} un. • {formatPoints(item.pointsSpent)} pts</p></td><td className="px-4 py-4"><StatusBadge tone={redemptionTone[item.status]}>{redemptionLabels[item.status]}</StatusBadge>{errors[item.id] ? <p className="mt-2 max-w-xs text-xs font-semibold text-red-700" role="alert">{errors[item.id]}</p> : null}</td><td className="px-5 py-4"><Actions item={item} /></td></tr>)}
+                {filtered.map((item) => (
+                  <tr key={item.id} className="align-top">
+                    <td className="px-5 py-4">
+                      <p className="font-extrabold tabular-nums text-[var(--brand-navy)]">{item.code}</p>
+                      <p className="mt-1 text-xs tabular-nums text-slate-500">{formatDateTime(item.requestedAt)} • {item.periodKey}</p>
+                      {item.fulfillmentType === "CASH" ? (
+                        <span className="mt-1.5 inline-block rounded bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-950">
+                          💵 Dinheiro via PIX
+                        </span>
+                      ) : (
+                        <span className="mt-1.5 inline-block rounded bg-blue-50 px-2 py-0.5 text-xs font-bold text-[var(--brand-blue)]">
+                          🎁 Produto Físico
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-4">
+                      <p className="font-bold text-[var(--brand-navy)]">{item.courierName}</p>
+                      <p className="mt-1 text-xs tabular-nums text-slate-500">{formatCnpj(item.courierCnpj)}</p>
+                      {item.fulfillmentType === "CASH" && item.pixKey ? (
+                        <p className="mt-1 max-w-xs text-xs font-semibold text-emerald-800 truncate" title={item.pixKey}>
+                          PIX: {item.pixKey}
+                        </p>
+                      ) : null}
+                    </td>
+                    <td className="px-4 py-4">
+                      <p className="font-bold text-[var(--brand-navy)]">{item.productName}</p>
+                      <p className="mt-1 text-xs tabular-nums text-slate-500">{item.quantity} un. • {formatPoints(item.pointsSpent)} pts</p>
+                      {item.fulfillmentType === "CASH" && item.cashAmountCents ? (
+                        <p className="mt-1 text-xs font-extrabold text-emerald-900 tabular-nums">
+                          Transferir PIX: {formatCurrency(item.cashAmountCents)}
+                        </p>
+                      ) : null}
+                    </td>
+                    <td className="px-4 py-4">
+                      <StatusBadge tone={redemptionTone[item.status]}>{redemptionLabels[item.status]}</StatusBadge>
+                      {errors[item.id] ? <p className="mt-2 max-w-xs text-xs font-semibold text-red-700" role="alert">{errors[item.id]}</p> : null}
+                    </td>
+                    <td className="px-5 py-4"><Actions item={item} /></td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
           <div className="grid gap-4 lg:hidden">
-            {filtered.map((item) => <article key={item.id} className="rounded-[20px] border border-slate-200 bg-white p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-extrabold tabular-nums text-[var(--brand-navy)]">{item.code}</p><p className="mt-1 text-xs tabular-nums text-slate-500">{formatDateTime(item.requestedAt)}</p></div><StatusBadge tone={redemptionTone[item.status]}>{redemptionLabels[item.status]}</StatusBadge></div><div className="mt-4 grid gap-3 rounded-2xl bg-slate-50 p-4 sm:grid-cols-2"><div><p className="text-xs font-semibold text-slate-500">Entregador</p><p className="mt-1 font-bold text-[var(--brand-navy)]">{item.courierName}</p></div><div><p className="text-xs font-semibold text-slate-500">Item</p><p className="mt-1 font-bold text-[var(--brand-navy)]">{item.quantity}x {item.productName}</p><p className="mt-1 text-xs font-extrabold tabular-nums text-slate-600">{formatPoints(item.pointsSpent)} pts</p></div></div>{errors[item.id] ? <p className="mt-3 text-sm font-semibold text-red-700" role="alert">{errors[item.id]}</p> : null}<div className="mt-4"><Actions item={item} /></div></article>)}
+            {filtered.map((item) => (
+              <article key={item.id} className="rounded-[20px] border border-slate-200 bg-white p-5">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="font-extrabold tabular-nums text-[var(--brand-navy)]">{item.code}</p>
+                    <p className="mt-1 text-xs tabular-nums text-slate-500">{formatDateTime(item.requestedAt)}</p>
+                    {item.fulfillmentType === "CASH" ? (
+                      <span className="mt-1.5 inline-block rounded bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-950">
+                        💵 Dinheiro via PIX
+                      </span>
+                    ) : (
+                      <span className="mt-1.5 inline-block rounded bg-blue-50 px-2 py-0.5 text-xs font-bold text-[var(--brand-blue)]">
+                        🎁 Produto Físico
+                      </span>
+                    )}
+                  </div>
+                  <StatusBadge tone={redemptionTone[item.status]}>{redemptionLabels[item.status]}</StatusBadge>
+                </div>
+                <div className="mt-4 grid gap-3 rounded-2xl bg-slate-50 p-4 sm:grid-cols-2">
+                  <div>
+                    <p className="text-xs font-semibold text-slate-500">Entregador</p>
+                    <p className="mt-1 font-bold text-[var(--brand-navy)]">{item.courierName}</p>
+                    {item.fulfillmentType === "CASH" && item.pixKey ? (
+                      <p className="mt-1 text-xs font-semibold text-emerald-800 truncate" title={item.pixKey}>
+                        PIX: {item.pixKey}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-slate-500">Item</p>
+                    <p className="mt-1 font-bold text-[var(--brand-navy)]">{item.quantity}x {item.productName}</p>
+                    <p className="mt-1 text-xs font-extrabold tabular-nums text-slate-600">{formatPoints(item.pointsSpent)} pts</p>
+                    {item.fulfillmentType === "CASH" && item.cashAmountCents ? (
+                      <p className="mt-1 text-xs font-extrabold text-emerald-900 tabular-nums">
+                        Transferir PIX: {formatCurrency(item.cashAmountCents)}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+                {errors[item.id] ? <p className="mt-3 text-sm font-semibold text-red-700" role="alert">{errors[item.id]}</p> : null}
+                <div className="mt-4"><Actions item={item} /></div>
+              </article>
+            ))}
           </div>
         </>
       ) : (

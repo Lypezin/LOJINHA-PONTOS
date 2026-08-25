@@ -8,7 +8,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { getCurrentAccount } from "@/features/points/period";
 import { requirePageUser } from "@/lib/auth/session";
 import { db } from "@/lib/db";
-import { formatDate, formatDateTime, formatPoints } from "@/lib/format";
+import { formatCurrency, formatDate, formatDateTime, formatPoints } from "@/lib/format";
 import { monthLabel, redemptionLabels, redemptionTone } from "@/lib/presentation";
 
 export const metadata = { title: "Meus resgates" };
@@ -61,6 +61,9 @@ export default async function HistoryPage() {
         imageUrlSnapshot: true,
         quantity: true,
         pointsSpent: true,
+        fulfillmentType: true,
+        cashAmountCents: true,
+        pixKey: true,
         status: true,
         requestedAt: true,
         period: { select: { year: true, month: true } },
@@ -132,10 +135,29 @@ export default async function HistoryPage() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-start justify-between gap-2">
-                    <h3 className="line-clamp-2 text-balance font-extrabold text-[var(--brand-navy)]">{redemption.productNameSnapshot}</h3>
+                    <div>
+                      <h3 className="line-clamp-2 text-balance font-extrabold text-[var(--brand-navy)]">{redemption.productNameSnapshot}</h3>
+                      {redemption.fulfillmentType === "CASH" ? (
+                        <span className="mt-1 inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-bold text-emerald-800">
+                          💵 Dinheiro (PIX)
+                        </span>
+                      ) : (
+                        <span className="mt-1 inline-flex items-center gap-1 rounded-md bg-blue-50 px-2 py-0.5 text-xs font-bold text-[var(--brand-blue)]">
+                          🎁 Produto Físico
+                        </span>
+                      )}
+                    </div>
                     <StatusBadge tone={redemptionTone[redemption.status]}>{redemptionLabels[redemption.status]}</StatusBadge>
                   </div>
                   <p className="mt-2 text-xs font-semibold tabular-nums text-slate-600 font-medium">{redemption.code} • {formatDateTime(redemption.requestedAt)}</p>
+
+                  {redemption.fulfillmentType === "CASH" && redemption.cashAmountCents ? (
+                    <div className="mt-2 rounded-xl border border-emerald-200 bg-emerald-50/70 p-2.5 text-xs text-emerald-950">
+                      <p className="font-bold">Valor a receber via PIX: <span className="text-sm font-extrabold tabular-nums">{formatCurrency(redemption.cashAmountCents)}</span></p>
+                      {redemption.pixKey ? <p className="mt-0.5 font-medium truncate text-emerald-800" title={redemption.pixKey}>Chave PIX: {redemption.pixKey}</p> : null}
+                    </div>
+                  ) : null}
+
                   <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-700">
                     <span className="tabular-nums">{redemption.quantity} unidade(s)</span>
                     <span className="font-extrabold tabular-nums text-[var(--brand-navy)]">{formatPoints(redemption.pointsSpent)} pts</span>

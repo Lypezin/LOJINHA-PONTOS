@@ -65,6 +65,11 @@ enum RedemptionStatus {
   CANCELED
 }
 
+enum RedemptionFulfillmentType {
+  PRODUCT
+  CASH
+}
+
 model User {
   id                 String               @id @default(cuid())
   email              String
@@ -345,8 +350,11 @@ model Redemption {
   unitPoints          Int
   pointsSpent         Int
   productNameSnapshot String
-  imageUrlSnapshot    String?          @db.Text
-  status              RedemptionStatus @default(REQUESTED)
+  imageUrlSnapshot    String?                   @db.Text
+  fulfillmentType     RedemptionFulfillmentType @default(PRODUCT)
+  cashAmountCents     Int?
+  pixKey              String?
+  status              RedemptionStatus          @default(REQUESTED)
   notes               String?
   adminNotes          String?
   managedById         String?
