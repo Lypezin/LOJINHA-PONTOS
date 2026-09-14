@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { db, describeDatabaseError } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +10,8 @@ export async function GET() {
       { status: "healthy" },
       { headers: { "Cache-Control": "no-store" } },
     );
-  } catch {
+  } catch (error) {
+    console.error("[health] Banco de dados indisponível.", describeDatabaseError(error));
     return NextResponse.json(
       { status: "unhealthy" },
       { status: 503, headers: { "Cache-Control": "no-store" } },

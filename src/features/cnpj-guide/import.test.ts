@@ -1,8 +1,6 @@
 import ExcelJS from "exceljs";
 import { describe, expect, it } from "vitest";
 
-import { importCnpjGuideWorkbook } from "@/features/cnpj-guide/import";
-
 async function cnpjWorkbookBuffer() {
   const workbook = new ExcelJS.Workbook();
   const sheet = workbook.addWorksheet("DADOS CNPJ");

@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import { db } from "@/lib/db";
+import { db, describeDatabaseError } from "@/lib/db";
 import { hashForAudit, writeAuditLog } from "@/lib/auth/audit";
 import { cnpjStorageCandidates, isValidCnpj } from "@/lib/auth/identity";
 import { createSession } from "@/lib/auth/session";
@@ -66,8 +66,8 @@ export async function POST(request: Request) {
       user: { name: user.displayName ?? user.courier?.name ?? "Administrador", email: user.email, role: user.role },
       redirectTo: user.mustChangePassword ? "/trocar-senha" : user.role === "ADMIN" ? "/admin" : "/loja",
     });
-  } catch {
-    console.error("[auth:login] Falha interna ao entrar.");
+  } catch (error) {
+    console.error("[auth:login] Falha interna ao entrar.", describeDatabaseError(error));
     return secureJson({ ok: false, message: "Não foi possível entrar agora. Tente novamente." }, { status: 500 });
   }
 }

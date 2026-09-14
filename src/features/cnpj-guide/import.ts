@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import ExcelJS from "exceljs";
-import { MatchStatus, Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 
 import {
   isUuid,
@@ -332,7 +332,6 @@ export async function importCnpjGuideWorkbook(
   }
   const existingGuideEntries = [...existingGuideEntriesMap.values()];
 
-  const guideByCnpj = new Map(existingGuideEntries.map((g) => [g.cnpj, g]));
   const guideByCourierId = new Map(
     existingGuideEntries.flatMap((g) => (g.courierId ? [[g.courierId, g] as const] : [])),
   );

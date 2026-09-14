@@ -16,6 +16,23 @@ const RETRYABLE_READ_OPERATIONS = new Set([
 
 const RETRYABLE_DATABASE_CODES = new Set(["P1001", "P1002", "P1008", "P1017"]);
 
+/**
+ * Informações seguras para logs operacionais. Nunca inclua a URL de conexão,
+ * pois ela pode conter a senha do banco.
+ */
+export function describeDatabaseError(error: unknown) {
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    return { type: "known_request", code: error.code };
+  }
+  if (error instanceof Prisma.PrismaClientInitializationError) {
+    return { type: "initialization", code: error.errorCode ?? null };
+  }
+  if (error instanceof Prisma.PrismaClientValidationError) {
+    return { type: "validation" };
+  }
+  return { type: error instanceof Error ? error.name : "unknown" };
+}
+
 function isRetryableConnectionError(error: unknown) {
   if (error instanceof Prisma.PrismaClientInitializationError) return true;
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -54,7 +71,7 @@ export function normalizeRuntimeDatabaseUrl(databaseUrl: string | undefined) {
     const isProjectDirectUrl = hostname === directHostname;
     const isProjectPoolerUrl =
       hostname.endsWith(".pooler.supabase.com") &&
-      username === `postgres.${SUPABASE_PROJECT_REF}`;
+      (username === `postgres.${SUPABASE_PROJECT_REF}` || username === "postgres");
 
     if (!isProjectDirectUrl && !isProjectPoolerUrl) return databaseUrl;
 
