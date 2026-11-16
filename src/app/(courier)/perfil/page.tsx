@@ -7,7 +7,8 @@ import { getCurrentAccount } from "@/features/points/period";
 import { requirePageUser } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { formatDate, formatPoints } from "@/lib/format";
-import { formatCnpj, monthLabel } from "@/lib/presentation";
+import { formatCnpj, periodLabel } from "@/lib/presentation";
+import { pointsCycleLastUseDate } from "@/features/points/cycle";
 
 export const metadata = { title: "Meu perfil" };
 
@@ -62,9 +63,9 @@ export default async function ProfilePage() {
         <div className="space-y-6">
           <section className="rounded-[20px] bg-[var(--brand-blue-dark)] p-6 text-white" aria-labelledby="points-title">
             <CalendarClock className="size-6 text-[var(--brand-mint)]" aria-hidden="true" />
-            <h2 id="points-title" className="mt-4 text-balance text-lg font-extrabold">{monthLabel(period.year, period.month)}</h2>
+            <h2 id="points-title" className="mt-4 text-balance text-lg font-extrabold">{periodLabel(period)}</h2>
             <p className="mt-2 text-4xl font-extrabold tabular-nums">{formatPoints(account?.balancePoints ?? 0)} <span className="text-base text-blue-100">pts</span></p>
-            <p className="mt-3 text-sm leading-6 text-blue-100">Este saldo expira em <strong className="font-extrabold text-white tabular-nums">{formatDate(period.endsAt)}</strong>.</p>
+            <p className="mt-3 text-sm leading-6 text-blue-100">Este saldo pode ser usado até <strong className="font-extrabold text-white tabular-nums">{formatDate(pointsCycleLastUseDate(period.endsAt))}</strong>.</p>
           </section>
 
           <section className="rounded-[20px] border border-slate-200 bg-white p-6 shadow-sm" aria-labelledby="security-title">

@@ -275,7 +275,7 @@ function RedeemDialog({ product, balance }: { product: StoreProduct; balance: nu
                 </div>
               </dl>
 
-              {product.maxPerCourierPerPeriod ? <p className="mt-3 text-pretty text-xs leading-5 text-slate-500">Limite do item: {product.maxPerCourierPerPeriod} unidade(s) por competência.</p> : null}
+              {product.maxPerCourierPerPeriod ? <p className="mt-3 text-pretty text-xs leading-5 text-slate-500">Limite do item: {product.maxPerCourierPerPeriod} unidade(s) por mês.</p> : null}
               {error ? <p className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-800" role="alert">{error}</p> : null}
               <div className="mt-6 grid gap-3 sm:grid-cols-2">
                 <Button onClick={redeem} disabled={pending || totalPoints > balance}>

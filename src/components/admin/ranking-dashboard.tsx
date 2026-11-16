@@ -132,7 +132,7 @@ export function RankingDashboard({ topEarners, topSpenders, topBalances, stats }
         <StatCard
           label="Total Distribuído"
           value={`${formatPoints(stats.totalDistributed)} pts`}
-          helper="Total de créditos importados neste mês"
+          helper="Total de créditos importados no ciclo vigente"
           icon={Sparkles}
         />
         <StatCard
@@ -165,7 +165,7 @@ export function RankingDashboard({ topEarners, topSpenders, topBalances, stats }
           </p>
           <ul className="list-disc list-inside space-y-1 text-xs text-slate-600 font-medium pt-1">
             <li><strong className="text-[var(--brand-navy)]">Saldo Atual:</strong> Pontos disponíveis na carteira do entregador hoje (pode ser usado para resgates).</li>
-            <li><strong className="text-[var(--brand-navy)]">Maior Acúmulo:</strong> Total de pontos creditados de faturas importadas ao longo do mês.</li>
+            <li><strong className="text-[var(--brand-navy)]">Maior Acúmulo:</strong> Total de pontos creditados de planilhas importadas ao longo do ciclo.</li>
             <li><strong className="text-[var(--brand-navy)]">Maior Gasto:</strong> Total acumulado de pontos trocados por brindes na Lojinha.</li>
           </ul>
         </div>

@@ -10,7 +10,7 @@ import { ensureCurrentPeriod } from "@/features/points/period";
 import { requirePageAdmin } from "@/lib/auth/session";
 import { db, retryDatabaseRead } from "@/lib/db";
 import { formatDateTime, formatPoints } from "@/lib/format";
-import { monthLabel, redemptionLabels, redemptionTone } from "@/lib/presentation";
+import { periodLabel, redemptionLabels, redemptionTone } from "@/lib/presentation";
 
 export const metadata = { title: "Administração" };
 
@@ -37,8 +37,11 @@ export default async function AdminDashboardPage() {
         COALESCE(SUM("balancePoints"), 0)::int AS "balancePoints",
         COALESCE(SUM("importedPoints"), 0)::int AS "importedPoints",
         COALESCE(SUM("redeemedPoints"), 0)::int AS "redeemedPoints"
-      FROM "PointAccount"
-      WHERE "periodId" = ${period.id}
+      FROM "PointAccount" AS account
+      JOIN "MonthlyPeriod" AS activePeriod ON activePeriod."id" = account."periodId"
+      WHERE activePeriod."status" = 'OPEN'::"PeriodStatus"
+        AND activePeriod."startsAt" <= NOW()
+        AND activePeriod."endsAt" > NOW()
     `)),
     db.redemption.findMany({
       orderBy: { requestedAt: "desc" },
@@ -62,14 +65,14 @@ export default async function AdminDashboardPage() {
   return (
     <div className="space-y-10">
       <PageHeader
-        eyebrow={monthLabel(period.year, period.month)}
+        eyebrow={periodLabel(period)}
         title="Visão geral da lojinha"
-        description="Acompanhe pontos, pedidos, estoque e dados que precisam de atenção antes de abrir cada competência."
+        description="Acompanhe pontos, pedidos, estoque e dados que precisam de atenção durante o ciclo atual."
         action={<Link href="/admin/importacoes" className={buttonStyles()}><FileSpreadsheet className="size-4" aria-hidden="true" />Importar planilha</Link>}
       />
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Indicadores principais">
-        <StatCard label="Saldo em circulação" value={`${formatPoints(metrics.balancePoints)} pts`} helper={`${formatPoints(metrics.importedPoints)} pontos importados no mês`} icon={WalletCards} />
+        <StatCard label="Saldo em circulação" value={`${formatPoints(metrics.balancePoints)} pts`} helper={`${formatPoints(metrics.importedPoints)} pontos creditados no ciclo vigente`} icon={WalletCards} />
         <StatCard label="Resgates em andamento" value={formatPoints(pendingRedemptions)} helper={`${formatPoints(metrics.redeemedPoints)} pontos já utilizados`} icon={PackageCheck} />
         <StatCard label="Entregadores ativos" value={formatPoints(courierCount)} helper="Cadastros liberados para a operação" icon={UsersRound} />
         <StatCard label="Produtos ativos" value={formatPoints(productCount)} helper={`${lowStock.length} item(ns) com estoque baixo`} icon={Boxes} />

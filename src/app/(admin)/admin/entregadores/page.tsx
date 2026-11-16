@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { ensureCurrentPeriod } from "@/features/points/period";
 import { requirePageAdmin } from "@/lib/auth/session";
 import { db } from "@/lib/db";
+import { periodLabel } from "@/lib/presentation";
 
 export const metadata = { title: "Entregadores" };
 
@@ -51,8 +52,7 @@ export default async function AdminCouriersPage({ searchParams }: { searchParams
       lastImportedAt: true,
       user: { select: { email: true } },
       pointAccounts: {
-        where: { periodId: period.id },
-        take: 1,
+        where: { period: { status: "OPEN", startsAt: { lte: new Date() }, endsAt: { gt: new Date() } } },
         select: { balancePoints: true, importedPoints: true, redeemedPoints: true },
       },
     },
@@ -66,15 +66,15 @@ export default async function AdminCouriersPage({ searchParams }: { searchParams
     cnpjMatchStatus: courier.cnpjMatchStatus,
     email: courier.user?.email ?? null,
     lastImportedAt: courier.lastImportedAt?.toISOString() ?? null,
-    balance: courier.pointAccounts[0]?.balancePoints ?? 0,
-    importedPoints: courier.pointAccounts[0]?.importedPoints ?? 0,
-    redeemedPoints: courier.pointAccounts[0]?.redeemedPoints ?? 0,
+    balance: courier.pointAccounts.reduce((sum, account) => sum + account.balancePoints, 0),
+    importedPoints: courier.pointAccounts.reduce((sum, account) => sum + account.importedPoints, 0),
+    redeemedPoints: courier.pointAccounts.reduce((sum, account) => sum + account.redeemedPoints, 0),
   }));
 
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow={`Competência ${period.key}`}
+        eyebrow={periodLabel(period)}
         title="Entregadores"
         description="Consulte o saldo atual, corrija dados cadastrais e registre ajustes de pontos com motivo e saldo antes/depois."
       />

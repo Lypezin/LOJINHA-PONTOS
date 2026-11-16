@@ -20,9 +20,8 @@ export default async function LoginPage({
 
   return (
     <AuthShell
-      eyebrow="Acesso seguro"
       title="Que bom ter você de volta"
-      description="Entre para acompanhar seus pontos do mês e escolher o próximo prêmio."
+      description="Entre para acompanhar seu saldo de pontos e escolher o próximo prêmio."
       footer={
         <p>
           Ainda não tem uma conta?{" "}

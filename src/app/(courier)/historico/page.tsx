@@ -9,7 +9,7 @@ import { getCurrentAccount } from "@/features/points/period";
 import { requirePageUser } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { formatCurrency, formatDate, formatDateTime, formatPoints } from "@/lib/format";
-import { monthLabel, redemptionLabels, redemptionTone } from "@/lib/presentation";
+import { periodLabel, redemptionLabels, redemptionTone } from "@/lib/presentation";
 
 export const metadata = { title: "Meus resgates" };
 
@@ -66,7 +66,7 @@ export default async function HistoryPage() {
         pixKey: true,
         status: true,
         requestedAt: true,
-        period: { select: { year: true, month: true } },
+        period: { select: { key: true, year: true, month: true, startsAt: true, endsAt: true } },
       },
     }),
     db.pointAccount.findMany({
@@ -75,7 +75,7 @@ export default async function HistoryPage() {
       take: 12,
       select: {
         id: true,
-        period: { select: { year: true, month: true } },
+        period: { select: { key: true, year: true, month: true, startsAt: true, endsAt: true } },
         entries: {
           orderBy: { createdAt: "desc" },
           take: 40,
@@ -112,8 +112,8 @@ export default async function HistoryPage() {
         action={<Link href="/loja" className={buttonStyles()}>Ir para a loja</Link>}
       />
 
-      <section className="grid gap-4 sm:grid-cols-3" aria-label="Resumo da competência atual">
-        <StatCard label={`Saldo de ${monthLabel(period.year, period.month)}`} value={`${formatPoints(account?.balancePoints ?? 0)} pts`} helper="Disponível para resgate" icon={ReceiptText} />
+      <section className="grid gap-4 sm:grid-cols-3" aria-label="Resumo do ciclo atual">
+        <StatCard label="Saldo do ciclo atual" value={`${formatPoints(account?.balancePoints ?? 0)} pts`} helper={periodLabel(period)} icon={ReceiptText} />
         <StatCard label="Pontos recebidos" value={`${formatPoints(account?.importedPoints ?? 0)} pts`} helper="Crédito-base da planilha" icon={PackageCheck} />
         <StatCard label="Pontos usados" value={`${formatPoints(account?.redeemedPoints ?? 0)} pts`} helper="Total debitado em resgates" icon={ShoppingBag} />
       </section>
@@ -161,7 +161,7 @@ export default async function HistoryPage() {
                   <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-700">
                     <span className="tabular-nums">{redemption.quantity} unidade(s)</span>
                     <span className="font-extrabold tabular-nums text-[var(--brand-navy)]">{formatPoints(redemption.pointsSpent)} pts</span>
-                    <span>{monthLabel(redemption.period.year, redemption.period.month)}</span>
+                    <span>{periodLabel(redemption.period)}</span>
                   </div>
                 </div>
               </article>
@@ -219,7 +219,7 @@ export default async function HistoryPage() {
                     ) : null}
                   </div>
                   <div className="text-xs text-slate-700">
-                    <p>{monthLabel(entry.period.year, entry.period.month)}</p>
+                    <p>{periodLabel(entry.period)}</p>
                     <p className="mt-1 tabular-nums">{formatDateTime(entry.createdAt)}</p>
                   </div>
                   <p className={entry.amount >= 0 ? "font-extrabold tabular-nums text-emerald-700 sm:text-right" : "font-extrabold tabular-nums text-red-700 sm:text-right"}>

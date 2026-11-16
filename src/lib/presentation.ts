@@ -1,3 +1,5 @@
+import { formatDate } from "@/lib/format";
+
 export const redemptionLabels = {
   REQUESTED: "Solicitado",
   APPROVED: "Aprovado",
@@ -49,4 +51,14 @@ export function monthLabel(year: number, month: number) {
     new Date(Date.UTC(year, month - 1, 10)),
   );
   return label.charAt(0).toUpperCase() + label.slice(1);
+}
+export function periodLabel(period: {
+  key: string;
+  year: number;
+  month: number;
+  startsAt: Date;
+  endsAt: Date;
+}) {
+  if (!period.key.startsWith("cycle-")) return monthLabel(period.year, period.month);
+  return `Ciclo ${formatDate(period.startsAt)} a ${formatDate(new Date(period.endsAt.getTime() - 1))}`;
 }

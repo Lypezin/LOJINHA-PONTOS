@@ -212,7 +212,7 @@ model MonthlyPeriod {
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
-  @@unique([year, month])
+  @@index([year, month])
   @@index([status, startsAt, endsAt])
 }
 
@@ -269,6 +269,7 @@ model ImportBatch {
   periodId          String
   period            MonthlyPeriod           @relation(fields: [periodId], references: [id], onDelete: Restrict)
   status            ImportStatus            @default(PROCESSING)
+  competenceKey     String
   rowCount          Int                     @default(0)
   courierCount      Int                     @default(0)
   totalPoints       Int                     @default(0)
@@ -283,7 +284,7 @@ model ImportBatch {
   createdAt         DateTime                @default(now())
   updatedAt         DateTime                @updatedAt
 
-  @@unique([fileHash, periodId, pointsColumn])
+  @@unique([fileHash, competenceKey, pointsColumn])
   @@index([periodId, createdAt])
   @@index([status])
   @@index([createdAt])

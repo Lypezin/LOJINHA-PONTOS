@@ -26,7 +26,7 @@ export async function GET(request: Request) {
     const batches = await db.importBatch.findMany({
       where: {
         ...(status ? { status } : {}),
-        ...(periodKey ? { period: { key: periodKey } } : {}),
+        ...(periodKey ? { competenceKey: periodKey } : {}),
       },
       orderBy: { createdAt: "desc" },
       take: limit,
@@ -36,6 +36,7 @@ export async function GET(request: Request) {
         fileHash: true,
         pointsColumn: true,
         pointsColumnIndex: true,
+        competenceKey: true,
         status: true,
         rowCount: true,
         courierCount: true,
@@ -49,9 +50,10 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       ok: true,
-      data: batches.map(({ period, fileHash, ...batch }) => ({
+      data: batches.map(({ period, competenceKey, fileHash, ...batch }) => ({
         ...batch,
-        periodKey: period.key,
+        periodKey: competenceKey,
+        cycleKey: period.key,
         fileHash: fileHash.slice(0, 12),
       })),
     });

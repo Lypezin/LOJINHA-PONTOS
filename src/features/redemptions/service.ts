@@ -7,7 +7,7 @@ import {
 } from "@prisma/client";
 import { db } from "@/lib/db";
 import { DomainError } from "@/lib/domain-error";
-import { ensureCurrentPeriod } from "@/features/points/period";
+import { ensureCurrentPeriod, periodDefinition, periodKeyForDate } from "@/features/points/period";
 
 type RedeemInput = {
   courierId: string;
@@ -57,6 +57,7 @@ export async function redeemProduct(input: RedeemInput) {
     throw new DomainError("Quantidade inválida.", "INVALID_QUANTITY", 422);
   }
   const period = await ensureCurrentPeriod();
+  const calendarMonth = periodDefinition(periodKeyForDate());
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
@@ -70,18 +71,46 @@ export async function redeemProduct(input: RedeemInput) {
             return existing;
           }
 
-          const [product, account] = await Promise.all([
-            tx.product.findUnique({ where: { id: input.productId } }),
-            tx.pointAccount.findUnique({
-              where: { courierId_periodId: { courierId: input.courierId, periodId: period.id } },
-            }),
-          ]);
+          // Serializa a leitura do saldo com importações e ajustes do ciclo.
+          await tx.$queryRaw(Prisma.sql`
+            SELECT "id" FROM "MonthlyPeriod" WHERE "id" = ${period.id} FOR UPDATE
+          `);
+          const lockedPeriod = await tx.monthlyPeriod.findUniqueOrThrow({
+            where: { id: period.id },
+            select: { status: true, startsAt: true, endsAt: true },
+          });
+          const transactionNow = new Date();
+          if (
+            lockedPeriod.status !== "OPEN" ||
+            lockedPeriod.startsAt > transactionNow ||
+            lockedPeriod.endsAt <= transactionNow
+          ) {
+            throw new DomainError("O ciclo atual foi encerrado. Atualize a página para continuar.", "PERIOD_CLOSED", 409);
+          }
+          const product = await tx.product.findUnique({ where: { id: input.productId } });
+          const accountIds = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+            SELECT account."id"
+            FROM "PointAccount" AS account
+            JOIN "MonthlyPeriod" AS activePeriod ON activePeriod."id" = account."periodId"
+            WHERE account."courierId" = ${input.courierId}
+              AND activePeriod."status" = 'OPEN'::"PeriodStatus"
+              AND activePeriod."startsAt" <= NOW()
+              AND activePeriod."endsAt" > NOW()
+            ORDER BY activePeriod."startsAt" ASC, activePeriod."endsAt" ASC, account."id" ASC
+            FOR UPDATE OF account
+          `);
+          const accounts = accountIds.length
+            ? await tx.pointAccount.findMany({ where: { id: { in: accountIds.map(({ id }) => id) } } })
+            : [];
+          const accountOrder = new Map<string, number>(accountIds.map(({ id }, index) => [id, index] as const));
+          accounts.sort((a, b) => (accountOrder.get(a.id) ?? 0) - (accountOrder.get(b.id) ?? 0));
+          const totalBalance = accounts.reduce((sum, account) => sum + account.balancePoints, 0);
 
           if (!product || product.status !== ProductStatus.ACTIVE) {
             throw new DomainError("Este item não está disponível.", "PRODUCT_UNAVAILABLE", 409);
           }
-          if (!account) {
-            throw new DomainError("Você ainda não possui pontos nesta competência.", "ACCOUNT_NOT_FOUND", 409);
+          if (!accounts.length || totalBalance <= 0) {
+            throw new DomainError("Você ainda não possui pontos disponíveis neste ciclo.", "ACCOUNT_NOT_FOUND", 409);
           }
           if (product.stockQuantity < input.quantity) {
             throw new DomainError("Estoque insuficiente para esta quantidade.", "OUT_OF_STOCK", 409);
@@ -103,7 +132,7 @@ export async function redeemProduct(input: RedeemInput) {
           }
 
           const pointsSpent = product.pointsCost * input.quantity;
-          if (account.balancePoints < pointsSpent) {
+          if (totalBalance < pointsSpent) {
             throw new DomainError("Seu saldo de pontos é insuficiente.", "INSUFFICIENT_POINTS", 409);
           }
 
@@ -111,7 +140,7 @@ export async function redeemProduct(input: RedeemInput) {
             const alreadyRedeemed = await tx.redemption.aggregate({
               where: {
                 courierId: input.courierId,
-                periodId: period.id,
+                requestedAt: { gte: calendarMonth.startsAt, lt: calendarMonth.endsAt },
                 productId: product.id,
                 status: { not: RedemptionStatus.CANCELED },
               },
@@ -143,19 +172,30 @@ export async function redeemProduct(input: RedeemInput) {
             });
           }
 
-          const accountUpdate = await tx.pointAccount.updateMany({
-            where: {
-              id: account.id,
-              version: account.version,
-              balancePoints: { gte: pointsSpent },
-            },
-            data: {
-              redeemedPoints: { increment: pointsSpent },
-              balancePoints: { decrement: pointsSpent },
-              version: { increment: 1 },
-            },
-          });
-          if (accountUpdate.count !== 1) {
+          let remainingPoints = pointsSpent;
+          const pointDebits: Array<{ accountId: string; amount: number; balanceAfter: number }> = [];
+          for (const account of accounts) {
+            if (remainingPoints <= 0) break;
+            const debited = Math.min(account.balancePoints, remainingPoints);
+            if (debited <= 0) continue;
+            const accountUpdate = await tx.pointAccount.updateMany({
+              where: { id: account.id, version: account.version, balancePoints: { gte: debited } },
+              data: {
+                redeemedPoints: { increment: debited },
+                balancePoints: { decrement: debited },
+                version: { increment: 1 },
+              },
+            });
+            if (accountUpdate.count !== 1) {
+              throw new Prisma.PrismaClientKnownRequestError("Conflito de saldo", {
+                code: "P2034",
+                clientVersion: Prisma.prismaVersion.client,
+              });
+            }
+            remainingPoints -= debited;
+            pointDebits.push({ accountId: account.id, amount: debited, balanceAfter: account.balancePoints - debited });
+          }
+          if (remainingPoints !== 0) {
             throw new Prisma.PrismaClientKnownRequestError("Conflito de saldo", {
               code: "P2034",
               clientVersion: Prisma.prismaVersion.client,
@@ -182,19 +222,19 @@ export async function redeemProduct(input: RedeemInput) {
           });
 
           await Promise.all([
-            tx.pointLedgerEntry.create({
-              data: {
-                accountId: account.id,
+            tx.pointLedgerEntry.createMany({
+              data: pointDebits.map((debit) => ({
+                accountId: debit.accountId,
                 type: PointEntryType.REDEMPTION,
-                amount: -pointsSpent,
-                balanceAfter: account.balancePoints - pointsSpent,
+                amount: -debit.amount,
+                balanceAfter: debit.balanceAfter,
                 description: fulfillmentType === RedemptionFulfillmentType.CASH
                   ? `Resgate em Dinheiro (PIX) de ${input.quantity}x ${product.name}`
                   : `Resgate de ${input.quantity}x ${product.name}`,
                 referenceType: "REDEMPTION",
                 referenceId: redemption.id,
                 actorUserId: input.userId,
-              },
+              })),
             }),
             tx.auditLog.create({
               data: {
@@ -241,6 +281,8 @@ const transitions: Record<RedemptionStatus, RedemptionStatus[]> = {
 };
 
 export async function updateRedemptionStatus(redemptionId: string, status: RedemptionStatus, adminId: string) {
+  const now = new Date();
+  await ensureCurrentPeriod(now);
   for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
       return await db.$transaction(
@@ -286,38 +328,55 @@ export async function updateRedemptionStatus(redemptionId: string, status: Redem
               });
             }
 
-            const account = await tx.pointAccount.findUnique({
-              where: { courierId_periodId: { courierId: redemption.courierId, periodId: redemption.periodId } },
+            const originalDebits = await tx.pointLedgerEntry.findMany({
+              where: { referenceType: "REDEMPTION", referenceId: redemption.id, amount: { lt: 0 } },
+              select: { accountId: true, amount: true },
             });
-            const refundable = account && redemption.period.status === "OPEN" && redemption.period.endsAt > new Date();
-            if (account && refundable) {
-              const balanceAfter = account.balancePoints + redemption.pointsSpent;
-              const accountUpdate = await tx.pointAccount.updateMany({
-                where: { id: account.id, version: account.version },
-                data: {
-                  redeemedPoints: { decrement: redemption.pointsSpent },
-                  balancePoints: { increment: redemption.pointsSpent },
-                  version: { increment: 1 },
-                },
+            const refundableAccountIds = originalDebits.map(({ accountId }) => accountId);
+            if (refundableAccountIds.length) {
+              await tx.$queryRaw(Prisma.sql`
+                SELECT "id" FROM "PointAccount"
+                WHERE "id" IN (${Prisma.join(refundableAccountIds)})
+                ORDER BY "id"
+                FOR UPDATE
+              `);
+              const accounts = await tx.pointAccount.findMany({
+                where: { id: { in: refundableAccountIds } },
+                include: { period: true },
               });
-              if (accountUpdate.count !== 1) {
-                throw new Prisma.PrismaClientKnownRequestError("Conflito de saldo no cancelamento", {
-                  code: "P2034",
-                  clientVersion: Prisma.prismaVersion.client,
+              const accountById = new Map(accounts.map((account) => [account.id, account]));
+              for (const debit of originalDebits) {
+                const account = accountById.get(debit.accountId);
+                if (!account || account.period.status !== "OPEN" || account.period.startsAt > now || account.period.endsAt <= now) continue;
+                const refundPoints = -debit.amount;
+                const balanceAfter = account.balancePoints + refundPoints;
+                const accountUpdate = await tx.pointAccount.updateMany({
+                  where: { id: account.id, version: account.version },
+                  data: {
+                    redeemedPoints: { decrement: refundPoints },
+                    balancePoints: { increment: refundPoints },
+                    version: { increment: 1 },
+                  },
+                });
+                if (accountUpdate.count !== 1) {
+                  throw new Prisma.PrismaClientKnownRequestError("Conflito de saldo no cancelamento", {
+                    code: "P2034",
+                    clientVersion: Prisma.prismaVersion.client,
+                  });
+                }
+                await tx.pointLedgerEntry.create({
+                  data: {
+                    accountId: account.id,
+                    type: PointEntryType.REFUND,
+                    amount: refundPoints,
+                    balanceAfter,
+                    description: `Estorno do resgate ${redemption.code}`,
+                    referenceType: "REDEMPTION",
+                    referenceId: redemption.id,
+                    actorUserId: adminId,
+                  },
                 });
               }
-              await tx.pointLedgerEntry.create({
-                data: {
-                  accountId: account.id,
-                  type: PointEntryType.REFUND,
-                  amount: redemption.pointsSpent,
-                  balanceAfter,
-                  description: `Estorno do resgate ${redemption.code}`,
-                  referenceType: "REDEMPTION",
-                  referenceId: redemption.id,
-                  actorUserId: adminId,
-                },
-              });
             }
           }
 

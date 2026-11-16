@@ -1,6 +1,7 @@
 import { PointEntryType, PeriodStatus, Prisma } from "@prisma/client";
 import { cache } from "react";
 import { db } from "@/lib/db";
+import { pointsCycleDefinitionForDate } from "@/features/points/cycle";
 
 const TIME_ZONE = "America/Sao_Paulo";
 
@@ -32,23 +33,22 @@ export function periodDefinition(key: string) {
   };
 }
 
-async function closeExpiredPeriods(now: Date, currentPeriodId: string) {
-  const expiredPeriods = await db.monthlyPeriod.findMany({
+async function closeOtherOpenPeriods(now: Date, currentPeriodId: string) {
+  const periodsToClose = await db.monthlyPeriod.findMany({
     where: {
       id: { not: currentPeriodId },
       status: PeriodStatus.OPEN,
-      endsAt: { lte: now },
     },
   });
 
-  for (const period of expiredPeriods) {
+  for (const period of periodsToClose) {
     await db.$transaction(
       async (tx) => {
         await tx.$queryRaw(Prisma.sql`
           SELECT pg_advisory_xact_lock(hashtext(${`lojinha-import:${period.key}`}))::text
         `);
         const latest = await tx.monthlyPeriod.findUnique({ where: { id: period.id } });
-        if (!latest || latest.status === PeriodStatus.CLOSED || latest.endsAt > now) return;
+        if (!latest || latest.status === PeriodStatus.CLOSED) return;
 
         const moved = await tx.$queryRaw<Array<{ id: string; amount: number }>>(Prisma.sql`
           WITH balances AS (
@@ -76,7 +76,7 @@ async function closeExpiredPeriods(now: Date, currentPeriodId: string) {
               type: PointEntryType.EXPIRATION,
               amount: -account.amount,
               balanceAfter: 0,
-              description: `Expiração da competência ${period.key}`,
+              description: `Expiração do saldo do período ${period.key}`,
               referenceType: "PERIOD",
               referenceId: period.id,
             })),
@@ -84,7 +84,11 @@ async function closeExpiredPeriods(now: Date, currentPeriodId: string) {
         }
         await tx.monthlyPeriod.update({
           where: { id: period.id },
-          data: { status: PeriodStatus.CLOSED, closedAt: now },
+          data: {
+            status: PeriodStatus.CLOSED,
+            closedAt: now,
+            endsAt: now,
+          },
         });
       },
       { maxWait: 15_000, timeout: 120_000 },
@@ -93,24 +97,48 @@ async function closeExpiredPeriods(now: Date, currentPeriodId: string) {
 }
 
 export async function ensureCurrentPeriod(now = new Date()) {
-  const definition = periodDefinition(periodKeyForDate(now));
-  let period = await db.monthlyPeriod.findUnique({
+  const definition = pointsCycleDefinitionForDate(now);
+  const period = await db.monthlyPeriod.upsert({
     where: { key: definition.key },
+    update: {},
+    create: definition,
   });
-  if (!period) {
-    period = await db.monthlyPeriod.create({
-      data: definition,
-    });
-    await closeExpiredPeriods(now, period.id);
-  }
+
+  await closeOtherOpenPeriods(now, period.id);
   return period;
 }
 
 const loadCurrentAccount = async (courierId: string) => {
-  const period = await ensureCurrentPeriod();
-  const account = await db.pointAccount.findUnique({
-    where: { courierId_periodId: { courierId, periodId: period.id } },
+  let now = new Date();
+  let period = await ensureCurrentPeriod(now);
+  const afterEnsure = new Date();
+  if (period.endsAt <= afterEnsure || period.status === PeriodStatus.CLOSED) {
+    now = afterEnsure;
+    period = await ensureCurrentPeriod(now);
+  }
+  const accounts = await db.pointAccount.findMany({
+    where: {
+      courierId,
+      period: { status: PeriodStatus.OPEN, startsAt: { lte: now }, endsAt: { gt: now } },
+    },
+    select: {
+      balancePoints: true,
+      importedPoints: true,
+      redeemedPoints: true,
+      expiredPoints: true,
+    },
   });
+  const account = accounts.length
+    ? accounts.reduce(
+        (summary, current) => ({
+          balancePoints: summary.balancePoints + current.balancePoints,
+          importedPoints: summary.importedPoints + current.importedPoints,
+          redeemedPoints: summary.redeemedPoints + current.redeemedPoints,
+          expiredPoints: summary.expiredPoints + current.expiredPoints,
+        }),
+        { balancePoints: 0, importedPoints: 0, redeemedPoints: 0, expiredPoints: 0 },
+      )
+    : null;
   return { period, account };
 };
 

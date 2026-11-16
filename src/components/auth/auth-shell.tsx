@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { CalendarClock, Gift, History, PackageCheck, ShieldCheck } from "lucide-react";
+import { Gift, History, PackageCheck, ShieldCheck } from "lucide-react";
 
 type AuthShellProps = {
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
   description: string;
   children: ReactNode;
@@ -11,7 +11,7 @@ type AuthShellProps = {
 };
 
 const benefits = [
-  { icon: PackageCheck, title: "Pedidos viram pontos", text: "Seu saldo mensal acompanha os pedidos concluídos." },
+  { icon: PackageCheck, title: "Pedidos viram pontos", text: "Seu saldo acompanha os pedidos concluídos." },
   { icon: Gift, title: "Escolha seus prêmios", text: "Troque pontos por itens disponíveis na loja." },
   { icon: History, title: "Tudo fica registrado", text: "Consulte seu saldo, resgates e movimentações." },
 ];
@@ -65,21 +65,17 @@ export function AuthShell({ eyebrow, title, description, children, footer }: Aut
               </div>
             </div>
 
-            <div className="mt-8 hidden items-start gap-3 rounded-[20px] border border-white/20 bg-[var(--brand-blue-dark)] p-4 lg:flex">
-              <CalendarClock aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-[var(--brand-mint)]" />
-              <p className="text-pretty text-sm leading-6 text-white/85">
-                Os pontos valem até o fim de cada mês. Planeje seus resgates antes da virada.
-              </p>
-            </div>
           </div>
         </aside>
 
         <section className="flex items-center px-6 py-10 sm:px-10 lg:px-16 lg:py-14">
           <div className="mx-auto w-full max-w-md">
-            <div className="inline-flex min-h-8 items-center gap-2 rounded-full bg-blue-50 px-3 text-sm font-bold text-[var(--brand-blue-dark)]">
-              <ShieldCheck aria-hidden="true" className="size-4" />
-              {eyebrow}
-            </div>
+            {eyebrow ? (
+              <div className="inline-flex min-h-8 items-center gap-2 rounded-full bg-blue-50 px-3 text-sm font-bold text-[var(--brand-blue-dark)]">
+                <ShieldCheck aria-hidden="true" className="size-4" />
+                {eyebrow}
+              </div>
+            ) : null}
              <h1 className="mt-5 text-balance text-3xl font-extrabold leading-tight text-[var(--brand-navy)] sm:text-4xl">
               {title}
             </h1>

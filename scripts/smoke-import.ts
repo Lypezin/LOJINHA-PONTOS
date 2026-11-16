@@ -3,7 +3,7 @@ import { PointEntryType, Prisma, UserRole } from "@prisma/client";
 
 import { commitImport } from "@/features/imports/service";
 import { parseImportWorkbook } from "@/features/imports/workbook";
-import { periodDefinition } from "@/features/points/period";
+import { ensureCurrentPeriod } from "@/features/points/period";
 import { db } from "@/lib/db";
 
 const PERIOD_KEY = "2099-11";
@@ -11,7 +11,7 @@ const FIRST_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const SECOND_ID = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const CONCURRENT_ID = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
 const MANUAL_ID = "smoke-manual-account";
-let ownsSmokePeriod = false;
+let ownsSmokeRun = false;
 
 interface SmokeCourier {
   id: string;
@@ -82,13 +82,13 @@ async function holdRedemptionLock(
 }
 
 async function main() {
-  if (await db.monthlyPeriod.findUnique({ where: { key: PERIOD_KEY } })) {
-    throw new Error("A competência reservada para o smoke já existe.");
+  if (await db.importBatch.findFirst({ where: { competenceKey: PERIOD_KEY } })) {
+    throw new Error("A competência reservada para o smoke já possui importações.");
   }
-  ownsSmokePeriod = true;
+  ownsSmokeRun = true;
   const admin = await db.user.findFirst({ where: { role: UserRole.ADMIN } });
   if (!admin) throw new Error("Admin de teste ausente.");
-  const period = await db.monthlyPeriod.create({ data: periodDefinition(PERIOD_KEY) });
+  const period = await ensureCurrentPeriod();
   const manualCourier = await db.courier.create({
     data: {
       externalCourierId: MANUAL_ID,
@@ -146,7 +146,7 @@ async function main() {
   });
   const concurrentAccount = await db.pointAccount.findFirstOrThrow({
     where: {
-      period: { key: PERIOD_KEY },
+      periodId: period.id,
       courier: { externalCourierId: CONCURRENT_ID },
     },
     select: { id: true },
@@ -192,7 +192,7 @@ async function main() {
 
   const account = await db.pointAccount.findFirst({
     where: {
-      period: { key: PERIOD_KEY },
+      periodId: period.id,
       courier: { externalCourierId: FIRST_ID },
     },
     select: {
@@ -214,7 +214,7 @@ async function main() {
   }
   const concurrentAccountAfter = await db.pointAccount.findFirst({
     where: {
-      period: { key: PERIOD_KEY },
+      periodId: period.id,
       courier: { externalCourierId: CONCURRENT_ID },
     },
     select: {
@@ -254,8 +254,7 @@ async function main() {
 }
 
 async function cleanup() {
-  if (!ownsSmokePeriod) return;
-  const period = await db.monthlyPeriod.findUnique({ where: { key: PERIOD_KEY } });
+  if (!ownsSmokeRun) return;
   const couriers = await db.courier.findMany({
     where: {
       externalCourierId: { in: [FIRST_ID, SECOND_ID, CONCURRENT_ID, MANUAL_ID] },
@@ -263,9 +262,7 @@ async function cleanup() {
     select: { id: true },
   });
   const courierIds = couriers.map((courier) => courier.id);
-  const batches = period
-    ? await db.importBatch.findMany({ where: { periodId: period.id }, select: { id: true } })
-    : [];
+  const batches = await db.importBatch.findMany({ where: { competenceKey: PERIOD_KEY }, select: { id: true } });
   const batchIds = batches.map((batch) => batch.id);
   await db.$transaction([
     db.auditLog.deleteMany({ where: { entityId: { in: batchIds } } }),
@@ -289,7 +286,6 @@ async function cleanup() {
       },
     }),
     db.courier.deleteMany({ where: { id: { in: courierIds } } }),
-    db.monthlyPeriod.deleteMany({ where: { key: PERIOD_KEY } }),
   ]);
 }
 

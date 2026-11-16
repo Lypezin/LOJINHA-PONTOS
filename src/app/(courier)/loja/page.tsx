@@ -8,7 +8,8 @@ import { getCurrentAccount } from "@/features/points/period";
 import { requirePageUser } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { formatDate, formatPoints } from "@/lib/format";
-import { monthLabel } from "@/lib/presentation";
+import { periodLabel } from "@/lib/presentation";
+import { pointsCycleLastUseDate } from "@/features/points/cycle";
 
 export const metadata = { title: "Loja" };
 
@@ -47,7 +48,7 @@ export default async function StorePage() {
       <PageHeader
         eyebrow={`Olá, ${(user.displayName || user.courier.name).split(" ")[0]}`}
         title="Seus pedidos viram conquistas"
-        description="Use seus pontos da competência atual. O saldo que não for usado expira automaticamente na virada do mês."
+        description="Use seus pontos durante o ciclo atual. O saldo restante expira ao término do ciclo de 75 dias."
       />
 
       <ProgramRulesBanner />
@@ -59,7 +60,7 @@ export default async function StorePage() {
           <div>
             <div className="flex items-center gap-2 text-sm font-bold text-blue-100">
               <WalletCards className="size-5 text-[var(--brand-mint)]" aria-hidden="true" />
-              <span id="balance-title">Saldo de {monthLabel(period.year, period.month)}</span>
+              <span id="balance-title">Saldo disponível no ciclo</span>
             </div>
             <p className="mt-4 text-5xl font-extrabold tabular-nums sm:text-6xl">
               {formatPoints(balance)} <span className="text-xl text-blue-100 sm:text-2xl">pontos</span>
@@ -74,7 +75,7 @@ export default async function StorePage() {
             <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
               <CalendarClock className="size-5 text-[var(--brand-mint)]" aria-hidden="true" />
               <p className="mt-3 text-xs font-semibold text-blue-100">Válido até</p>
-              <p className="mt-1 font-extrabold tabular-nums">{formatDate(period.endsAt)}</p>
+              <p className="mt-1 font-extrabold tabular-nums">{formatDate(pointsCycleLastUseDate(period.endsAt))}</p>
             </div>
             <div className={expiringSoon ? "rounded-2xl border border-amber-200 bg-amber-100 p-4 text-amber-950" : "rounded-2xl border border-white/10 bg-white/10 p-4"}>
               <Clock3 className={expiringSoon ? "size-5 text-amber-800" : "size-5 text-[var(--brand-mint)]"} aria-hidden="true" />
@@ -91,7 +92,7 @@ export default async function StorePage() {
         <EmptyState
           icon={<ShoppingBagIcon />}
           title="O catálogo está sendo preparado"
-          description="Os produtos ativos aparecerão aqui assim que a equipe concluir o cadastro. Seus pontos continuam guardados até o fim da competência."
+          description="Os produtos ativos aparecerão aqui assim que a equipe concluir o cadastro. Seus pontos continuam disponíveis até o fim do ciclo atual."
           action={<Link href="/historico" className="text-sm font-bold text-[var(--brand-blue-dark)]">Consultar meu extrato</Link>}
         />
       )}

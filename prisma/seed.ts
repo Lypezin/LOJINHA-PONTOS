@@ -1,28 +1,8 @@
 import { PrismaClient, ProductStatus, UserRole, CourierStatus } from "@prisma/client";
 import { compare, hash } from "bcryptjs";
+import { pointsCycleDefinitionForDate } from "../src/features/points/cycle";
 
 const db = new PrismaClient();
-
-function currentPeriod() {
-  const now = new Date();
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Sao_Paulo",
-    year: "numeric",
-    month: "2-digit",
-  }).formatToParts(now);
-  const year = Number(parts.find((part) => part.type === "year")?.value);
-  const month = Number(parts.find((part) => part.type === "month")?.value);
-  const key = `${year}-${String(month).padStart(2, "0")}`;
-  const nextYear = month === 12 ? year + 1 : year;
-  const nextMonth = month === 12 ? 1 : month + 1;
-  return {
-    key,
-    year,
-    month,
-    startsAt: new Date(`${key}-01T00:00:00-03:00`),
-    endsAt: new Date(`${nextYear}-${String(nextMonth).padStart(2, "0")}-01T00:00:00-03:00`),
-  };
-}
 
 async function main() {
   const production = process.env.NODE_ENV === "production";
@@ -77,8 +57,8 @@ async function main() {
     },
     {
       key: "points.expirationPolicy",
-      value: { type: "MONTHLY", timezone: "America/Sao_Paulo" },
-      description: "Saldo válido somente durante a competência mensal.",
+      value: { type: "FIXED_CYCLE", lengthDays: 75, startDate: "2026-11-16", timeZone: "America/Sao_Paulo" },
+      description: "Os pontos disponíveis vencem ao fim de cada ciclo fixo de 75 dias, iniciado em 16/11/2026.",
     },
     {
       key: "store.profile",
@@ -90,7 +70,7 @@ async function main() {
   for (const setting of settings) {
     await db.systemSetting.upsert({
       where: { key: setting.key },
-      update: { description: setting.description },
+      update: { value: setting.value, description: setting.description },
       create: { ...setting, updatedById: admin.id },
     });
   }
@@ -211,7 +191,7 @@ async function main() {
       },
     });
 
-    const definition = currentPeriod();
+    const definition = pointsCycleDefinitionForDate();
     const period = await db.monthlyPeriod.upsert({
       where: { key: definition.key },
       update: {},

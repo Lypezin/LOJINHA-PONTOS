@@ -4,7 +4,9 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { requirePageAdmin } from "@/lib/auth/session";
 import { db } from "@/lib/db";
-import { formatDateTime } from "@/lib/format";
+import { formatDate, formatDateTime } from "@/lib/format";
+import { ensureCurrentPeriod } from "@/features/points/period";
+import { pointsCycleLastUseDate } from "@/features/points/cycle";
 
 export const metadata = { title: "Configurações" };
 
@@ -14,9 +16,10 @@ function jsonObject(value: unknown) {
 
 export default async function AdminSettingsPage() {
   await requirePageAdmin();
-  const [settings, audits] = await Promise.all([
+  const [settings, audits, currentPeriod] = await Promise.all([
     db.systemSetting.findMany({ where: { key: { in: ["points.defaultColumn", "points.expirationPolicy", "store.profile"] } } }),
     db.auditLog.findMany({ orderBy: { createdAt: "desc" }, take: 30, select: { id: true, action: true, entityType: true, createdAt: true, actor: { select: { email: true } } } }),
+    ensureCurrentPeriod(),
   ]);
   const byKey = new Map(settings.map((setting) => [setting.key, jsonObject(setting.value)]));
   const column = byKey.get("points.defaultColumn") ?? {};
@@ -30,7 +33,7 @@ export default async function AdminSettingsPage() {
       <SettingsForms defaultColumn={defaultColumn} storeProfile={storeProfile} />
 
       <section className="grid gap-5 lg:grid-cols-2" aria-label="Regras fixas da operação">
-        <div className="rounded-[20px] border border-slate-200 bg-white p-6"><CalendarClock className="size-6 text-[var(--brand-blue)]" aria-hidden="true" /><h2 className="mt-4 text-lg font-extrabold text-[var(--brand-navy)]">Expiração mensal</h2><p className="mt-2 text-pretty text-sm leading-6 text-slate-600">Os pontos valem apenas na competência em que foram importados. Na virada do mês, o saldo restante é zerado e preservado no extrato como expiração.</p><p className="mt-3 text-xs font-bold text-[var(--brand-blue-dark)]">Fuso horário: America/Sao_Paulo</p></div>
+        <div className="rounded-[20px] border border-slate-200 bg-white p-6"><CalendarClock className="size-6 text-[var(--brand-blue)]" aria-hidden="true" /><h2 className="mt-4 text-lg font-extrabold text-[var(--brand-navy)]">Ciclo fixo de 75 dias</h2><p className="mt-2 text-pretty text-sm leading-6 text-slate-600">Os ciclos começaram em 16/11/2026 e se repetem a cada 75 dias. O ciclo atual começou em {formatDate(currentPeriod.startsAt)} e o saldo pode ser usado até {formatDate(pointsCycleLastUseDate(currentPeriod.endsAt))}.</p><p className="mt-3 text-xs font-bold text-[var(--brand-blue-dark)]">Fuso horário: America/Sao_Paulo</p></div>
         <div className="rounded-[20px] border border-slate-200 bg-white p-6"><ShieldCheck className="size-6 text-[var(--brand-blue)]" aria-hidden="true" /><h2 className="mt-4 text-lg font-extrabold text-[var(--brand-navy)]">Trilha de auditoria</h2><p className="mt-2 text-pretty text-sm leading-6 text-slate-600">Importações, ajustes, produtos, conciliações e mudanças de pedido registram o administrador, a data e a entidade alterada.</p></div>
       </section>
 

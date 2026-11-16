@@ -3,7 +3,7 @@ import { RedemptionManager, type AdminRedemption } from "@/components/admin/rede
 import { PageHeader } from "@/components/ui/page-header";
 import { requirePageAdmin } from "@/lib/auth/session";
 import { db } from "@/lib/db";
-import { redemptionLabels } from "@/lib/presentation";
+import { periodLabel, redemptionLabels } from "@/lib/presentation";
 
 export const metadata = { title: "Resgates" };
 
@@ -51,7 +51,7 @@ export default async function AdminRedemptionsPage({
       pixKey: true,
       status: true,
       requestedAt: true,
-      period: { select: { key: true } },
+      period: { select: { key: true, year: true, month: true, startsAt: true, endsAt: true } },
       courier: { select: { name: true, cnpj: true } },
     },
   });
@@ -68,7 +68,7 @@ export default async function AdminRedemptionsPage({
     cashAmountCents: item.cashAmountCents,
     pixKey: item.pixKey,
     status: item.status,
-    periodKey: item.period.key,
+    periodKey: periodLabel(item.period),
     requestedAt: item.requestedAt.toISOString(),
   }));
 

@@ -15,7 +15,8 @@ import type {
 } from "@/features/imports/types";
 import { MAX_DATABASE_INT } from "@/features/imports/normalization";
 import { getCnpjMatchCounts } from "@/features/imports/workbook";
-import { periodDefinition } from "@/features/points/period";
+import { ensureCurrentPeriod } from "@/features/points/period";
+import { pointsCycleDefinitionForDate } from "@/features/points/cycle";
 import { db } from "@/lib/db";
 import { DomainError } from "@/lib/domain-error";
 
@@ -74,39 +75,19 @@ export async function buildImportPreview(
   parsed: ParsedImportWorkbook,
 ): Promise<ImportPreviewResponse> {
   let duplicateBatchId: string | null = null;
-  let periodUnavailable = false;
   const previewIssues = [...parsed.issues];
   if (parsed.selectedPeriodKey) {
-    const period = await db.monthlyPeriod.findUnique({
-      where: { key: parsed.selectedPeriodKey },
-      select: { id: true, status: true, endsAt: true },
-    });
-    const definition = /^\d{4}-(0[1-9]|1[0-2])$/.test(parsed.selectedPeriodKey)
-      ? periodDefinition(parsed.selectedPeriodKey)
-      : null;
-    periodUnavailable =
-      period?.status === PeriodStatus.CLOSED ||
-      (period?.endsAt ?? definition?.endsAt ?? new Date(0)) <= new Date();
-    if (periodUnavailable) {
-      previewIssues.push({
-        code: "PERIOD_CLOSED",
-        severity: "error",
-        message: "A competência selecionada já expirou ou foi encerrada.",
-      });
-    }
-    if (period) {
-      const existing = await db.importBatch.findUnique({
-        where: {
-          fileHash_periodId_pointsColumn: {
-            fileHash: parsed.fileHash,
-            periodId: period.id,
-            pointsColumn: parsed.pointsColumn.header,
-          },
+    const existing = await db.importBatch.findUnique({
+      where: {
+        fileHash_competenceKey_pointsColumn: {
+          fileHash: parsed.fileHash,
+          competenceKey: parsed.selectedPeriodKey,
+          pointsColumn: parsed.pointsColumn.header,
         },
-        select: { id: true },
-      });
-      duplicateBatchId = existing?.id ?? null;
-    }
+      },
+      select: { id: true },
+    });
+    duplicateBatchId = existing?.id ?? null;
   }
 
   const matches = getCnpjMatchCounts(parsed);
@@ -138,7 +119,7 @@ export async function buildImportPreview(
       warnings: issueCount(previewIssues, "warning"),
     },
     issues: previewIssues,
-    canCommit: parsed.canCommit && !duplicateBatchId && !periodUnavailable,
+    canCommit: parsed.canCommit && !duplicateBatchId,
     duplicate: Boolean(duplicateBatchId),
     duplicateBatchId,
   };
@@ -317,41 +298,43 @@ export async function commitImport({
     );
   }
 
-  const periodKey = parsed.selectedPeriodKey;
-  const definition = periodDefinition(periodKey);
+  const competenceKey = parsed.selectedPeriodKey;
   const parsedWarningCount = issueCount(parsed.issues, "warning");
   const now = new Date();
-  if (definition.endsAt <= now) {
-    throw new DomainError(
-      "A competência selecionada já expirou e não aceita novas importações.",
-      "PERIOD_EXPIRED",
-      409,
-    );
-  }
+  const definition = pointsCycleDefinitionForDate(now);
+  if (definition.endsAt <= now) throw new DomainError("O ciclo atual já foi encerrado. Atualize a página e tente novamente.", "PERIOD_EXPIRED", 409);
+
+  // Mantém contas mensais abertas na virada da regra dentro do ciclo inicial.
+  await ensureCurrentPeriod(now);
 
   return db.$transaction(
     async (tx) => {
-      // Serializa importações da mesma competência, inclusive arquivos diferentes.
+      // Todas as importações do ciclo compartilham contas; serializa seus ajustes.
       await tx.$queryRaw(Prisma.sql`
-        SELECT pg_advisory_xact_lock(hashtext(${`lojinha-import:${periodKey}`}))::text
+        SELECT pg_advisory_xact_lock(hashtext(${`lojinha-import:${definition.key}`}))::text
           AS "lock"
       `);
 
-      const period = await tx.monthlyPeriod.upsert({
-        where: { key: periodKey },
+      const cyclePeriod = await tx.monthlyPeriod.upsert({
+        where: { key: definition.key },
         update: {},
         create: definition,
       });
       await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
-        SELECT "id" FROM "MonthlyPeriod" WHERE "id" = ${period.id} FOR UPDATE
+        SELECT "id" FROM "MonthlyPeriod" WHERE "id" = ${cyclePeriod.id} FOR UPDATE
       `);
-      const lockedPeriod = await tx.monthlyPeriod.findUniqueOrThrow({
-        where: { id: period.id },
-        select: { status: true },
+      const lockedCycle = await tx.monthlyPeriod.findUniqueOrThrow({
+        where: { id: cyclePeriod.id },
+        select: { status: true, startsAt: true, endsAt: true },
       });
-      if (lockedPeriod.status === PeriodStatus.CLOSED) {
+      const transactionNow = new Date();
+      if (
+        lockedCycle.status === PeriodStatus.CLOSED ||
+        lockedCycle.startsAt > transactionNow ||
+        lockedCycle.endsAt <= transactionNow
+      ) {
         throw new DomainError(
-          "A competência selecionada já foi encerrada e não aceita novas importações.",
+          "O ciclo atual já foi encerrado e não aceita novas importações.",
           "PERIOD_CLOSED",
           409,
         );
@@ -359,18 +342,18 @@ export async function commitImport({
 
       const uniqueImport = {
         fileHash: parsed.fileHash,
-        periodId: period.id,
+        competenceKey,
         pointsColumn: parsed.pointsColumn.header,
       };
       const duplicate = await tx.importBatch.findUnique({
-        where: { fileHash_periodId_pointsColumn: uniqueImport },
+        where: { fileHash_competenceKey_pointsColumn: uniqueImport },
       });
       if (duplicate) {
         return {
           batchId: duplicate.id,
           status: duplicate.status,
           duplicate: true,
-          periodKey,
+          periodKey: competenceKey,
           rows: duplicate.rowCount,
           couriers: duplicate.courierCount,
           totalPoints: duplicate.totalPoints,
@@ -378,10 +361,45 @@ export async function commitImport({
         };
       }
 
+      // Uma reimportação ainda dentro do prazo corrige a conta que recebeu o
+      // crédito original; competências novas entram na conta do ciclo atual.
+      const previousBatch = await tx.importBatch.findFirst({
+        where: {
+          competenceKey,
+          pointsColumn: parsed.pointsColumn.header,
+          status: { in: [ImportStatus.COMPLETED, ImportStatus.COMPLETED_WITH_WARNINGS] },
+          period: { status: PeriodStatus.OPEN, startsAt: { lte: now }, endsAt: { gt: now } },
+        },
+        orderBy: [{ processedAt: "desc" }, { createdAt: "desc" }],
+        select: {
+          id: true,
+          periodId: true,
+          pointsColumn: true,
+          snapshots: {
+            select: {
+              courierId: true,
+              externalCourierId: true,
+              sourceName: true,
+              normalizedName: true,
+              points: true,
+            },
+          },
+        },
+      });
+      const period = previousBatch
+        ? await tx.monthlyPeriod.findUniqueOrThrow({ where: { id: previousBatch.periodId } })
+        : cyclePeriod;
+      if (period.id !== cyclePeriod.id) {
+        await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+          SELECT "id" FROM "MonthlyPeriod" WHERE "id" = ${period.id} FOR UPDATE
+        `);
+      }
+
       const batch = await tx.importBatch.create({
         data: {
           filename: parsed.filename,
           ...uniqueImport,
+          periodId: period.id,
           dataSheet: parsed.dataSheet,
           cnpjSheet: parsed.cnpjSheet,
           pointsColumnIndex: parsed.pointsColumn.position,
@@ -542,34 +560,12 @@ export async function commitImport({
       await updateRegistryMatches(tx, effectiveParsed, courierIdByExternalId);
 
       const courierIds = [...courierIdByExternalId.values()];
-      const previousBatch = await tx.importBatch.findFirst({
-        where: {
-          id: { not: batch.id },
-          periodId: period.id,
-          status: {
-            in: [ImportStatus.COMPLETED, ImportStatus.COMPLETED_WITH_WARNINGS],
-          },
-        },
-        orderBy: [{ processedAt: "desc" }, { createdAt: "desc" }],
-        select: {
-          id: true,
-          pointsColumn: true,
-          snapshots: {
-            select: {
-              courierId: true,
-              externalCourierId: true,
-              sourceName: true,
-              normalizedName: true,
-            },
-          },
-        },
-      });
       // O zero por omissão só é seguro contra o snapshot imediatamente anterior
       // da mesma coluna. Contas manuais/demo e bases de outra coluna não entram.
-      const previousSnapshots =
-        previousBatch?.pointsColumn === parsed.pointsColumn.header
-          ? previousBatch.snapshots
-          : [];
+      const previousSnapshots = previousBatch?.snapshots ?? [];
+      const previousSnapshotByCourier = new Map(
+        previousSnapshots.map((snapshot) => [snapshot.courierId, snapshot]),
+      );
       const currentCourierIds = new Set(courierIds);
       const omittedPreviousSnapshots = previousSnapshots.filter(
         (snapshot) => !currentCourierIds.has(snapshot.courierId),
@@ -627,10 +623,11 @@ export async function commitImport({
             409,
           );
         }
-        const previousPoints = account.importedPoints;
+        const previousPoints = previousSnapshotByCourier.get(courierId)?.points ?? 0;
         const deltaPoints = aggregate.points - previousPoints;
+        const importedPointsAfter = account.importedPoints + deltaPoints;
         const balanceAfter = account.balancePoints + deltaPoints;
-        if (balanceAfter < 0 || balanceAfter > MAX_DATABASE_INT) {
+        if (importedPointsAfter < 0 || importedPointsAfter > MAX_DATABASE_INT || balanceAfter < 0 || balanceAfter > MAX_DATABASE_INT) {
           throw new DomainError(
             "Uma correção deixaria o saldo fora do intervalo permitido. Ajuste os resgates ou os pontos antes de importar.",
             "INVALID_BALANCE_AFTER_IMPORT",
@@ -639,7 +636,7 @@ export async function commitImport({
         }
         if (deltaPoints !== 0) {
           accountUpdates.push(
-            Prisma.sql`(${account.id}, ${aggregate.points}, ${balanceAfter})`,
+            Prisma.sql`(${account.id}, ${importedPointsAfter}, ${balanceAfter})`,
           );
         }
         if (deltaPoints !== 0) {
@@ -653,8 +650,8 @@ export async function commitImport({
             balanceAfter,
             description:
               previousPoints === 0 && deltaPoints > 0
-                ? `Crédito da importação da competência ${periodKey}`
-                : `Correção da importação da competência ${periodKey}`,
+                ? `Crédito da importação da competência ${competenceKey}`
+                : `Correção da importação da competência ${competenceKey}`,
             referenceType: "IMPORT_BATCH",
             referenceId: batch.id,
             importBatchId: batch.id,
@@ -685,22 +682,24 @@ export async function commitImport({
             409,
           );
         }
-        const deltaPoints = -account.importedPoints;
+        const previousPoints = previousSnapshot.points;
+        const deltaPoints = -previousPoints;
+        const importedPointsAfter = account.importedPoints + deltaPoints;
         const balanceAfter = account.balancePoints + deltaPoints;
-        if (balanceAfter < 0 || balanceAfter > MAX_DATABASE_INT) {
+        if (importedPointsAfter < 0 || importedPointsAfter > MAX_DATABASE_INT || balanceAfter < 0 || balanceAfter > MAX_DATABASE_INT) {
           throw new DomainError(
             "A remoção de um entregador ausente deixaria o saldo fora do intervalo permitido.",
             "INVALID_BALANCE_AFTER_IMPORT",
             409,
           );
         }
-        accountUpdates.push(Prisma.sql`(${account.id}, ${0}, ${balanceAfter})`);
+        accountUpdates.push(Prisma.sql`(${account.id}, ${importedPointsAfter}, ${balanceAfter})`);
         ledgerRows.push({
           accountId: account.id,
           type: PointEntryType.IMPORT_CORRECTION,
           amount: deltaPoints,
           balanceAfter,
-          description: `Correção por ausência no arquivo da competência ${periodKey}`,
+          description: `Correção por ausência no arquivo da competência ${competenceKey}`,
           referenceType: "IMPORT_BATCH",
           referenceId: batch.id,
           importBatchId: batch.id,
@@ -714,7 +713,7 @@ export async function commitImport({
           normalizedName: previousSnapshot.normalizedName,
           sourceRowCount: 0,
           points: 0,
-          previousPoints: account.importedPoints,
+          previousPoints,
           deltaPoints,
           warnings: jsonValue([
             {
@@ -798,7 +797,8 @@ export async function commitImport({
           entityType: "ImportBatch",
           entityId: batch.id,
           metadata: {
-            periodKey,
+            periodKey: competenceKey,
+            cycleKey: definition.key,
             pointsColumn: parsed.pointsColumn.header,
             rowCount: parsed.rowCount,
             courierCount: parsed.aggregates.length,
@@ -812,7 +812,7 @@ export async function commitImport({
         batchId: batch.id,
         status,
         duplicate: false,
-        periodKey,
+        periodKey: competenceKey,
         rows: parsed.rowCount,
         couriers: parsed.aggregates.length,
         totalPoints: parsed.totalPoints,
