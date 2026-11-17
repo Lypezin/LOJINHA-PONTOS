@@ -71,11 +71,43 @@ function desiredMatch(match: CnpjMatch | undefined) {
   };
 }
 
+function importDates(parsed: ParsedImportWorkbook) {
+  return [...new Set(parsed.aggregates.flatMap((item) => item.dailyPoints.map((day) => day.date)))].sort();
+}
+
+async function dateConflicts(client: Prisma.TransactionClient, parsed: ParsedImportWorkbook, now: Date) {
+  const dates = importDates(parsed);
+  const cycle = pointsCycleDefinitionForDate(now);
+  const outside = dates.filter((date) => {
+    const instant = new Date(`${date}T12:00:00-03:00`);
+    return instant < cycle.startsAt || instant >= cycle.endsAt;
+  });
+  const issues: ImportIssue[] = [];
+  if (outside.length) issues.push({ code: "DATE_OUTSIDE_CYCLE", severity: "error", message: `Datas fora do ciclo atual: ${outside.join(", ")}.` });
+  if (!dates.length) return issues;
+  const overlaps = await client.$queryRaw<Array<{ date: string }>>(Prisma.sql`
+    SELECT DISTINCT day->>'date' AS date
+    FROM "ImportCourierSnapshot" snapshot
+    JOIN "ImportBatch" batch ON batch.id = snapshot."batchId"
+    CROSS JOIN LATERAL jsonb_array_elements(CASE WHEN jsonb_typeof(snapshot."dailyPoints") = 'array' THEN snapshot."dailyPoints" ELSE '[]'::jsonb END) day
+    WHERE batch.status IN ('COMPLETED'::"ImportStatus", 'COMPLETED_WITH_WARNINGS'::"ImportStatus")
+      AND day->>'date' IN (${Prisma.join(dates)})
+    ORDER BY date
+  `);
+  if (overlaps.length) issues.push({ code: "DATES_ALREADY_IMPORTED", severity: "error", message: `Datas já importadas: ${overlaps.map((item) => item.date).join(", ")}.` });
+  const unknown = await client.importBatch.findFirst({
+    where: { competenceKey: { in: [...new Set(dates.map((date) => date.slice(0, 7)))] }, status: { in: [ImportStatus.COMPLETED, ImportStatus.COMPLETED_WITH_WARNINGS] }, snapshots: { some: { dailyPoints: { equals: Prisma.DbNull } } } },
+    select: { id: true },
+  });
+  if (unknown) issues.push({ code: "HISTORICAL_DATES_UNKNOWN", severity: "error", message: "Uma importação anterior deste mês não tem datas detalhadas. Revise o histórico antes de importar para evitar pontos duplicados." });
+  return issues;
+}
+
 export async function buildImportPreview(
   parsed: ParsedImportWorkbook,
 ): Promise<ImportPreviewResponse> {
   let duplicateBatchId: string | null = null;
-  const previewIssues = [...parsed.issues];
+  const previewIssues = [...parsed.issues, ...await dateConflicts(db, parsed, new Date())];
   if (parsed.selectedPeriodKey) {
     const existing = await db.importBatch.findUnique({
       where: {
@@ -108,6 +140,7 @@ export async function buildImportPreview(
       pointsColumnLetter: parsed.pointsColumn.letter,
       periodKey: parsed.selectedPeriodKey,
       detectedPeriodKeys: parsed.detectedPeriodKeys,
+      dates: importDates(parsed),
     },
     summary: {
       rows: parsed.rowCount,
@@ -119,7 +152,7 @@ export async function buildImportPreview(
       warnings: issueCount(previewIssues, "warning"),
     },
     issues: previewIssues,
-    canCommit: parsed.canCommit && !duplicateBatchId,
+    canCommit: parsed.canCommit && !duplicateBatchId && !previewIssues.some((issue) => issue.severity === "error"),
     duplicate: Boolean(duplicateBatchId),
     duplicateBatchId,
   };
@@ -349,51 +382,12 @@ export async function commitImport({
         where: { fileHash_competenceKey_pointsColumn: uniqueImport },
       });
       if (duplicate) {
-        return {
-          batchId: duplicate.id,
-          status: duplicate.status,
-          duplicate: true,
-          periodKey: competenceKey,
-          rows: duplicate.rowCount,
-          couriers: duplicate.courierCount,
-          totalPoints: duplicate.totalPoints,
-          warningCount: duplicate.warningCount,
-        };
+        throw new DomainError("Esta planilha já foi importada. Nenhum ponto foi alterado.", "IMPORT_ALREADY_EXISTS", 409);
       }
 
-      // Uma reimportação ainda dentro do prazo corrige a conta que recebeu o
-      // crédito original; competências novas entram na conta do ciclo atual.
-      const previousBatch = await tx.importBatch.findFirst({
-        where: {
-          competenceKey,
-          pointsColumn: parsed.pointsColumn.header,
-          status: { in: [ImportStatus.COMPLETED, ImportStatus.COMPLETED_WITH_WARNINGS] },
-          period: { status: PeriodStatus.OPEN, startsAt: { lte: now }, endsAt: { gt: now } },
-        },
-        orderBy: [{ processedAt: "desc" }, { createdAt: "desc" }],
-        select: {
-          id: true,
-          periodId: true,
-          pointsColumn: true,
-          snapshots: {
-            select: {
-              courierId: true,
-              externalCourierId: true,
-              sourceName: true,
-              normalizedName: true,
-              points: true,
-            },
-          },
-        },
-      });
-      const period = previousBatch
-        ? await tx.monthlyPeriod.findUniqueOrThrow({ where: { id: previousBatch.periodId } })
-        : cyclePeriod;
-      if (period.id !== cyclePeriod.id) {
-        await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
-          SELECT "id" FROM "MonthlyPeriod" WHERE "id" = ${period.id} FOR UPDATE
-        `);
-      }
+      const conflicts = await dateConflicts(tx, parsed, transactionNow);
+      if (conflicts.length) throw new DomainError(conflicts.map((issue) => issue.message).join(" "), "IMPORT_DATE_CONFLICT", 409);
+      const period = cyclePeriod;
 
       const batch = await tx.importBatch.create({
         data: {
@@ -560,22 +554,7 @@ export async function commitImport({
       await updateRegistryMatches(tx, effectiveParsed, courierIdByExternalId);
 
       const courierIds = [...courierIdByExternalId.values()];
-      // O zero por omissão só é seguro contra o snapshot imediatamente anterior
-      // da mesma coluna. Contas manuais/demo e bases de outra coluna não entram.
-      const previousSnapshots = previousBatch?.snapshots ?? [];
-      const previousSnapshotByCourier = new Map(
-        previousSnapshots.map((snapshot) => [snapshot.courierId, snapshot]),
-      );
-      const currentCourierIds = new Set(courierIds);
-      const omittedPreviousSnapshots = previousSnapshots.filter(
-        (snapshot) => !currentCourierIds.has(snapshot.courierId),
-      );
-      const relevantAccountIds = [
-        ...new Set([
-          ...courierIds,
-          ...omittedPreviousSnapshots.map((snapshot) => snapshot.courierId),
-        ]),
-      ];
+      const relevantAccountIds = courierIds;
       // Materializar primeiro elimina a janela de corrida de uma conta inexistente:
       // ajustes concorrentes passam a disputar a mesma linha, em vez de criarem
       // uma conta entre a leitura e o createMany da importação.
@@ -623,8 +602,8 @@ export async function commitImport({
             409,
           );
         }
-        const previousPoints = previousSnapshotByCourier.get(courierId)?.points ?? 0;
-        const deltaPoints = aggregate.points - previousPoints;
+        const previousPoints = 0;
+        const deltaPoints = aggregate.points;
         const importedPointsAfter = account.importedPoints + deltaPoints;
         const balanceAfter = account.balancePoints + deltaPoints;
         if (importedPointsAfter < 0 || importedPointsAfter > MAX_DATABASE_INT || balanceAfter < 0 || balanceAfter > MAX_DATABASE_INT) {
@@ -673,59 +652,6 @@ export async function commitImport({
         });
       }
 
-      for (const previousSnapshot of omittedPreviousSnapshots) {
-        const account = existingAccountByCourierId.get(previousSnapshot.courierId);
-        if (!account) {
-          throw new DomainError(
-            "Uma conta do snapshot anterior não foi encontrada. Corrija a base antes de reimportar.",
-            "POINT_ACCOUNT_CONFLICT",
-            409,
-          );
-        }
-        const previousPoints = previousSnapshot.points;
-        const deltaPoints = -previousPoints;
-        const importedPointsAfter = account.importedPoints + deltaPoints;
-        const balanceAfter = account.balancePoints + deltaPoints;
-        if (importedPointsAfter < 0 || importedPointsAfter > MAX_DATABASE_INT || balanceAfter < 0 || balanceAfter > MAX_DATABASE_INT) {
-          throw new DomainError(
-            "A remoção de um entregador ausente deixaria o saldo fora do intervalo permitido.",
-            "INVALID_BALANCE_AFTER_IMPORT",
-            409,
-          );
-        }
-        accountUpdates.push(Prisma.sql`(${account.id}, ${importedPointsAfter}, ${balanceAfter})`);
-        ledgerRows.push({
-          accountId: account.id,
-          type: PointEntryType.IMPORT_CORRECTION,
-          amount: deltaPoints,
-          balanceAfter,
-          description: `Correção por ausência no arquivo da competência ${competenceKey}`,
-          referenceType: "IMPORT_BATCH",
-          referenceId: batch.id,
-          importBatchId: batch.id,
-          actorUserId: adminUserId,
-        });
-        snapshotRows.push({
-          batchId: batch.id,
-          courierId: account.courierId,
-          externalCourierId: previousSnapshot.externalCourierId,
-          sourceName: previousSnapshot.sourceName,
-          normalizedName: previousSnapshot.normalizedName,
-          sourceRowCount: 0,
-          points: 0,
-          previousPoints,
-          deltaPoints,
-          warnings: jsonValue([
-            {
-              code: "COURIER_OMITTED_FROM_REIMPORT",
-              severity: "warning",
-              message:
-                "O entregador não aparece no novo snapshot; o crédito-base foi corrigido para zero.",
-            },
-          ]),
-        });
-      }
-
       if (accountUpdates.length) {
         const CHUNK_SIZE = 1000;
         for (let i = 0; i < accountUpdates.length; i += CHUNK_SIZE) {
@@ -757,18 +683,8 @@ export async function commitImport({
         }
       }
 
-      const warningCount =
-        parsedWarningCount + omittedPreviousSnapshots.length + manualMatchConflictCount;
+      const warningCount = parsedWarningCount + manualMatchConflictCount;
       const finalIssues: unknown[] = [...parsed.issues];
-      if (omittedPreviousSnapshots.length) {
-        finalIssues.push({
-          code: "COURIER_OMITTED_FROM_REIMPORT",
-          severity: "warning",
-          message:
-            "Entregadores ausentes no novo snapshot tiveram o crédito-base corrigido para zero.",
-          count: omittedPreviousSnapshots.length,
-        });
-      }
       if (manualMatchConflictCount) {
         finalIssues.push({
           code: "CNPJ_AMBIGUOUS",

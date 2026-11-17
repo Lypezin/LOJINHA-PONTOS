@@ -14,6 +14,9 @@ export type ImportIssueCode =
   | "PERIOD_MISMATCH"
   | "PERIOD_CLOSED"
   | "MULTIPLE_PERIODS"
+  | "DATES_ALREADY_IMPORTED"
+  | "DATE_OUTSIDE_CYCLE"
+  | "HISTORICAL_DATES_UNKNOWN"
   | "INVALID_CNPJ"
   | "MISSING_CNPJ_NAME"
   | "CNPJ_AMBIGUOUS"
@@ -126,6 +129,7 @@ export interface ImportPreviewResponse {
     pointsColumnLetter: string;
     periodKey: string | null;
     detectedPeriodKeys: string[];
+    dates: string[];
   };
   summary: {
     rows: number;

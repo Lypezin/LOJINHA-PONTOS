@@ -9,7 +9,7 @@ Aplicação full-stack para transformar a produção mensal dos entregadores em 
 - Recuperação de senha por e-mail com token de uso único e validade de 1 hora.
 - Importação da guia `BANCO DE DADOS`, usando automaticamente a Guia de CNPJ permanente do sistema; `DADOS CNPJ` é um complemento opcional.
 - Coluna de pontos configurável; a coluna R vem como padrão.
-- Créditos por competência mensal, reimportação idempotente, ajustes e expiração.
+- Créditos por data, proteção contra datas repetidas, ajustes e expiração por ciclo.
 - Conciliação automática conservadora de CNPJ e fila de revisão manual.
 - Catálogo com foto, categoria, pontos, valor de referência, estoque, destaque, limite mensal e status.
 - Resgate atômico: saldo e estoque são baixados juntos, com proteção contra concorrência e repetição.
@@ -50,12 +50,11 @@ O banco local deste workspace já contém o entregador de demonstração. Em uma
 ## Como importar o Excel
 
 1. Entre como administrador e abra **Importações**.
-2. Selecione a competência (`AAAA-MM`) e o arquivo `.xlsx` com a guia `BANCO DE DADOS`.
-3. Confirme a guia principal e escolha a coluna que valerá pontos. A coluna R, `numero_de_pedidos_aceitos_e_concluidos`, aparece pré-selecionada.
-4. Revise o resumo: linhas, entregadores, total de pontos, diferença para o lote anterior e pendências de CNPJ.
-5. Confirme a importação.
+2. Envie o arquivo `.xlsx` com a guia `BANCO DE DADOS` e escolha a coluna de pontos (R por padrão).
+3. Confira na prévia as datas encontradas, os pontos, entregadores e avisos.
+4. Confirme a importação. Os pontos são somados ao ciclo vigente.
 
-Cada arquivo é tratado como o retrato completo daquela competência. Reenviar exatamente o mesmo arquivo não duplica pontos; enviar uma versão atualizada lança somente a diferença por entregador. A guia `DADOS CNPJ` pode continuar no Excel, mas não é mais obrigatória: a base mantida em **Conciliação > Guia de CNPJ** é aplicada automaticamente.
+As datas são lidas da planilha e devem pertencer ao ciclo vigente. Se qualquer data já tiver sido importada, o arquivo inteiro é recusado. O mesmo vale para importações antigas sem datas detalhadas no mês, até que o histórico seja revisado. A guia `DADOS CNPJ` é opcional: a base em **Conciliação > Guia de CNPJ** é aplicada automaticamente.
 
 ## Identidade por CNPJ
 
@@ -65,13 +64,13 @@ Depois do vínculo, o entregador pode criar a própria conta informando CNPJ, e-
 
 A análise completa e mascarada está em [`docs/analise-planilha.md`](docs/analise-planilha.md).
 
-## Regra mensal de pontos
+## Ciclo de pontos
 
-- Cada competência possui conta e extrato próprios.
+- Os pontos de arquivos com datas diferentes são somados ao ciclo vigente.
+- O primeiro ciclo começa em 16/11/2026 e termina em 31/01/2027; os seguintes duram 75 dias.
 - O saldo disponível é `créditos importados + ajustes - resgates`.
-- Ao abrir um novo mês, saldos de competências anteriores são expirados e deixam de ficar disponíveis.
-- A expiração não apaga o dado: ela cria um lançamento no extrato para auditoria.
-- Cancelamentos dentro da competência aberta devolvem os pontos e o estoque.
+- Ao iniciar um novo ciclo, o saldo anterior expira e a movimentação fica registrada no extrato.
+- Cancelamentos devolvem estoque e os pontos de contas ainda abertas.
 
 ## Verificações
 

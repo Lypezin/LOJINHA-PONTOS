@@ -15,7 +15,7 @@ type ImportPreview = {
   fileHash: string;
   sheets: { data: string; cnpj: string; dataHeaderRow: number; cnpjHeaderRow: number };
   columns: ImportColumn[];
-  selection: { pointsColumn: string; pointsColumnIndex: number; pointsColumnLetter: string; periodKey: string | null; detectedPeriodKeys: string[] };
+  selection: { pointsColumn: string; pointsColumnIndex: number; pointsColumnLetter: string; periodKey: string | null; detectedPeriodKeys: string[]; dates: string[] };
   summary: { rows: number; couriers: number; totalPoints: number; cnpjRegistryEntries: number; cnpjMatches: { exact: number; fuzzy: number; ambiguous: number; notFound: number }; errors: number; warnings: number };
   issues: ImportIssue[];
   canCommit: boolean;
@@ -36,11 +36,10 @@ function responseError(data: unknown, fallback: string) {
   return fallback;
 }
 
-export function ImportWizard({ defaultPeriodKey, defaultPointsColumn }: { defaultPeriodKey: string; defaultPointsColumn: string }) {
+export function ImportWizard({ defaultPointsColumn }: { defaultPointsColumn: string }) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
-  const [periodKey, setPeriodKey] = useState(defaultPeriodKey);
   const [pointsColumn, setPointsColumn] = useState(defaultPointsColumn);
   const [preview, setPreview] = useState<ImportPreview | null>(null);
   const [result, setResult] = useState<CommitResult | null>(null);
@@ -51,7 +50,6 @@ export function ImportWizard({ defaultPeriodKey, defaultPointsColumn }: { defaul
     if (!file) throw new Error("Selecione uma planilha .xlsx para continuar.");
     const form = new FormData();
     form.set("file", file);
-    form.set("periodKey", periodKey);
     form.set("pointsColumn", pointsColumn || "R");
     return form;
   }
@@ -66,7 +64,6 @@ export function ImportWizard({ defaultPeriodKey, defaultPointsColumn }: { defaul
       const data = (await response.json()) as { ok?: boolean; data?: ImportPreview; error?: unknown };
       if (!response.ok || !data.data) throw new Error(responseError(data, "Não foi possível analisar a planilha."));
       setPreview(data.data);
-      if (data.data.selection.periodKey) setPeriodKey(data.data.selection.periodKey);
       setPointsColumn(data.data.selection.pointsColumnLetter || data.data.selection.pointsColumn);
     } catch (caught) {
       setPreview(null);
@@ -121,13 +118,12 @@ export function ImportWizard({ defaultPeriodKey, defaultPointsColumn }: { defaul
       </div>
 
       <div className="mt-7">
-        <h2 id="wizard-title" className="text-balance text-xl font-extrabold text-[var(--brand-navy)]">Nova importação mensal</h2>
+        <h2 id="wizard-title" className="text-balance text-xl font-extrabold text-[var(--brand-navy)]">Nova importação de pontos</h2>
         <p className="mt-2 text-pretty text-sm leading-6 text-slate-600">Envie a guia BANCO DE DADOS. A Guia de CNPJ interna é aplicada automaticamente; se o Excel também tiver DADOS CNPJ, ela será usada como complemento. A prévia não altera o banco.</p>
       </div>
 
-      <form onSubmit={analyze} className="mt-6 grid gap-4 lg:grid-cols-[1.5fr_0.7fr_0.7fr_auto] lg:items-end">
+      <form onSubmit={analyze} className="mt-6 grid gap-4 lg:grid-cols-[1.5fr_0.7fr_auto] lg:items-end">
         <div><label htmlFor="import-file" className="mb-1.5 block text-sm font-bold text-[var(--brand-navy)]">Planilha Excel</label><input ref={fileInputRef} id="import-file" type="file" accept=".xlsx" required className={fieldClass} onChange={(event) => { setFile(event.target.files?.[0] ?? null); setPreview(null); setResult(null); }} /><p className="mt-1 text-xs text-slate-500">Formato aceito: .xlsx</p></div>
-        <div><label htmlFor="period-key" className="mb-1.5 block text-sm font-bold text-[var(--brand-navy)]">Competência</label><input id="period-key" type="month" required className={`${fieldClass} tabular-nums`} value={periodKey} onChange={(event) => { setPeriodKey(event.target.value); setPreview(null); }} /></div>
         <div><label htmlFor="points-column" className="mb-1.5 block text-sm font-bold text-[var(--brand-navy)]">Coluna de pontos</label>{preview ? <select id="points-column" className={fieldClass} value={pointsColumn} onChange={(event) => { setPointsColumn(event.target.value); setPreview(null); }}>{preview.columns.map((column) => <option key={column.index} value={column.letter}>{column.letter} — {column.header || "Sem cabeçalho"}</option>)}</select> : <input id="points-column" className={`${fieldClass} tabular-nums`} value={pointsColumn} required onChange={(event) => setPointsColumn(event.target.value)} placeholder="R" />}</div>
         <Button type="submit" disabled={pending !== "" || !file}><Upload className="size-4" aria-hidden="true" />{pending === "preview" ? "Analisando…" : preview ? "Atualizar prévia" : "Gerar prévia"}</Button>
       </form>
@@ -139,7 +135,7 @@ export function ImportWizard({ defaultPeriodKey, defaultPointsColumn }: { defaul
 
       {preview ? (
         <div className="mt-7 space-y-6 border-t border-slate-200 pt-7">
-          <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-sm font-bold text-[var(--brand-blue)]">Prévia validada</p><h3 className="mt-1 text-balance text-lg font-extrabold text-[var(--brand-navy)]">{preview.filename}</h3><p className="mt-1 text-xs tabular-nums text-slate-500">Coluna {preview.selection.pointsColumnLetter} • {preview.selection.pointsColumn} • competência {preview.selection.periodKey}</p></div>{preview.duplicate ? <StatusBadge tone="warning">Arquivo já importado</StatusBadge> : preview.canCommit ? <StatusBadge tone="success">Pronto para importar</StatusBadge> : <StatusBadge tone="danger">Correções necessárias</StatusBadge>}</div>
+          <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-sm font-bold text-[var(--brand-blue)]">Prévia validada</p><h3 className="mt-1 text-balance text-lg font-extrabold text-[var(--brand-navy)]">{preview.filename}</h3><p className="mt-1 text-xs tabular-nums text-slate-500">Coluna {preview.selection.pointsColumnLetter} • {preview.selection.pointsColumn} • datas: {preview.selection.dates.map((date) => date.split("-").reverse().join("/")).join(", ")}</p></div>{preview.duplicate ? <StatusBadge tone="warning">Arquivo já importado</StatusBadge> : preview.canCommit ? <StatusBadge tone="success">Pronto para importar</StatusBadge> : <StatusBadge tone="danger">Correções necessárias</StatusBadge>}</div>
 
           <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
             {[
@@ -158,7 +154,7 @@ export function ImportWizard({ defaultPeriodKey, defaultPointsColumn }: { defaul
             <Button variant="secondary" onClick={() => setPreview(null)}><RefreshCw className="size-4" aria-hidden="true" />Revisar dados</Button>
             <AlertDialog.Root>
               <AlertDialog.Trigger asChild><Button disabled={!preview.canCommit || pending !== ""}><FileCheck2 className="size-4" aria-hidden="true" />Importar planilha</Button></AlertDialog.Trigger>
-          <AlertDialog.Portal><AlertDialog.Overlay className="fixed inset-0 z-40 bg-slate-950/50" /><AlertDialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[20px] bg-white p-6 shadow-xl focus:outline-none"><div className="flex items-start justify-between gap-4"><div><p className="text-sm font-bold text-[var(--brand-blue)]">Confirmação final</p><AlertDialog.Title className="mt-1 text-balance text-xl font-extrabold text-[var(--brand-navy)]">Importar {formatPoints(preview.summary.totalPoints)} pontos?</AlertDialog.Title></div><AlertDialog.Cancel asChild><button className="flex size-11 shrink-0 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100" aria-label="Fechar confirmação"><X className="size-5" aria-hidden="true" /></button></AlertDialog.Cancel></div><AlertDialog.Description className="mt-3 text-pretty text-sm leading-6 text-slate-600">A competência <strong className="font-extrabold tabular-nums text-[var(--brand-navy)]">{periodKey}</strong> será atualizada para {formatPoints(preview.summary.couriers)} entregadores no ciclo vigente. Reimportações da mesma competência aplicam apenas a diferença auditável.</AlertDialog.Description><div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><AlertDialog.Cancel asChild><Button variant="secondary">Voltar à prévia</Button></AlertDialog.Cancel><AlertDialog.Action asChild><Button onClick={() => void commit()}>Confirmar importação</Button></AlertDialog.Action></div></AlertDialog.Content></AlertDialog.Portal>
+          <AlertDialog.Portal><AlertDialog.Overlay className="fixed inset-0 z-40 bg-slate-950/50" /><AlertDialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[20px] bg-white p-6 shadow-xl focus:outline-none"><div className="flex items-start justify-between gap-4"><div><p className="text-sm font-bold text-[var(--brand-blue)]">Confirmação final</p><AlertDialog.Title className="mt-1 text-balance text-xl font-extrabold text-[var(--brand-navy)]">Importar {formatPoints(preview.summary.totalPoints)} pontos?</AlertDialog.Title></div><AlertDialog.Cancel asChild><button className="flex size-11 shrink-0 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100" aria-label="Fechar confirmação"><X className="size-5" aria-hidden="true" /></button></AlertDialog.Cancel></div><AlertDialog.Description className="mt-3 text-pretty text-sm leading-6 text-slate-600">Os pontos serão somados para {formatPoints(preview.summary.couriers)} entregadores no ciclo vigente. Arquivos com datas já importadas serão recusados.</AlertDialog.Description><div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><AlertDialog.Cancel asChild><Button variant="secondary">Voltar à prévia</Button></AlertDialog.Cancel><AlertDialog.Action asChild><Button onClick={() => void commit()}>Confirmar importação</Button></AlertDialog.Action></div></AlertDialog.Content></AlertDialog.Portal>
             </AlertDialog.Root>
           </div>
         </div>
@@ -168,7 +164,7 @@ export function ImportWizard({ defaultPeriodKey, defaultPointsColumn }: { defaul
         <div className="mt-7 rounded-[20px] border border-emerald-200 bg-emerald-50 p-6" aria-live="polite">
           <CheckCircle2 className="size-8 text-[var(--brand-mint-ink)]" aria-hidden="true" />
           <h3 className="mt-4 text-balance text-xl font-extrabold text-[var(--brand-mint-ink)]">{result.duplicate ? "Esta importação já estava concluída" : "Planilha importada"}</h3>
-          <p className="mt-2 text-pretty text-sm leading-6 text-emerald-900">{formatPoints(result.totalPoints)} pontos de {formatPoints(result.couriers)} entregadores foram processados na competência {result.periodKey}. {result.warningCount ? `${result.warningCount} aviso(s) ficaram registrados.` : "Nenhum aviso ficou pendente."}</p>
+          <p className="mt-2 text-pretty text-sm leading-6 text-emerald-900">{formatPoints(result.totalPoints)} pontos de {formatPoints(result.couriers)} entregadores foram somados ao ciclo vigente. {result.warningCount ? `${result.warningCount} aviso(s) ficaram registrados.` : "Nenhum aviso ficou pendente."}</p>
           <Button variant="secondary" className="mt-5" onClick={reset}><FileSpreadsheet className="size-4" aria-hidden="true" />Importar outro arquivo</Button>
         </div>
       ) : null}

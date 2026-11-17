@@ -607,41 +607,9 @@ export async function parseImportWorkbook(
   }
 
   const detectedPeriodKeys = [...detectedPeriods].sort();
-  const requestedPeriod = options.periodKey?.trim() || null;
-  const selectedPeriodKey = requestedPeriod ??
-    (detectedPeriodKeys.length === 1 ? detectedPeriodKeys[0] : null);
-
-  if (requestedPeriod && !/^\d{4}-(0[1-9]|1[0-2])$/.test(requestedPeriod)) {
-    issues.add(
-      "PERIOD_MISMATCH",
-      "error",
-      "A competência deve estar no formato AAAA-MM.",
-    );
-  }
-  if (detectedPeriodKeys.length > 1) {
-    issues.add(
-      "MULTIPLE_PERIODS",
-      "error",
-      "A guia BANCO DE DADOS contém dados de mais de uma competência.",
-    );
-  }
-  if (
-    selectedPeriodKey &&
-    detectedPeriodKeys.length > 0 &&
-    detectedPeriodKeys.some((period) => period !== selectedPeriodKey)
-  ) {
-    issues.add(
-      "PERIOD_MISMATCH",
-      "error",
-      "A competência selecionada não corresponde às datas da planilha.",
-    );
-  }
+  const selectedPeriodKey = detectedPeriodKeys.length ? detectedPeriodKeys.join(", ") : null;
   if (!selectedPeriodKey) {
-    issues.add(
-      "PERIOD_MISMATCH",
-      "error",
-      "Não foi possível definir uma única competência para a importação.",
-    );
+    issues.add("INVALID_DATE", "error", "Não foi possível identificar as datas da planilha.");
   }
 
   const allIssues = issues.all();
