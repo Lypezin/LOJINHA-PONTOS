@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, FileSpreadsheet, MapPin, Pencil, Plus, Search, Trash2, Upload, X } from "lucide-react";
+import { Check, Download, FileSpreadsheet, MapPin, Pencil, Plus, Search, Trash2, Upload, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useMemo, useRef, useState } from "react";
@@ -259,6 +259,10 @@ export function CnpjGuideManager({
 
   return (
     <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm">
+        <div><h2 className="font-extrabold text-[var(--brand-navy)]">Exportar guia completa</h2><p className="mt-1 text-sm text-slate-600">Baixe todos os registros, incluindo os que não aparecem nesta página.</p></div>
+        <Link href="/api/admin/cnpj-guide/export" download className={buttonStyles({ variant: "secondary" })}><Download className="size-4" aria-hidden="true" /> Exportar planilha</Link>
+      </div>
       <CnpjGuideExcelImporter />
 
       <section className="rounded-[24px] border border-blue-200 bg-blue-50/70 p-5 shadow-sm sm:p-6">

@@ -8,6 +8,7 @@ import { isTrustedPostOrigin } from "@/lib/auth/origin";
 import { DomainError } from "@/lib/domain-error";
 
 const schema = z.discriminatedUnion("key", [
+  z.object({ key: z.literal("store.activeCities"), value: z.object({ cities: z.array(z.string().trim().min(1).max(100)).max(1000) }).strict() }).strict(),
   z.object({
     key: z.literal("points.defaultColumn"),
     value: z.object({

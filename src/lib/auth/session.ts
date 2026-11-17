@@ -1,4 +1,5 @@
 import "server-only";
+import { cityIsActive, CITY_UNAVAILABLE_MESSAGE } from "@/lib/city-access";
 
 import { createHash, randomBytes } from "node:crypto";
 import type { CourierStatus, UserRole } from "@prisma/client";
@@ -28,6 +29,7 @@ export type SessionUser = {
     id: string;
     name: string;
     status: CourierStatus;
+    plaza: string | null;
   } | null;
 };
 
@@ -166,7 +168,7 @@ const loadCurrentUser = async (): Promise<SessionUser | null> => {
           mustChangePassword: true,
           avatarUpdatedAt: true,
           courierId: true,
-          courier: { select: { id: true, name: true, status: true } },
+          courier: { select: { id: true, name: true, status: true, plaza: true } },
         },
       },
     },
@@ -205,6 +207,7 @@ export async function destroyCurrentSession() {
 export async function requireUser() {
   const user = await getCurrentUser();
   if (!user) throw new DomainError("Faça login para continuar.", "AUTH_REQUIRED", 401);
+  if (user.role === "COURIER" && !await cityIsActive(user.courier?.plaza)) throw new DomainError(CITY_UNAVAILABLE_MESSAGE, "CITY_UNAVAILABLE", 403);
   return user;
 }
 
@@ -222,6 +225,7 @@ export async function requireAdmin() {
 export async function requirePageUser() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  if (user.role === "COURIER" && !await cityIsActive(user.courier?.plaza)) redirect("/login?cidade=indisponivel");
   if (user.mustChangePassword) redirect("/trocar-senha");
   return user;
 }

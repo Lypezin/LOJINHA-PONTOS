@@ -204,7 +204,7 @@ export function LoginForm({ initialMessage }: { initialMessage?: string }) {
 
   return (
     <form onSubmit={submit} className="space-y-5" noValidate>
-      {initialMessage ? <FormMessage message={initialMessage} success /> : null}
+      {initialMessage ? <FormMessage message={initialMessage} success={!initialMessage.startsWith("A Lojinha ainda não está disponível")} /> : null}
       <FormMessage message={message} />
       <Field
         label="E-mail ou CNPJ"

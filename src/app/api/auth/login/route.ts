@@ -1,4 +1,5 @@
 import bcrypt from "bcryptjs";
+import { cityIsActive, CITY_UNAVAILABLE_MESSAGE } from "@/lib/city-access";
 import { db, describeDatabaseError } from "@/lib/db";
 import { hashForAudit, writeAuditLog } from "@/lib/auth/audit";
 import { cnpjStorageCandidates, isValidCnpj } from "@/lib/auth/identity";
@@ -34,7 +35,7 @@ export async function POST(request: Request) {
         role: true,
         active: true,
         mustChangePassword: true,
-        courier: { select: { name: true, status: true } },
+        courier: { select: { name: true, status: true, plaza: true } },
       },
     });
 
@@ -49,6 +50,10 @@ export async function POST(request: Request) {
         metadata: { identifierHash: hashForAudit(identifier), identifierType: identifierIsCnpj ? "cnpj" : "email" },
       });
       return secureJson({ ok: false, message: INVALID_CREDENTIALS }, { status: 401 });
+    }
+
+    if (user.role === "COURIER" && !await cityIsActive(user.courier?.plaza)) {
+      return secureJson({ ok: false, message: CITY_UNAVAILABLE_MESSAGE }, { status: 403 });
     }
 
     await createSession(user.id, request);

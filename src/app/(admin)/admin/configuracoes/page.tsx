@@ -1,3 +1,6 @@
+import { activeCityKeys } from "@/lib/city-access";
+import { normalizeName } from "@/features/imports/normalization";
+import { CitySettings } from "@/components/admin/city-settings";
 import { CalendarClock, History, ShieldCheck } from "lucide-react";
 import { SettingsForms } from "@/components/admin/settings-forms";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -16,12 +19,19 @@ function jsonObject(value: unknown) {
 
 export default async function AdminSettingsPage() {
   await requirePageAdmin();
-  const [settings, audits, currentPeriod] = await Promise.all([
-    db.systemSetting.findMany({ where: { key: { in: ["points.defaultColumn", "points.expirationPolicy", "store.profile"] } } }),
+  const [settings, audits, currentPeriod, courierCities] = await Promise.all([
+    db.systemSetting.findMany({ where: { key: { in: ["points.defaultColumn", "points.expirationPolicy", "store.profile", "store.activeCities"] } } }),
     db.auditLog.findMany({ orderBy: { createdAt: "desc" }, take: 30, select: { id: true, action: true, entityType: true, createdAt: true, actor: { select: { email: true } } } }),
     ensureCurrentPeriod(),
+    db.courier.findMany({ distinct: ["plaza"], where: { plaza: { not: null } }, select: { plaza: true } }),
   ]);
   const byKey = new Map(settings.map((setting) => [setting.key, jsonObject(setting.value)]));
+  const citySetting = settings.find((setting) => setting.key === "store.activeCities");
+  const activeCities = activeCityKeys(citySetting?.value);
+  const cityNames = new Map<string, string>([["SAO PAULO", "São Paulo"]]);
+  for (const { plaza } of courierCities) if (plaza) { const key = normalizeName(plaza); if (key && !cityNames.has(key)) cityNames.set(key, plaza); }
+  for (const city of activeCities) if (!cityNames.has(city)) cityNames.set(city, city);
+  const cities = [...cityNames].map(([key, name]) => ({ key, name })).sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
   const column = byKey.get("points.defaultColumn") ?? {};
   const profile = byKey.get("store.profile") ?? {};
   const defaultColumn = { letter: typeof column.letter === "string" ? column.letter : "R", header: typeof column.header === "string" ? column.header : "numero_de_pedidos_aceitos_e_concluidos" };
@@ -30,6 +40,7 @@ export default async function AdminSettingsPage() {
   return (
     <div className="space-y-8">
       <PageHeader eyebrow="Preferências e auditoria" title="Configurações" description="Defina os padrões da operação e consulte as alterações administrativas mais recentes." />
+      <CitySettings cities={cities} activeCities={activeCities} />
       <SettingsForms defaultColumn={defaultColumn} storeProfile={storeProfile} />
 
       <section className="grid gap-5 lg:grid-cols-2" aria-label="Regras fixas da operação">

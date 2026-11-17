@@ -8,11 +8,13 @@ export const metadata: Metadata = { title: "Entrar" };
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ senha?: string | string[]; cadastro?: string | string[] }>;
+  searchParams: Promise<{ senha?: string | string[]; cadastro?: string | string[]; cidade?: string | string[] }>;
 }) {
   const params = await searchParams;
   const initialMessage =
-    params.senha === "redefinida"
+    params.cidade === "indisponivel"
+      ? "A Lojinha ainda não está disponível na sua cidade. Fale com a equipe responsável para mais informações."
+      : params.senha === "redefinida"
       ? "Senha atualizada. Agora você já pode entrar."
       : params.cadastro === "concluido"
         ? "Cadastro criado. Entre com seu e-mail e senha."

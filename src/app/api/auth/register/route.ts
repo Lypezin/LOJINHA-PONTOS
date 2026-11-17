@@ -1,3 +1,4 @@
+import { cityIsActive, CITY_UNAVAILABLE_MESSAGE } from "@/lib/city-access";
 import { Prisma } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
@@ -13,6 +14,7 @@ const REGISTRATION_DENIED_MESSAGE =
   "Não foi possível concluir o cadastro. Confira os dados ou fale com a equipe responsável.";
 
 class RegistrationDeniedError extends Error {}
+class CityUnavailableError extends Error {}
 
 export async function POST(request: Request) {
   if (!isTrustedPostOrigin(request)) return originDeniedResponse();
@@ -58,6 +60,7 @@ export async function POST(request: Request) {
           id: true,
           name: true,
           status: true,
+          plaza: true,
           user: { select: { id: true } },
         },
       });
@@ -65,6 +68,8 @@ export async function POST(request: Request) {
       if (!availableCourier || availableCourier.user || availableCourier.status === "INACTIVE") {
         throw new RegistrationDeniedError();
       }
+
+      if (!await cityIsActive(availableCourier.plaza, transaction)) throw new CityUnavailableError();
 
       const created = await transaction.user.create({
         data: {
@@ -107,6 +112,7 @@ export async function POST(request: Request) {
       { status: 201 },
     );
   } catch (error) {
+    if (error instanceof CityUnavailableError) return secureJson({ ok: false, message: CITY_UNAVAILABLE_MESSAGE }, { status: 403 });
     const isConflict =
       error instanceof RegistrationDeniedError ||
       (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002");
