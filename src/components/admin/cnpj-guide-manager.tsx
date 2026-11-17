@@ -3,7 +3,7 @@
 import { Check, Download, FileSpreadsheet, MapPin, Pencil, Plus, Search, Trash2, Upload, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type FormEvent, useMemo, useRef, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
 import { Button, buttonStyles } from "@/components/ui/button";
 import { formatCnpj } from "@/lib/presentation";
@@ -159,20 +159,38 @@ function CnpjGuideExcelImporter() {
 
 function GuideForm({
   entry,
-  couriers,
+  initialCourier,
   initialCourierId = "",
   onDone,
 }: {
   entry?: CnpjGuideEntryView;
-  couriers: CnpjGuideCourierOption[];
+  initialCourier?: CnpjGuideCourierOption | null;
   initialCourierId?: string;
   onDone?: () => void;
 }) {
   const router = useRouter();
-  const initialCourier = couriers.find((courier) => courier.id === (entry?.courierId ?? initialCourierId));
-  const [name, setName] = useState(entry?.name ?? initialCourier?.name ?? "");
-  const [cnpj, setCnpj] = useState(entry ? formatCnpj(entry.cnpj) : "");
+  const selectedInitial = entry?.courierId && entry.courier
+    ? { id: entry.courierId, name: entry.courier.name, cnpj: entry.cnpj }
+    : initialCourier;
+  const [couriers, setCouriers] = useState<CnpjGuideCourierOption[]>(selectedInitial ? [selectedInitial] : []);
   const [courierId, setCourierId] = useState(entry?.courierId ?? initialCourierId);
+  const [search, setSearch] = useState("");
+  const [searchError, setSearchError] = useState("");
+  useEffect(() => {
+    if (search.trim().length < 2) return;
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/admin/cnpj-guide/couriers?q=${encodeURIComponent(search.trim())}&selected=${encodeURIComponent(courierId)}`, { signal: controller.signal });
+        if (!response.ok) throw new Error("Não foi possível buscar entregadores.");
+        const data = await response.json() as { couriers: CnpjGuideCourierOption[] };
+        setCouriers(data.couriers); setSearchError("");
+      } catch (error) { if (!controller.signal.aborted) setSearchError(error instanceof Error ? error.message : "Não foi possível buscar entregadores."); }
+    }, 300);
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [search, courierId]);
+  const [name, setName] = useState(entry?.name ?? selectedInitial?.name ?? "");
+  const [cnpj, setCnpj] = useState(entry ? formatCnpj(entry.cnpj) : "");
   const [notes, setNotes] = useState(entry?.notes ?? "");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
@@ -217,7 +235,7 @@ function GuideForm({
         <div><label className="mb-1.5 block text-sm font-bold text-[var(--brand-navy)]" htmlFor={`guide-cnpj-${entry?.id ?? "new"}`}>CNPJ</label><input id={`guide-cnpj-${entry?.id ?? "new"}`} required inputMode="numeric" className={fieldClass} value={cnpj} onChange={(event) => setCnpj(event.target.value)} placeholder="00.000.000/0000-00" /></div>
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
-        <div><label className="mb-1.5 block text-sm font-bold text-[var(--brand-navy)]" htmlFor={`guide-courier-${entry?.id ?? "new"}`}>Vincular ao entregador <span className="font-normal text-blue-700/85">(recomendado)</span></label><select id={`guide-courier-${entry?.id ?? "new"}`} className={fieldClass} value={courierId} onChange={(event) => selectCourier(event.target.value)}><option value="">Somente usar pelo nome</option>{couriers.map((courier) => <option key={courier.id} value={courier.id}>{courier.name}{courier.cnpj ? ` — ${formatCnpj(courier.cnpj)}` : " — pendente"}</option>)}</select></div>
+        <div><label className="mb-1.5 block text-sm font-bold text-[var(--brand-navy)]" htmlFor={`guide-courier-${entry?.id ?? "new"}`}>Vincular ao entregador <span className="font-normal text-blue-700/85">(recomendado)</span></label><input aria-label="Buscar entregador para vincular" className={`${fieldClass} mb-2`} value={search} onChange={(event) => { setSearch(event.target.value); setSearchError(""); }} placeholder="Digite pelo menos 2 letras para buscar" /><p className="mb-2 text-xs text-slate-500">Até 50 resultados; refine a busca para localizar outro nome.</p>{searchError ? <p role="alert" className="mb-2 text-sm text-red-700">{searchError}</p> : null}<select id={`guide-courier-${entry?.id ?? "new"}`} className={fieldClass} value={courierId} onChange={(event) => selectCourier(event.target.value)}><option value="">Somente usar pelo nome</option>{couriers.map((courier) => <option key={courier.id} value={courier.id}>{courier.name}{courier.cnpj ? ` — ${formatCnpj(courier.cnpj)}` : " — pendente"}</option>)}</select></div>
         <div><label className="mb-1.5 block text-sm font-bold text-[var(--brand-navy)]" htmlFor={`guide-notes-${entry?.id ?? "new"}`}>Observação <span className="font-normal text-blue-700/85">(opcional)</span></label><input id={`guide-notes-${entry?.id ?? "new"}`} maxLength={500} className={fieldClass} value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Ex.: confirmado por documento" /></div>
       </div>
       {error ? <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-800" role="alert">{error}</p> : null}
@@ -228,18 +246,16 @@ function GuideForm({
 
 export function CnpjGuideManager({
   entries,
-  couriers,
+  initialCourier,
   page,
   total,
   query,
-  initialCourierId,
 }: {
   entries: CnpjGuideEntryView[];
-  couriers: CnpjGuideCourierOption[];
+  initialCourier: CnpjGuideCourierOption | null;
   page: number;
   total: number;
   query: string;
-  initialCourierId?: string;
 }) {
   const router = useRouter();
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -267,7 +283,7 @@ export function CnpjGuideManager({
 
       <section className="rounded-[24px] border border-blue-200 bg-blue-50/70 p-5 shadow-sm sm:p-6">
         <div className="mb-5 flex items-start gap-3"><span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-white text-[var(--brand-blue)] shadow-sm"><FileSpreadsheet className="size-5" /></span><div><h2 className="text-lg font-extrabold text-[var(--brand-navy)]">Adicionar nome e CNPJ manualmente</h2><p className="mt-1 text-sm leading-6 text-blue-900/90">Esta base é usada automaticamente em todas as próximas importações.</p></div></div>
-        <GuideForm couriers={couriers} initialCourierId={initialCourierId} />
+        <GuideForm initialCourier={initialCourier} initialCourierId={initialCourier?.id ?? ""} />
       </section>
 
       <form method="get" className="flex max-w-xl gap-2"><input type="hidden" name="tab" value="guia" /><label className="relative flex-1"><span className="sr-only">Buscar na Guia de CNPJ</span><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" /><input name="q" defaultValue={query} className={`${fieldClass} pl-10`} placeholder="Buscar por nome ou CNPJ" /></label><Button type="submit" variant="secondary">Buscar</Button></form>
@@ -292,7 +308,7 @@ export function CnpjGuideManager({
                   return (
                     <tr key={entry.id}>
                       <td colSpan={7} className="bg-blue-50/40 p-5">
-                        <GuideForm entry={entry} couriers={couriers} onDone={() => setEditingId(null)} />
+                        <GuideForm entry={entry} onDone={() => setEditingId(null)} />
                       </td>
                     </tr>
                   );

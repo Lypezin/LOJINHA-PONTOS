@@ -31,6 +31,7 @@ export default async function StorePage() {
         description: true,
         category: true,
         imageUrl: true,
+        updatedAt: true,
         pointsCost: true,
         referenceValueCents: true,
         stockQuantity: true,
@@ -39,6 +40,14 @@ export default async function StorePage() {
       },
     }),
   ]);
+  // Imagens embutidas não devem ser serializadas junto com todos os dados da página.
+  // A URL versionada permite que o navegador guarde cada foto em cache.
+  const catalogProducts = products.map(({ updatedAt, ...product }) => ({
+    ...product,
+    imageUrl: product.imageUrl?.startsWith("data:image/")
+      ? `/api/products/${encodeURIComponent(product.id)}/image?v=${updatedAt.getTime()}`
+      : product.imageUrl,
+  }));
   const balance = account?.balancePoints ?? 0;
   const daysLeft = daysUntil(period.endsAt);
   const expiringSoon = daysLeft <= 7;
@@ -87,7 +96,7 @@ export default async function StorePage() {
       </section>
 
       {products.length ? (
-        <ProductCatalog products={products satisfies StoreProduct[]} balance={balance} />
+        <ProductCatalog products={catalogProducts satisfies StoreProduct[]} balance={balance} />
       ) : (
         <EmptyState
           icon={<ShoppingBagIcon />}

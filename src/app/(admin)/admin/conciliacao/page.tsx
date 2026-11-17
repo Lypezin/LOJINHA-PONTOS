@@ -55,23 +55,16 @@ export default async function AdminReconciliationPage({ searchParams }: { search
         notes: true,
       },
     });
-    const linkedCourierIds = entries.flatMap((entry) => (entry.courierId ? [entry.courierId] : []));
-    const couriers = await db.courier.findMany({
-      where: {
-        status: { not: "INACTIVE" },
-        OR: [{ cnpj: null }, { id: { in: linkedCourierIds } }],
-      },
-      orderBy: { name: "asc" },
-      select: { id: true, name: true, cnpj: true },
-    });
+    const initialCourier = params.courierId
+      ? await db.courier.findFirst({ where: { id: params.courierId, status: { not: "INACTIVE" } }, select: { id: true, name: true, cnpj: true } })
+      : null;
     content = (
       <CnpjGuideManager
         entries={entries satisfies CnpjGuideEntryView[]}
-        couriers={couriers satisfies CnpjGuideCourierOption[]}
+        initialCourier={initialCourier satisfies CnpjGuideCourierOption | null}
         page={page}
         total={filteredTotal}
         query={query}
-        initialCourierId={params.courierId}
       />
     );
   } else {
