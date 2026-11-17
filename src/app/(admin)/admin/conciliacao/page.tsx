@@ -33,10 +33,11 @@ export default async function AdminReconciliationPage({ searchParams }: { search
 
   let content: React.ReactNode;
   if (tab === "guia") {
+    const digits = query.replace(/\D/g, "");
     const where: Prisma.CnpjGuideEntryWhereInput = query
-      ? { OR: [{ name: { contains: query, mode: "insensitive" } }, { cnpj: { contains: query.replace(/\D/g, "") } }, { courier: { is: { name: { contains: query, mode: "insensitive" } } } }] }
+      ? { OR: [{ name: { contains: query, mode: "insensitive" } }, ...(digits ? [{ cnpj: { contains: digits } }] : []), { courier: { is: { name: { contains: query, mode: "insensitive" } } } }] }
       : {};
-    const filteredTotal = await db.cnpjGuideEntry.count({ where });
+    const filteredTotal = query ? await db.cnpjGuideEntry.count({ where }) : guideTotal;
     const pageCount = Math.max(1, Math.ceil(filteredTotal / 40));
     const page = Number.isInteger(requestedPage) ? Math.min(Math.max(requestedPage, 1), pageCount) : 1;
     const entries = await db.cnpjGuideEntry.findMany({

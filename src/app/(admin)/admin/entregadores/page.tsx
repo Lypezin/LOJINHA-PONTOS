@@ -33,8 +33,7 @@ export default async function AdminCouriersPage({ searchParams }: { searchParams
       : {}),
   };
 
-  const period = await ensureCurrentPeriod();
-  const total = await db.courier.count({ where });
+  const [period, total] = await Promise.all([ensureCurrentPeriod(), db.courier.count({ where })]);
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const page = Number.isInteger(requestedPage) ? Math.min(Math.max(requestedPage, 1), pageCount) : 1;
   const couriers = await db.courier.findMany({

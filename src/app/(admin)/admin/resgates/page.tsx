@@ -25,7 +25,7 @@ export default async function AdminRedemptionsPage({
         { code: { contains: query, mode: "insensitive" } },
         { productNameSnapshot: { contains: query, mode: "insensitive" } },
         { courier: { is: { name: { contains: query, mode: "insensitive" } } } },
-        { courier: { is: { cnpj: { contains: query.replace(/\D/g, "") } } } },
+        ...(query.replace(/\D/g, "") ? [{ courier: { is: { cnpj: { contains: query.replace(/\D/g, "") } } } }] : []),
       ]
     } : {}),
   };

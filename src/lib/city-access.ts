@@ -1,5 +1,6 @@
 import "server-only";
 import type { Prisma } from "@prisma/client";
+import { cache } from "react";
 import { db } from "@/lib/db";
 import { normalizeName } from "@/features/imports/normalization";
 
@@ -13,9 +14,15 @@ export function activeCityKeys(value: unknown): string[] {
   return cities.map(normalizeName).filter(Boolean);
 }
 
-export async function cityIsActive(city: string | null | undefined, client: Prisma.TransactionClient = db) {
+const activeCityKeysForRequest = cache(async () => {
+  const setting = await db.systemSetting.findUnique({ where: { key: CITY_SETTING_KEY }, select: { value: true } });
+  return activeCityKeys(setting?.value);
+});
+
+export async function cityIsActive(city: string | null | undefined, client?: Prisma.TransactionClient) {
   const key = normalizeName(city);
   if (!key) return false;
+  if (!client) return (await activeCityKeysForRequest()).includes(key);
   const setting = await client.systemSetting.findUnique({ where: { key: CITY_SETTING_KEY }, select: { value: true } });
   return activeCityKeys(setting?.value).includes(key);
 }

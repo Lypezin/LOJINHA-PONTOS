@@ -23,7 +23,7 @@ export default async function AdminSettingsPage() {
     db.systemSetting.findMany({ where: { key: { in: ["points.defaultColumn", "points.expirationPolicy", "store.profile", "store.activeCities"] } } }),
     db.auditLog.findMany({ orderBy: { createdAt: "desc" }, take: 30, select: { id: true, action: true, entityType: true, createdAt: true, actor: { select: { email: true } } } }),
     ensureCurrentPeriod(),
-    db.courier.findMany({ distinct: ["plaza"], where: { plaza: { not: null } }, select: { plaza: true } }),
+    db.courier.groupBy({ by: ["plaza"], where: { plaza: { not: null } } }),
   ]);
   const byKey = new Map(settings.map((setting) => [setting.key, jsonObject(setting.value)]));
   const citySetting = settings.find((setting) => setting.key === "store.activeCities");

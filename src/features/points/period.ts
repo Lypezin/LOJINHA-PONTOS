@@ -98,6 +98,13 @@ async function closeOtherOpenPeriods(now: Date, currentPeriodId: string) {
 
 export async function ensureCurrentPeriod(now = new Date()) {
   const definition = pointsCycleDefinitionForDate(now);
+  // O caminho comum precisa apenas de leitura; a virada continua transacional.
+  const openPeriods = await db.monthlyPeriod.findMany({
+    where: { status: PeriodStatus.OPEN },
+    take: 2,
+  });
+  if (openPeriods.length === 1 && openPeriods[0].key === definition.key) return openPeriods[0];
+
   const period = await db.monthlyPeriod.upsert({
     where: { key: definition.key },
     update: {},
