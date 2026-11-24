@@ -248,7 +248,7 @@ export function RankingDashboard({ topEarners, topSpenders, topBalances, stats }
       </div>
 
       {filteredList.length === 0 ? (
-        <div className="rounded-[20px] border border-slate-200 bg-white py-16 text-center">
+        <div className="rounded-2xl border border-slate-200 bg-white py-16 text-center">
           <Trophy className="mx-auto size-12 text-slate-300" />
           <h3 className="mt-4 text-lg font-bold text-[var(--brand-navy)]">Nenhum entregador encontrado</h3>
           <p className="mt-2 text-sm text-slate-600">Tente buscar por outro termo ou limpe a pesquisa.</p>
@@ -267,7 +267,7 @@ export function RankingDashboard({ topEarners, topSpenders, topBalances, stats }
                 return (
                   <div
                     key={entry.courierId}
-                    className={`group flex flex-col items-center w-full max-w-xs rounded-[20px] border bg-white p-6 shadow-md transition ease-out duration-200 hover:scale-[1.03] ${
+                    className={`group flex flex-col items-center w-full max-w-xs rounded-2xl border bg-white p-6 shadow-md transition ease-out duration-200 hover:scale-[1.03] ${
                       isFirst
                         ? "border-amber-400 ring-2 ring-amber-400/20 order-1 md:order-2 md:pb-12 md:-translate-y-4"
                         : isSecond
@@ -323,7 +323,7 @@ export function RankingDashboard({ topEarners, topSpenders, topBalances, stats }
           )}
 
           {/* Listagem completa (Tabela / Grid) */}
-          <div className="overflow-hidden rounded-[20px] border border-slate-200 bg-white shadow-sm">
+          <div className="overflow-hidden rounded-2xl border  param($m) $m.Value -replace 'border-slate-200', 'border-slate-200/80' -replace 'shadow-sm', 'shadow-[0_1px_2px_rgba(15,23,42,0.04)]' ">
             <div className="border-b border-slate-100 bg-slate-50/50 px-5 py-4">
               <h2 className="flex items-center gap-2 text-base font-extrabold text-[var(--brand-navy)]">
                 {tabIcon}

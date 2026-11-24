@@ -56,7 +56,7 @@ const emptyDraft: ProductDraft = {
   sortOrder: "0",
 };
 
-const fieldClass = "min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-[var(--brand-navy)] outline-none placeholder:text-slate-400 focus:border-[var(--brand-blue)] focus:ring-4 focus:ring-blue-100";
+const fieldClass = "h-10 w-full rounded-xl border border-slate-200/90 bg-white px-3 text-sm text-[var(--brand-navy)] outline-none placeholder:text-slate-400 focus:border-[var(--brand-blue)] focus:ring-2 focus:ring-blue-500/15";
 
 function toDraft(product?: AdminProduct): ProductDraft {
   if (!product) return emptyDraft;
@@ -187,8 +187,8 @@ function ProductDialog({ product, onSaved, trigger }: { product?: AdminProduct; 
     <Dialog.Root open={open} onOpenChange={handleOpen}>
       <Dialog.Trigger asChild>{trigger}</Dialog.Trigger>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-slate-950/50" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-3xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[20px] bg-white p-5 shadow-xl focus:outline-none sm:p-7">
+        <Dialog.Overlay className="fixed inset-0 z-40 bg-slate-950/45 backdrop-blur-[2px]" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-3xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl bg-white p-5 shadow-xl focus:outline-none sm:p-7">
           <div className="flex items-start justify-between gap-4">
             <div>
               <Dialog.Title className="text-balance text-2xl font-extrabold text-[var(--brand-navy)]">{product ? "Editar produto" : "Adicionar produto"}</Dialog.Title>
@@ -288,7 +288,7 @@ export function ProductManager({ products }: { products: AdminProduct[] }) {
 
       {filtered.length ? (
         <>
-          <div className="hidden overflow-hidden rounded-[20px] border border-slate-200 bg-white md:block">
+          <div className="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white md:block">
             <table className="w-full text-left text-sm">
               <thead className="border-b border-slate-200 bg-slate-50 text-xs text-slate-600"><tr><th scope="col" className="px-5 py-3 font-bold">Produto</th><th scope="col" className="px-4 py-3 font-bold">Pontos</th><th scope="col" className="px-4 py-3 font-bold">Estoque</th><th scope="col" className="px-4 py-3 font-bold">Status</th><th scope="col" className="px-5 py-3 text-right font-bold">Ação</th></tr></thead>
               <tbody className="divide-y divide-slate-200">
@@ -314,7 +314,7 @@ export function ProductManager({ products }: { products: AdminProduct[] }) {
           </div>
           <div className="grid gap-4 md:hidden">
             {filtered.map((product) => (
-              <article key={product.id} className="rounded-[20px] border border-slate-200 bg-white p-4">
+              <article key={product.id} className="rounded-2xl border border-slate-200 bg-white p-4">
                 <div className="flex items-start gap-3"><ProductThumb product={product} /><div className="min-w-0 flex-1"><h2 className="font-extrabold text-[var(--brand-navy)]">{product.name}</h2><p className="mt-1 text-xs text-slate-500">{product.category}</p></div><StatusBadge tone={productTone[product.status]}>{productLabels[product.status]}</StatusBadge></div>
                 <dl className="mt-4 grid grid-cols-3 gap-2 rounded-2xl bg-slate-50 p-3 text-xs"><div><dt className="text-slate-500">Pontos</dt><dd className="mt-1 font-extrabold tabular-nums">{formatPoints(product.pointsCost)}</dd></div><div><dt className="text-slate-500">Estoque</dt><dd className="mt-1 font-extrabold tabular-nums">{formatPoints(product.stockQuantity)}</dd></div><div><dt className="text-slate-500">Valor</dt><dd className="mt-1 font-bold tabular-nums">{formatCurrency(product.referenceValueCents) ?? "—"}</dd></div></dl>
                 <div className="mt-3 flex gap-2">

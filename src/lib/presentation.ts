@@ -46,6 +46,12 @@ export function formatCnpj(value?: string | null) {
   return digits.length === 14 ? digits.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5") : value;
 }
 
+export function formatCpf(value?: string | null) {
+  if (!value) return "Não informado";
+  const digits = value.replace(/\D/g, "");
+  return digits.length === 11 ? digits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4") : value;
+}
+
 export function monthLabel(year: number, month: number) {
   const label = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric", timeZone: "America/Sao_Paulo" }).format(
     new Date(Date.UTC(year, month - 1, 10)),

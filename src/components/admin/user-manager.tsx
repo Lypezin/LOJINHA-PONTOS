@@ -4,7 +4,7 @@ import { CheckCircle2, KeyRound, ShieldCheck, UserPlus, UserRoundCheck, UserRoun
 import { type FormEvent, useState } from "react";
 import { Button } from "@/components/ui/button";
 
-const fieldClass = "min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-[var(--brand-navy)] outline-none placeholder:text-slate-400 focus:border-[var(--brand-blue)] focus:ring-4 focus:ring-blue-100";
+const fieldClass = "h-10 w-full rounded-xl border border-slate-200/90 bg-white px-3 text-sm text-[var(--brand-navy)] outline-none placeholder:text-slate-400 focus:border-[var(--brand-blue)] focus:ring-2 focus:ring-blue-500/15";
 
 export type ManagedAdmin = {
   id: string;
@@ -78,7 +78,7 @@ export function UserManager({ initialUsers, currentUserId }: { initialUsers: Man
 
   return (
     <div className="grid gap-6 xl:grid-cols-[24rem_1fr]">
-      <section className="rounded-[20px] border border-slate-200 bg-white p-6 shadow-sm" aria-labelledby="new-admin-title">
+      <section className="rounded-2xl border  param($m) $m.Value -replace 'border-slate-200', 'border-slate-200/80' -replace 'shadow-sm', 'shadow-[0_1px_2px_rgba(15,23,42,0.04)]' shadow-sm" aria-labelledby="new-admin-title">
         <UserPlus className="size-6 text-[var(--brand-blue)]" aria-hidden="true" />
         <h2 id="new-admin-title" className="mt-4 text-xl font-extrabold text-[var(--brand-navy)]">Novo administrador</h2>
         <p className="mt-2 text-sm leading-6 text-slate-600">Crie um acesso individual. A senha informada é temporária e deverá ser trocada no primeiro login.</p>
@@ -100,7 +100,7 @@ export function UserManager({ initialUsers, currentUserId }: { initialUsers: Man
               ? "bg-emerald-50 text-emerald-700"
               : "bg-slate-100 text-slate-600";
             return (
-              <article key={user.id} className="flex flex-col gap-4 rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+              <article key={user.id} className="flex flex-col gap-4 rounded-2xl border  param($m) $m.Value -replace 'border-slate-200', 'border-slate-200/80' -replace 'shadow-sm', 'shadow-[0_1px_2px_rgba(15,23,42,0.04)]' shadow-sm sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex min-w-0 items-start gap-3">
                   <span className={`flex size-11 shrink-0 items-center justify-center rounded-2xl ${iconBg}`}>
                     <ShieldCheck className="size-5" />

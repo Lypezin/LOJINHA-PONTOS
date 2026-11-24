@@ -33,7 +33,7 @@ type FieldProps = InputHTMLAttributes<HTMLInputElement> & {
 };
 
 const fieldClassName =
-  "min-h-12 w-full rounded-xl border border-slate-300 bg-white py-3 pl-11 pr-4 text-base text-[var(--brand-navy)] outline-none placeholder:text-slate-500 hover:border-[var(--brand-blue)] focus:border-[var(--brand-blue)] disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500";
+  "h-11 w-full rounded-xl border border-slate-200/90 bg-white py-2.5 pl-10 pr-4 text-sm text-[var(--brand-navy)] outline-none placeholder:text-slate-400 hover:border-slate-300 focus:border-[var(--brand-blue)] focus:ring-2 focus:ring-blue-500/15 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400";
 
 function Field({ label, error, hint, icon: Icon, id: suppliedId, className, ...props }: FieldProps) {
   const generatedId = useId();
@@ -42,26 +42,26 @@ function Field({ label, error, hint, icon: Icon, id: suppliedId, className, ...p
 
   return (
     <div>
-      <label htmlFor={id} className="mb-2 block text-sm font-bold text-[var(--brand-navy)]">
+      <label htmlFor={id} className="mb-1.5 block text-xs font-semibold text-slate-700">
         {label}
       </label>
       <div className="relative">
         <Icon
           aria-hidden="true"
-          className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-slate-500"
+          className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400"
         />
         <input
           {...props}
           id={id}
           aria-invalid={Boolean(error)}
           aria-describedby={error || hint ? descriptionId : undefined}
-          className={cn(fieldClassName, error && "border-red-600", className)}
+          className={cn(fieldClassName, error && "border-red-500 focus:border-red-500 focus:ring-red-500/15", className)}
         />
       </div>
       {(error || hint) && (
         <p
           id={descriptionId}
-          className={cn("mt-2 text-pretty text-sm leading-5", error ? "font-semibold text-red-700" : "text-slate-600")}
+          className={cn("mt-1.5 text-pretty text-xs leading-relaxed", error ? "font-semibold text-red-600" : "text-slate-500")}
         >
           {error ?? hint}
         </p>
@@ -80,13 +80,13 @@ function PasswordField({ label, error, hint, id: suppliedId, className, ...props
 
   return (
     <div>
-      <label htmlFor={id} className="mb-2 block text-sm font-bold text-[var(--brand-navy)]">
+      <label htmlFor={id} className="mb-1.5 block text-xs font-semibold text-slate-700">
         {label}
       </label>
       <div className="relative">
         <LockKeyhole
           aria-hidden="true"
-          className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-slate-500"
+          className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400"
         />
         <input
           {...props}
@@ -94,22 +94,22 @@ function PasswordField({ label, error, hint, id: suppliedId, className, ...props
           type={visible ? "text" : "password"}
           aria-invalid={Boolean(error)}
           aria-describedby={error || hint ? descriptionId : undefined}
-          className={cn(fieldClassName, "pr-12", error && "border-red-700", className)}
+          className={cn(fieldClassName, "pr-11", error && "border-red-500 focus:border-red-500 focus:ring-red-500/15", className)}
         />
         <button
           type="button"
           onClick={() => setVisible((current) => !current)}
-          className="absolute right-1 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+          className="absolute right-1.5 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
           aria-label={visible ? "Ocultar senha" : "Mostrar senha"}
           disabled={props.disabled}
         >
-          {visible ? <EyeOff aria-hidden="true" className="size-5" /> : <Eye aria-hidden="true" className="size-5" />}
+          {visible ? <EyeOff aria-hidden="true" className="size-4" /> : <Eye aria-hidden="true" className="size-4" />}
         </button>
       </div>
       {(error || hint) && (
         <p
           id={descriptionId}
-          className={cn("mt-2 text-pretty text-sm leading-5", error ? "font-semibold text-red-700" : "text-slate-500")}
+          className={cn("mt-1.5 text-pretty text-xs leading-relaxed", error ? "font-semibold text-red-600" : "text-slate-500")}
         >
           {error ?? hint}
         </p>
@@ -123,17 +123,17 @@ function SubmitButton({ pending, idleText, pendingText }: { pending: boolean; id
     <button
       type="submit"
       disabled={pending}
-      className="flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[var(--brand-blue)] px-6 py-3 font-bold text-white shadow-sm hover:bg-[var(--brand-blue-dark)] active:bg-[var(--brand-blue-dark)] disabled:cursor-not-allowed disabled:bg-blue-300"
+      className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[var(--brand-blue)] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_1px_2px_rgba(29,86,232,0.22)] transition-colors hover:bg-[var(--brand-blue-dark)] active:bg-[var(--brand-blue-dark)] disabled:cursor-not-allowed disabled:opacity-60"
     >
       {pending ? (
         <>
-          <LoaderCircle aria-hidden="true" className="size-5" />
+          <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />
           {pendingText}
         </>
       ) : (
         <>
           {idleText}
-          <ArrowRight aria-hidden="true" className="size-5" />
+          <ArrowRight aria-hidden="true" className="size-4" />
         </>
       )}
     </button>
@@ -146,13 +146,13 @@ function FormMessage({ message, success = false }: { message?: string; success?:
     <div
       role={success ? "status" : "alert"}
       className={cn(
-        "flex items-start gap-3 rounded-xl border p-4 text-pretty text-sm font-semibold leading-6",
+        "flex items-start gap-2.5 rounded-xl border p-3.5 text-pretty text-xs font-semibold leading-relaxed",
         success
-          ? "border-emerald-200 bg-emerald-50 text-emerald-900"
-          : "border-red-200 bg-red-50 text-red-700",
+          ? "border-emerald-200/80 bg-emerald-50 text-emerald-900"
+          : "border-red-200/80 bg-red-50 text-red-700",
       )}
     >
-      {success ? <CheckCircle2 aria-hidden="true" className="mt-0.5 size-5 shrink-0" /> : null}
+      {success ? <CheckCircle2 aria-hidden="true" className="mt-0.5 size-4 shrink-0" /> : null}
       <span>{message}</span>
     </div>
   );
@@ -179,6 +179,11 @@ export function LoginForm({ initialMessage }: { initialMessage?: string }) {
   const [message, setMessage] = useState<string>();
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
 
+  const initialIsSuccess = Boolean(
+    initialMessage &&
+      (initialMessage.startsWith("Senha atualizada") || initialMessage.startsWith("Cadastro criado")),
+  );
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setPending(true);
@@ -203,8 +208,8 @@ export function LoginForm({ initialMessage }: { initialMessage?: string }) {
   }
 
   return (
-    <form onSubmit={submit} className="space-y-5" noValidate>
-      {initialMessage ? <FormMessage message={initialMessage} success={!initialMessage.startsWith("A Lojinha ainda não está disponível")} /> : null}
+    <form onSubmit={submit} className="space-y-4" noValidate>
+      {initialMessage ? <FormMessage message={initialMessage} success={initialIsSuccess} /> : null}
       <FormMessage message={message} />
       <Field
         label="E-mail ou CNPJ"
@@ -233,8 +238,8 @@ export function LoginForm({ initialMessage }: { initialMessage?: string }) {
           disabled={pending}
           required
         />
-        <div className="mt-2 text-right">
-          <Link href="/esqueci-senha" className="inline-flex min-h-11 items-center text-sm font-bold text-[var(--brand-blue-dark)] hover:underline">
+        <div className="mt-1.5 text-right">
+          <Link href="/esqueci-senha" className="inline-flex min-h-9 items-center text-xs font-semibold text-[var(--brand-blue)] hover:underline">
             Esqueci minha senha
           </Link>
         </div>
@@ -283,7 +288,7 @@ export function RegisterForm() {
   }
 
   return (
-    <form onSubmit={submit} className="space-y-5" noValidate>
+    <form onSubmit={submit} className="space-y-4" noValidate>
       <FormMessage message={message} />
       <Field
         label="CNPJ"
@@ -295,7 +300,7 @@ export function RegisterForm() {
         value={cnpj}
         onChange={(event) => setCnpj(formatCnpj(event.target.value))}
         error={fieldErrors.cnpj?.[0]}
-        hint="Use o mesmo CNPJ cadastrado pela empresa. Se ele estiver na base e ainda não tiver conta, seus dados e pontos serão vinculados automaticamente."
+        hint="Use o mesmo CNPJ cadastrado pela empresa. Seus dados e pontos serão vinculados automaticamente."
         disabled={pending}
         className="font-mono tabular-nums"
         required
@@ -321,7 +326,7 @@ export function RegisterForm() {
         value={password}
         onChange={(event) => setPassword(event.target.value)}
         error={fieldErrors.password?.[0]}
-        hint="Use de 8 a 72 caracteres, com pelo menos uma letra e um número."
+        hint="De 8 a 72 caracteres, com pelo menos uma letra e um número."
         disabled={pending}
         required
       />
@@ -336,7 +341,7 @@ export function RegisterForm() {
         required
       />
       <SubmitButton pending={pending} idleText="Criar minha conta" pendingText="Criando conta" />
-      <p className="text-pretty text-xs leading-5 text-slate-500">
+      <p className="text-pretty text-xs leading-relaxed text-slate-500">
         Ao criar sua conta, seus pontos e seu nome serão ligados ao CNPJ informado.
       </p>
     </form>
@@ -373,7 +378,7 @@ export function ForgotPasswordForm() {
   }
 
   return (
-    <form onSubmit={submit} className="space-y-5" noValidate>
+    <form onSubmit={submit} className="space-y-4" noValidate>
       <FormMessage message={message} success={success} />
       <Field
         label="E-mail cadastrado"
@@ -392,15 +397,15 @@ export function ForgotPasswordForm() {
       <button
         type="submit"
         disabled={pending}
-        className="flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[var(--brand-blue)] px-6 py-3 font-bold text-white shadow-sm hover:bg-[var(--brand-blue-dark)] disabled:cursor-not-allowed disabled:bg-blue-300"
+        className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[var(--brand-blue)] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_1px_2px_rgba(29,86,232,0.22)] transition-colors hover:bg-[var(--brand-blue-dark)] disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {pending ? <LoaderCircle aria-hidden="true" className="size-5" /> : <Send aria-hidden="true" className="size-5" />}
+        {pending ? <LoaderCircle aria-hidden="true" className="size-4 animate-spin" /> : <Send aria-hidden="true" className="size-4" />}
         {pending ? "Enviando instruções" : "Enviar instruções"}
       </button>
       {resetUrl ? (
-        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-[var(--brand-blue-dark)]">
-          <p className="font-bold">Atalho disponível no ambiente de desenvolvimento</p>
-          <Link href={resetUrl} className="mt-2 inline-flex min-h-11 items-center font-bold underline">
+        <div className="rounded-xl border border-blue-200 bg-blue-50 p-3.5 text-xs text-[var(--brand-blue-dark)]">
+          <p className="font-semibold">Atalho disponível no ambiente de desenvolvimento</p>
+          <Link href={resetUrl} className="mt-1.5 inline-flex min-h-9 items-center font-semibold underline">
             Abrir link de redefinição
           </Link>
         </div>
@@ -419,11 +424,11 @@ export function ResetPasswordForm({ token }: { token?: string }) {
 
   if (!token) {
     return (
-      <div className="space-y-5">
+      <div className="space-y-4">
         <FormMessage message="Este link de redefinição está incompleto ou é inválido." />
         <Link
           href="/esqueci-senha"
-          className="flex min-h-12 w-full items-center justify-center rounded-full bg-[var(--brand-blue)] px-6 py-3 font-bold text-white hover:bg-[var(--brand-blue-dark)]"
+          className="flex min-h-11 w-full items-center justify-center rounded-xl bg-[var(--brand-blue)] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[var(--brand-blue-dark)]"
         >
           Solicitar um novo link
         </Link>
@@ -461,21 +466,21 @@ export function ResetPasswordForm({ token }: { token?: string }) {
 
   if (success) {
     return (
-      <div className="space-y-5">
+      <div className="space-y-4">
         <FormMessage message={message} success />
         <Link
           href="/login?senha=redefinida"
-          className="flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[var(--brand-blue)] px-6 py-3 font-bold text-white hover:bg-[var(--brand-blue-dark)]"
+          className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[var(--brand-blue)] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[var(--brand-blue-dark)]"
         >
           Entrar com a nova senha
-          <ArrowRight aria-hidden="true" className="size-5" />
+          <ArrowRight aria-hidden="true" className="size-4" />
         </Link>
       </div>
     );
   }
 
   return (
-    <form onSubmit={submit} className="space-y-5" noValidate>
+    <form onSubmit={submit} className="space-y-4" noValidate>
       <FormMessage message={message} />
       <PasswordField
         label="Nova senha"
@@ -484,7 +489,7 @@ export function ResetPasswordForm({ token }: { token?: string }) {
         value={password}
         onChange={(event) => setPassword(event.target.value)}
         error={fieldErrors.password?.[0]}
-        hint="Use de 8 a 72 caracteres, com pelo menos uma letra e um número."
+        hint="De 8 a 72 caracteres, com pelo menos uma letra e um número."
         disabled={pending}
         required
       />
@@ -538,7 +543,7 @@ export function ChangePasswordForm() {
   }
 
   return (
-    <form onSubmit={submit} className="space-y-5" noValidate>
+    <form onSubmit={submit} className="space-y-4" noValidate>
       <FormMessage message={message} />
       <PasswordField
         label="Senha atual"
@@ -557,7 +562,7 @@ export function ChangePasswordForm() {
         value={password}
         onChange={(event) => setPassword(event.target.value)}
         error={fieldErrors.password?.[0]}
-        hint="Use de 8 a 72 caracteres, com pelo menos uma letra e um número."
+        hint="De 8 a 72 caracteres, com pelo menos uma letra e um número."
         disabled={pending}
         required
       />

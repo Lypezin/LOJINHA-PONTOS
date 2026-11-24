@@ -464,12 +464,24 @@ export async function commitImport({
       const existingCnpjOwners = proposedCnpjs.length
         ? await tx.courier.findMany({
             where: { cnpj: { in: proposedCnpjs } },
-            select: { cnpj: true, externalCourierId: true },
+            select: {
+              id: true,
+              cnpj: true,
+              externalCourierId: true,
+              sourceCnpjName: true,
+              cnpjMatchStatus: true,
+              cnpjMatchScore: true,
+            },
           })
         : [];
       const ownerByCnpj = new Map(
         existingCnpjOwners.flatMap((owner) =>
           owner.cnpj ? [[owner.cnpj, owner.externalCourierId] as const] : [],
+        ),
+      );
+      const ownerRecordByCnpj = new Map(
+        existingCnpjOwners.flatMap((owner) =>
+          owner.cnpj ? [[owner.cnpj, owner] as const] : [],
         ),
       );
       for (const [externalCourierId, match] of effectiveMatches) {
@@ -505,6 +517,25 @@ export async function commitImport({
           courier.externalCourierId ? [[courier.externalCourierId, courier] as const] : [],
         ),
       );
+
+      // Vincula externalCourierId em entregadores pré-criados pelo app (sem externalCourierId ainda)
+      const claimedOwnerIds = new Set<string>();
+      for (const aggregate of parsed.aggregates) {
+        if (existingByExternalId.has(aggregate.externalCourierId)) continue;
+        const match = effectiveParsed.cnpjMatches.get(aggregate.externalCourierId);
+        if (match?.kind !== "EXACT" || !match.cnpj) continue;
+        const owner = ownerRecordByCnpj.get(match.cnpj);
+        if (!owner || owner.externalCourierId !== null || claimedOwnerIds.has(owner.id)) continue;
+        claimedOwnerIds.add(owner.id);
+        await tx.courier.update({
+          where: { id: owner.id },
+          data: { externalCourierId: aggregate.externalCourierId },
+        });
+        existingByExternalId.set(aggregate.externalCourierId, {
+          ...owner,
+          externalCourierId: aggregate.externalCourierId,
+        });
+      }
 
       const newCouriers = parsed.aggregates.filter(
         (aggregate) => !existingByExternalId.has(aggregate.externalCourierId),

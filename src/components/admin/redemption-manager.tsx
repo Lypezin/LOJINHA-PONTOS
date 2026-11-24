@@ -36,7 +36,7 @@ const nextStatus: Partial<Record<RedemptionStatus, { status: RedemptionStatus; l
   READY: { status: "DELIVERED", label: "Confirmar entrega" },
 };
 
-const fieldClass = "min-h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm text-[var(--brand-navy)] outline-none focus:border-[var(--brand-blue)] focus:ring-4 focus:ring-blue-100";
+const fieldClass = "h-10 rounded-xl border border-slate-200/90 bg-white px-3 text-sm text-[var(--brand-navy)] outline-none placeholder:text-slate-400 focus:border-[var(--brand-blue)] focus:ring-2 focus:ring-blue-500/15";
 
 export function RedemptionManager({
   redemptions,
@@ -89,8 +89,8 @@ export function RedemptionManager({
           <AlertDialog.Root>
             <AlertDialog.Trigger asChild><Button variant="ghost" size="sm" disabled={pendingId === item.id}><XCircle className="size-4 text-red-700" aria-hidden="true" />Cancelar</Button></AlertDialog.Trigger>
             <AlertDialog.Portal>
-              <AlertDialog.Overlay className="fixed inset-0 z-40 bg-slate-950/50" />
-              <AlertDialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[20px] bg-white p-6 shadow-xl focus:outline-none">
+              <AlertDialog.Overlay className="fixed inset-0 z-40 bg-slate-950/45 backdrop-blur-[2px]" />
+              <AlertDialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl bg-white p-6 shadow-xl focus:outline-none">
                 <div className="flex items-start justify-between gap-4"><div><p className="text-sm font-bold text-red-700">Ação de cancelamento</p><AlertDialog.Title className="mt-1 text-balance text-xl font-extrabold text-[var(--brand-navy)]">Cancelar o resgate {item.code}?</AlertDialog.Title></div><AlertDialog.Cancel asChild><button className="flex size-11 shrink-0 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100" aria-label="Fechar confirmação"><X className="size-5" aria-hidden="true" /></button></AlertDialog.Cancel></div>
                 <AlertDialog.Description className="mt-3 text-pretty text-sm leading-6 text-slate-600">O estoque será devolvido. Se os créditos usados ainda estiverem válidos, os <strong className="font-extrabold tabular-nums text-[var(--brand-navy)]">{formatPoints(item.pointsSpent)} pontos</strong> também voltarão ao saldo do entregador.</AlertDialog.Description>
                 <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><AlertDialog.Cancel asChild><Button variant="secondary">Manter resgate</Button></AlertDialog.Cancel><AlertDialog.Action asChild><Button variant="danger" onClick={() => void update(item.id, "CANCELED")}>Confirmar cancelamento</Button></AlertDialog.Action></div>
@@ -114,7 +114,7 @@ export function RedemptionManager({
 
       {filtered.length ? (
         <>
-          <div className="hidden overflow-hidden rounded-[20px] border border-slate-200 bg-white lg:block">
+          <div className="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white lg:block">
             <table className="w-full text-left text-sm">
               <thead className="border-b border-slate-200 bg-slate-50 text-xs text-slate-600"><tr><th scope="col" className="px-5 py-3 font-bold">Resgate</th><th scope="col" className="px-4 py-3 font-bold">Entregador</th><th scope="col" className="px-4 py-3 font-bold">Item</th><th scope="col" className="px-4 py-3 font-bold">Status</th><th scope="col" className="px-5 py-3 text-right font-bold">Próximo passo</th></tr></thead>
               <tbody className="divide-y divide-slate-200">
@@ -163,7 +163,7 @@ export function RedemptionManager({
           </div>
           <div className="grid gap-4 lg:hidden">
             {filtered.map((item) => (
-              <article key={item.id} className="rounded-[20px] border border-slate-200 bg-white p-5">
+              <article key={item.id} className="rounded-2xl border border-slate-200 bg-white p-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="font-extrabold tabular-nums text-[var(--brand-navy)]">{item.code}</p>
@@ -211,7 +211,7 @@ export function RedemptionManager({
         <EmptyState icon={<PackageCheck className="size-6" />} title={query || status !== "ALL" ? "Nenhum resgate encontrado" : "A fila de resgates está vazia"} description={query || status !== "ALL" ? "Revise a busca ou o filtro selecionado." : "Novos pedidos aparecerão aqui para aprovação, preparo e entrega."} action={query || status !== "ALL" ? <Link href="/admin/resgates" className={buttonStyles({ variant: "secondary" })}>Limpar filtros</Link> : undefined} />
       )}
       {total > 50 ? (
-        <nav className="flex flex-col items-center justify-between gap-3 rounded-[20px] border border-slate-200 bg-white p-4 sm:flex-row" aria-label="Páginas de resgates">
+        <nav className="flex flex-col items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 sm:flex-row" aria-label="Páginas de resgates">
           <p className="text-sm text-slate-600"><span className="font-extrabold tabular-nums text-[var(--brand-navy)]">{total.toLocaleString("pt-BR")}</span> resgates • página <span className="font-bold tabular-nums">{page} de {pageCount}</span></p>
           <div className="flex gap-2">{page > 1 ? <Link href={pageHref(page - 1)} className={buttonStyles({ variant: "secondary", size: "sm" })}>Anterior</Link> : <span className={buttonStyles({ variant: "secondary", size: "sm", className: "pointer-events-none opacity-50" })}>Anterior</span>}{page < pageCount ? <Link href={pageHref(page + 1)} className={buttonStyles({ variant: "secondary", size: "sm" })}>Próxima</Link> : <span className={buttonStyles({ variant: "secondary", size: "sm", className: "pointer-events-none opacity-50" })}>Próxima</span>}</div>
         </nav>

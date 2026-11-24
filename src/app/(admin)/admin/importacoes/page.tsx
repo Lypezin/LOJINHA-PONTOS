@@ -32,15 +32,15 @@ export default async function AdminImportsPage() {
       <ImportWizard defaultPointsColumn={defaultColumn} />
 
       <section aria-labelledby="history-title">
-        <div><p className="text-sm font-bold text-[var(--brand-blue)]">Auditoria</p><h2 id="history-title" className="mt-1 text-balance text-2xl font-extrabold text-[var(--brand-navy)]">Histórico de importações</h2></div>
+        <div><p className="text-xs font-semibold text-[var(--brand-blue)]">Auditoria</p><h2 id="history-title" className="font-display mt-0.5 text-balance text-xl font-bold text-[var(--brand-navy)]">Histórico de importações</h2></div>
         {batches.length ? (
-          <div className="mt-5 overflow-hidden rounded-[20px] border border-slate-200 bg-white">
-            <div className="hidden grid-cols-[1.5fr_0.8fr_0.8fr_0.8fr_1fr] gap-4 border-b border-slate-200 bg-slate-50 px-5 py-3 text-xs font-bold text-slate-600 md:grid"><span>Arquivo</span><span>Meses na planilha</span><span className="text-right">Entregadores</span><span className="text-right">Pontos</span><span>Status</span></div>
-            <div className="divide-y divide-slate-200">
-              {batches.map((batch) => { const state = importState(batch.status); return <article key={batch.id} className="grid gap-3 px-5 py-4 text-sm md:grid-cols-[1.5fr_0.8fr_0.8fr_0.8fr_1fr] md:items-center md:gap-4"><div className="min-w-0"><p className="truncate font-bold text-[var(--brand-navy)]">{batch.filename}</p><p className="mt-1 text-xs tabular-nums text-slate-500">{formatDateTime(batch.createdAt)} • coluna {batch.pointsColumn}</p></div><p className="font-bold tabular-nums text-[var(--brand-navy)]">{batch.competenceKey}</p><p className="font-bold tabular-nums text-slate-700 md:text-right">{formatPoints(batch.courierCount)}</p><p className="font-extrabold tabular-nums text-[var(--brand-navy)] md:text-right">{formatPoints(batch.totalPoints)} pts</p><div><StatusBadge tone={state.tone}>{state.label}</StatusBadge>{batch.warningCount ? <p className="mt-1 text-xs font-semibold tabular-nums text-amber-800">{batch.warningCount} aviso(s)</p> : null}</div></article>; })}
+          <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+            <div className="hidden grid-cols-[1.5fr_0.8fr_0.8fr_0.8fr_1fr] gap-4 border-b border-slate-200/80 bg-slate-50/80 px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 md:grid"><span>Arquivo</span><span>Meses na planilha</span><span className="text-right">Entregadores</span><span className="text-right">Pontos</span><span>Status</span></div>
+            <div className="divide-y divide-slate-200/70">
+              {batches.map((batch) => { const state = importState(batch.status); return <article key={batch.id} className="grid gap-3 px-5 py-3.5 text-sm transition-colors hover:bg-slate-50/50 md:grid-cols-[1.5fr_0.8fr_0.8fr_0.8fr_1fr] md:items-center md:gap-4"><div className="min-w-0"><p className="truncate font-semibold text-[var(--brand-navy)]">{batch.filename}</p><p className="mt-0.5 text-xs tabular-nums text-slate-500">{formatDateTime(batch.createdAt)} • coluna {batch.pointsColumn}</p></div><p className="font-semibold tabular-nums text-[var(--brand-navy)]">{batch.competenceKey}</p><p className="font-semibold tabular-nums text-slate-700 md:text-right">{formatPoints(batch.courierCount)}</p><p className="font-bold tabular-nums text-[var(--brand-navy)] md:text-right">{formatPoints(batch.totalPoints)} pts</p><div><StatusBadge tone={state.tone}>{state.label}</StatusBadge>{batch.warningCount ? <p className="mt-1 text-xs font-semibold tabular-nums text-amber-700">{batch.warningCount} aviso(s)</p> : null}</div></article>; })}
             </div>
           </div>
-        ) : <div className="mt-5"><EmptyState icon={<FileSpreadsheet className="size-6" />} title="Nenhuma planilha importada" description="Conclua a primeira importação para iniciar o histórico auditável." /></div>}
+        ) : <div className="mt-4"><EmptyState icon={<FileSpreadsheet className="size-5" />} title="Nenhuma planilha importada" description="Conclua a primeira importação para iniciar o histórico auditável." /></div>}
       </section>
     </div>
   );

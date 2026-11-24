@@ -45,9 +45,16 @@ export function sessionDurationMs() {
   return days * 24 * 60 * 60 * 1000;
 }
 
-function cookieIsSecure() {
+export function cookieIsSecure() {
   if (process.env.NODE_ENV === "production") return true;
   return process.env.APP_URL?.startsWith("https://") ?? false;
+}
+
+export function sessionCookieSameSite(): "lax" | "none" {
+  if (process.env.SESSION_COOKIE_SAME_SITE === "none" && cookieIsSecure()) {
+    return "none";
+  }
+  return "lax";
 }
 
 export async function setSessionCookie(token: string, expiresAt: Date) {
@@ -56,7 +63,7 @@ export async function setSessionCookie(token: string, expiresAt: Date) {
   cookieStore.set(SESSION_COOKIE_NAME, token, {
     httpOnly: true,
     secure: cookieIsSecure(),
-    sameSite: "lax",
+    sameSite: sessionCookieSameSite(),
     path: "/",
     expires: expiresAt,
     maxAge,
@@ -69,7 +76,7 @@ export async function clearSessionCookie() {
   cookieStore.set(SESSION_COOKIE_NAME, "", {
     httpOnly: true,
     secure: cookieIsSecure(),
-    sameSite: "lax",
+    sameSite: sessionCookieSameSite(),
     path: "/",
     expires: new Date(0),
     priority: "high",

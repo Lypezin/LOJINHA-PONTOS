@@ -6,18 +6,18 @@ type ButtonSize = "sm" | "md" | "lg";
 
 const variants: Record<ButtonVariant, string> = {
   primary:
-    "bg-[var(--brand-blue)] text-white shadow-sm hover:bg-[var(--brand-blue-dark)] active:bg-[var(--brand-blue-dark)]",
+    "bg-[var(--brand-blue)] text-white shadow-[0_1px_2px_rgba(29,86,232,0.22)] hover:bg-[var(--brand-blue-dark)] active:bg-[var(--brand-blue-dark)]",
   secondary:
-    "border border-[var(--brand-blue)] bg-white text-[var(--brand-blue-dark)] hover:bg-blue-50 active:bg-blue-100",
-  mint: "bg-[var(--brand-mint)] text-[var(--brand-mint-ink)] hover:bg-emerald-300 active:bg-emerald-400",
-  ghost: "text-[var(--brand-navy)] hover:bg-slate-100 active:bg-slate-200",
-  danger: "bg-red-700 text-white hover:bg-red-800 active:bg-red-900",
+    "border border-slate-200 bg-white text-slate-800 shadow-[0_1px_2px_rgba(15,23,42,0.03)] hover:border-slate-300 hover:bg-slate-50 active:bg-slate-100",
+  mint: "bg-emerald-600 text-white shadow-[0_1px_2px_rgba(5,150,105,0.22)] hover:bg-emerald-700 active:bg-emerald-800",
+  ghost: "text-slate-700 hover:bg-slate-100 hover:text-[var(--brand-navy)] active:bg-slate-200/70",
+  danger: "bg-red-600 text-white shadow-[0_1px_2px_rgba(220,38,38,0.2)] hover:bg-red-700 active:bg-red-800",
 };
 
 const sizes: Record<ButtonSize, string> = {
-  sm: "min-h-11 px-4 text-sm",
-  md: "min-h-11 px-5 text-sm",
-  lg: "min-h-12 px-6 text-base",
+  sm: "min-h-9 px-3.5 text-xs",
+  md: "min-h-10 px-4 text-sm",
+  lg: "min-h-11 px-5 text-sm",
 };
 
 export function buttonStyles({
@@ -30,7 +30,7 @@ export function buttonStyles({
   className?: string;
 } = {}) {
   return cn(
-    "inline-flex items-center justify-center gap-2 rounded-full font-bold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-400 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50",
+    "inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition-[background-color,border-color,color,box-shadow] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50",
     variants[variant],
     sizes[size],
     className,

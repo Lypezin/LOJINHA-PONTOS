@@ -104,4 +104,8 @@ export const AUTH_RATE_LIMITS = {
     { scope: "ip", max: 20, windowMs: 60 * 60_000, blockMs: 60 * 60_000 },
     { scope: "identity", max: 8, windowMs: 60 * 60_000, blockMs: 60 * 60_000 },
   ],
+  appSso: [
+    { scope: "ip", max: 60, windowMs: 10 * 60_000, blockMs: 10 * 60_000 },
+    { scope: "identity", max: 20, windowMs: 10 * 60_000, blockMs: 10 * 60_000 },
+  ],
 } satisfies Record<string, RateLimitRule[]>;

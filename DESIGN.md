@@ -1,47 +1,35 @@
 # DESIGN.md — Lojinha EntreGô Design System
 
-Este documento captura o sistema visual da **Lojinha EntreGô** para garantir consistência estética premium em qualquer nova interface ou componente.
+Este documento captura o sistema visual da **Lojinha EntreGô** para garantir consistência estética leve, limpa e refinada em toda a interface.
 
 ---
 
-## 🎨 Paleta de Cores e Tokens
+## Paleta de Cores e Tokens
 
-### Cores de Marca
-*   `--brand-navy`: `#0c1938` (Principal, azul escuro profundo para textos, cabeçalhos e elementos fortes).
-*   `--brand-blue`: `#1a56db` (Destaque, azul elétrico para links ativos, botões primários e marcações).
-*   `--brand-blue-dark`: `#1e40af` (Hover e foco de botões).
-*   `--surface-soft`: `#f8fafc` (Cor de fundo principal para toda a aplicação).
-
-### Status e Alertas
-*   **Success (Sucesso/Ativo)**: `--success-base` (`#10b981`), fundo soft (`#ecfdf5`).
-*   **Warning (Pendente/Alerta)**: `--warning-base` (`#f59e0b`), fundo soft (`#fffbeb`).
-*   **Danger/Error (Inativo/Erro)**: `--danger-base` (`#ef4444`), fundo soft (`#fef2f2`).
+### Cores de Marca e Superfícies
+* `--brand-navy`: `#0b1633` (Principal, azul marinho profundo para títulos, cabeçalhos e cartão de saldo).
+* `--brand-blue`: `#1d56e8` (Destaque, azul primário para ações principais, links ativos e estados selecionados).
+* `--brand-blue-dark`: `#1644bd` (Hover e estado ativo de ações primárias).
+* `--brand-mint`: `#10b981` / `--brand-mint-ink`: `#065f46` (Indicadores de pontos, elegibilidade e sucesso).
+* `--background`: `#f6f8fb` (Fundo neutro frio suave).
+* `--surface`: `#ffffff` / `--surface-soft`: `#f1f5f9`.
+* `--line`: `#e2e8f0` (Bordas finas e divisores).
 
 ---
 
-## font-family & Tipografia
-*   **Títulos e Destaques**: Fonte `Outfit` ou `Inter` (sans-serif) para peso extra-negrito e visual moderno.
-*   **Corpo de Texto**: Fonte `Inter` (sans-serif) para leitura legível e limpa.
-*   **Tabelas e Valores**: Configurar `font-variant-numeric: tabular-nums` para alinhar números e pontos.
+## Tipografia
+* **Títulos (`font-display`)**: `Plus Jakarta Sans` (`500`, `600`, `700`) com tracking ajustado (`-0.02em`).
+* **Corpo e UI (`font-sans`)**: `Inter` (`400`, `500`, `600`, `700`).
+* **Números e Pontos**: `font-variant-numeric: tabular-nums` obrigatório em saldos, preços em pontos e tabelas.
 
 ---
 
-## 📐 Layout e Estrutura Visual
-*   **Bordas e Cantos**:
-    *   Cartões principais e seções operacionais devem usar `rounded-[20px]` (arredondamento suave de 20px).
-    *   Botões e inputs padrão usam `rounded-xl` (12px).
-*   **Sombras e Elevação**:
-    *   Utilizar sombras suaves baseadas em `shadow-sm` combinadas com contornos sutis (`border border-slate-200` ou `ring-1 ring-slate-950/[0.02]`).
-*   **Visual Rhythm**:
-    *   Páginas administrativas utilizam espaçamentos consistentes de `space-y-8` ou `space-y-10`.
-    *   Tabelas de dados utilizam padding interno de `px-5 py-4` para dar respiro visual.
-
----
-
-## 🧩 Componentes Padronizados
-1.  **PageHeader**:
-    *   Utilizado no topo de todas as telas principais com um `eyebrow` (competência ou subpílula), título grande e descrição curta do fluxo.
-2.  **StatCard**:
-    *   Cartões informativos de contagem e saldos dispostos no topo das páginas em grids responsivos.
-3.  **StatusBadge**:
-    *   Pílulas pequenas com fundo soft e texto contrastante forte para representar estados de resgates e entregadores.
+## Layout e Estrutura Visual
+* **Bordas e Cantos**:
+  * Cartões, containers e modais usam `rounded-2xl` (16px).
+  * Botões, inputs, tabs e itens internos usam `rounded-xl` (12px).
+  * Pills de filtro e status usam `rounded-full`.
+* **Superfícies e Elevação**:
+  * Bordas finas `border border-slate-200/80` com sombra sutil `shadow-[0_1px_2px_rgba(15,23,42,0.04)]` (evitar empilhar anéis ou sombras pesadas).
+* **Ritmo Visual**:
+  * Mobile-first pensado para navegação dentro do aplicativo (WebView), com header translúcido compacto e navegação inferior respeitando `safe-area-inset-bottom`.

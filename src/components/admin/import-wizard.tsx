@@ -99,7 +99,7 @@ export function ImportWizard({ defaultPointsColumn }: { defaultPointsColumn: str
   }
 
   return (
-    <section className="rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm sm:p-7" aria-labelledby="wizard-title">
+    <section className="rounded-2xl border  param($m) $m.Value -replace 'border-slate-200', 'border-slate-200/80' -replace 'shadow-sm', 'shadow-[0_1px_2px_rgba(15,23,42,0.04)]' shadow-sm sm:p-7" aria-labelledby="wizard-title">
       <div className="grid grid-cols-3 gap-2" aria-label="Etapas da importação">
         {[
           { label: "1. Arquivo", active: true },
@@ -154,14 +154,14 @@ export function ImportWizard({ defaultPointsColumn }: { defaultPointsColumn: str
             <Button variant="secondary" onClick={() => setPreview(null)}><RefreshCw className="size-4" aria-hidden="true" />Revisar dados</Button>
             <AlertDialog.Root>
               <AlertDialog.Trigger asChild><Button disabled={!preview.canCommit || pending !== ""}><FileCheck2 className="size-4" aria-hidden="true" />Importar planilha</Button></AlertDialog.Trigger>
-          <AlertDialog.Portal><AlertDialog.Overlay className="fixed inset-0 z-40 bg-slate-950/50" /><AlertDialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[20px] bg-white p-6 shadow-xl focus:outline-none"><div className="flex items-start justify-between gap-4"><div><p className="text-sm font-bold text-[var(--brand-blue)]">Confirmação final</p><AlertDialog.Title className="mt-1 text-balance text-xl font-extrabold text-[var(--brand-navy)]">Importar {formatPoints(preview.summary.totalPoints)} pontos?</AlertDialog.Title></div><AlertDialog.Cancel asChild><button className="flex size-11 shrink-0 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100" aria-label="Fechar confirmação"><X className="size-5" aria-hidden="true" /></button></AlertDialog.Cancel></div><AlertDialog.Description className="mt-3 text-pretty text-sm leading-6 text-slate-600">Os pontos serão somados para {formatPoints(preview.summary.couriers)} entregadores no ciclo vigente. Arquivos com datas já importadas serão recusados.</AlertDialog.Description><div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><AlertDialog.Cancel asChild><Button variant="secondary">Voltar à prévia</Button></AlertDialog.Cancel><AlertDialog.Action asChild><Button onClick={() => void commit()}>Confirmar importação</Button></AlertDialog.Action></div></AlertDialog.Content></AlertDialog.Portal>
+          <AlertDialog.Portal><AlertDialog.Overlay className="fixed inset-0 z-40 bg-slate-950/45 backdrop-blur-[2px]" /><AlertDialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl bg-white p-6 shadow-xl focus:outline-none"><div className="flex items-start justify-between gap-4"><div><p className="text-sm font-bold text-[var(--brand-blue)]">Confirmação final</p><AlertDialog.Title className="mt-1 text-balance text-xl font-extrabold text-[var(--brand-navy)]">Importar {formatPoints(preview.summary.totalPoints)} pontos?</AlertDialog.Title></div><AlertDialog.Cancel asChild><button className="flex size-11 shrink-0 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100" aria-label="Fechar confirmação"><X className="size-5" aria-hidden="true" /></button></AlertDialog.Cancel></div><AlertDialog.Description className="mt-3 text-pretty text-sm leading-6 text-slate-600">Os pontos serão somados para {formatPoints(preview.summary.couriers)} entregadores no ciclo vigente. Arquivos com datas já importadas serão recusados.</AlertDialog.Description><div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><AlertDialog.Cancel asChild><Button variant="secondary">Voltar à prévia</Button></AlertDialog.Cancel><AlertDialog.Action asChild><Button onClick={() => void commit()}>Confirmar importação</Button></AlertDialog.Action></div></AlertDialog.Content></AlertDialog.Portal>
             </AlertDialog.Root>
           </div>
         </div>
       ) : null}
 
       {result ? (
-        <div className="mt-7 rounded-[20px] border border-emerald-200 bg-emerald-50 p-6" aria-live="polite">
+        <div className="mt-7 rounded-2xl border border-emerald-200 bg-emerald-50 p-6" aria-live="polite">
           <CheckCircle2 className="size-8 text-[var(--brand-mint-ink)]" aria-hidden="true" />
           <h3 className="mt-4 text-balance text-xl font-extrabold text-[var(--brand-mint-ink)]">{result.duplicate ? "Esta importação já estava concluída" : "Planilha importada"}</h3>
           <p className="mt-2 text-pretty text-sm leading-6 text-emerald-900">{formatPoints(result.totalPoints)} pontos de {formatPoints(result.couriers)} entregadores foram somados ao ciclo vigente. {result.warningCount ? `${result.warningCount} aviso(s) ficaram registrados.` : "Nenhum aviso ficou pendente."}</p>

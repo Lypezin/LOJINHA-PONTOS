@@ -132,6 +132,7 @@ model Courier {
   name                    String
   normalizedName          String
   cnpj                    String?                 @unique
+  cpf                     String?                 @unique
   sourceCnpjName          String?
   cnpjMatchStatus         MatchStatus             @default(PENDING)
   cnpjMatchScore          Float?

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
-import Link from "next/link";
-import { Gift, History, PackageCheck, ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
+import { Gift, History, PackageCheck } from "lucide-react";
+import { AppMark } from "@/components/ui/app-mark";
 
 type AuthShellProps = {
   eyebrow?: string;
@@ -11,78 +12,82 @@ type AuthShellProps = {
 };
 
 const benefits = [
-  { icon: PackageCheck, title: "Pedidos viram pontos", text: "Seu saldo acompanha os pedidos concluídos." },
-  { icon: Gift, title: "Escolha seus prêmios", text: "Troque pontos por itens disponíveis na loja." },
-  { icon: History, title: "Tudo fica registrado", text: "Consulte seu saldo, resgates e movimentações." },
+  {
+    icon: PackageCheck,
+    title: "Pedidos viram pontos",
+    text: "Seu saldo acompanha os pedidos concluídos em cada ciclo.",
+  },
+  {
+    icon: Gift,
+    title: "Prêmios ou PIX",
+    text: "Troque pontos por itens físicos ou 50% do valor via PIX.",
+  },
+  {
+    icon: History,
+    title: "Extrato transparente",
+    text: "Acompanhe créditos, resgates e datas de validade em tempo real.",
+  },
 ];
 
 export function AuthShell({ eyebrow, title, description, children, footer }: AuthShellProps) {
   return (
-    <main className="flex min-h-dvh items-center bg-[var(--surface-soft)] px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mx-auto grid w-full max-w-6xl overflow-hidden rounded-[28px] border border-[var(--line)] bg-white shadow-xl lg:grid-cols-[0.9fr_1.1fr]">
-        <aside className="relative overflow-hidden bg-[var(--brand-blue)] p-6 text-white sm:p-8 lg:p-12">
-          <div
-            aria-hidden="true"
-            className="absolute -right-24 -top-24 size-64 rounded-full border-[36px] border-white/10"
-          />
-          <div
-            aria-hidden="true"
-            className="absolute -bottom-32 -left-20 size-72 rounded-full border-[44px] border-[var(--brand-mint)]/20"
-          />
+    <main className="flex min-h-dvh items-center bg-[var(--background)] px-4 py-6 sm:px-6 lg:px-8">
+      <div className="mx-auto grid w-full max-w-5xl overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_8px_30px_-12px_rgba(11,22,51,0.12)] lg:grid-cols-[0.9fr_1.1fr]">
+        <aside className="flex flex-col justify-between bg-[var(--brand-navy)] p-6 text-white sm:p-8 lg:p-11">
+          <div>
+            <AppMark href="/login" inverse />
 
-          <div className="relative flex h-full flex-col">
-            <Link
-              href="/login"
-              className="inline-flex min-h-11 w-fit items-center gap-3 rounded-xl focus-visible:outline-white"
-            >
-              <span className="grid size-11 place-items-center rounded-xl bg-white text-[var(--brand-blue)] shadow-sm">
-                <Gift aria-hidden="true" className="size-6" strokeWidth={2.4} />
-              </span>
-              <span className="text-lg font-extrabold">Lojinha EntreGÔ</span>
-            </Link>
-
-            <div className="mt-12 hidden lg:block">
-              <p className="text-sm font-bold text-white/80">Seu trabalho vale mais</p>
-              <h2 className="mt-3 max-w-md text-balance text-4xl font-extrabold leading-tight">
+            <div className="mt-10 hidden lg:block">
+              <p className="text-xs font-semibold uppercase tracking-wider text-emerald-300">
+                Clube de vantagens EntreGô
+              </p>
+              <h2 className="font-display mt-3 max-w-md text-balance text-3xl font-bold leading-snug tracking-tight">
                 Conquistas que acompanham cada entrega.
               </h2>
-              <p className="mt-4 max-w-md text-pretty text-base leading-7 text-white/80">
-                Uma loja simples e segura para você acompanhar seus pontos e escolher seus prêmios.
+              <p className="mt-3 max-w-sm text-pretty text-sm leading-relaxed text-slate-300">
+                Uma loja leve e segura para consultar seu saldo de pontos e resgatar recompensas.
               </p>
 
-              <div className="mt-10 space-y-5">
+              <div className="mt-9 space-y-4">
                 {benefits.map(({ icon: Icon, title: benefitTitle, text }) => (
-                  <div key={benefitTitle} className="flex gap-4">
-                    <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-white/15">
-                      <Icon aria-hidden="true" className="size-5" />
+                  <div key={benefitTitle} className="flex gap-3.5">
+                    <span className="grid size-10 shrink-0 place-items-center rounded-xl border border-white/10 bg-white/[0.07] text-emerald-300">
+                      <Icon aria-hidden="true" className="size-[18px]" />
                     </span>
                     <div>
-                      <p className="font-bold">{benefitTitle}</p>
-                      <p className="mt-1 max-w-sm text-pretty text-sm leading-6 text-white/85">{text}</p>
+                      <p className="text-sm font-semibold text-white">{benefitTitle}</p>
+                      <p className="mt-0.5 max-w-xs text-pretty text-xs leading-relaxed text-slate-300">
+                        {text}
+                      </p>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
-
           </div>
+
+          <p className="mt-8 hidden text-xs text-slate-400 lg:block">
+            Acesso direto pelo app EntreGô ou com suas credenciais.
+          </p>
         </aside>
 
-        <section className="flex items-center px-6 py-10 sm:px-10 lg:px-16 lg:py-14">
+        <section className="flex items-center px-6 py-8 sm:px-10 lg:px-14 lg:py-12">
           <div className="mx-auto w-full max-w-md">
             {eyebrow ? (
-              <div className="inline-flex min-h-8 items-center gap-2 rounded-full bg-blue-50 px-3 text-sm font-bold text-[var(--brand-blue-dark)]">
-                <ShieldCheck aria-hidden="true" className="size-4" />
+              <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-blue-200/80 bg-blue-50/80 px-3 py-1 text-xs font-semibold text-[var(--brand-blue)]">
+                <ShieldCheck aria-hidden="true" className="size-3.5" />
                 {eyebrow}
               </div>
             ) : null}
-             <h1 className="mt-5 text-balance text-3xl font-extrabold leading-tight text-[var(--brand-navy)] sm:text-4xl">
+            <h1 className="font-display text-balance text-2xl font-bold tracking-tight text-[var(--brand-navy)] sm:text-3xl">
               {title}
             </h1>
-            <p className="mt-3 max-w-md text-pretty leading-7 text-slate-700">{description}</p>
+            <p className="mt-2 max-w-md text-pretty text-sm leading-relaxed text-slate-600">
+              {description}
+            </p>
 
-            <div className="mt-8">{children}</div>
-            <div className="mt-7 border-t border-[var(--line)] pt-6 text-center text-sm text-slate-700">
+            <div className="mt-7">{children}</div>
+            <div className="mt-7 border-t border-slate-200/80 pt-5 text-center text-sm text-slate-600">
               {footer}
             </div>
           </div>

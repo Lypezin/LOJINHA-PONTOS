@@ -29,7 +29,7 @@ export type AdminCourier = {
   redeemedPoints: number;
 };
 
-const fieldClass = "min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-[var(--brand-navy)] outline-none placeholder:text-slate-400 focus:border-[var(--brand-blue)] focus:ring-4 focus:ring-blue-100";
+const fieldClass = "h-10 w-full rounded-xl border border-slate-200/90 bg-white px-3 text-sm text-[var(--brand-navy)] outline-none placeholder:text-slate-400 focus:border-[var(--brand-blue)] focus:ring-2 focus:ring-blue-500/15";
 
 function courierTone(status: CourierStatus) {
   return status === "ACTIVE" ? "success" : status === "PENDING" ? "warning" : "danger";
@@ -78,8 +78,8 @@ function EditCourierDialog({ courier, onSaved }: { courier: AdminCourier; onSave
     <Dialog.Root open={open} onOpenChange={handleOpen}>
       <Dialog.Trigger asChild><Button variant="ghost" size="sm"><Pencil className="size-4" aria-hidden="true" />Editar</Button></Dialog.Trigger>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-slate-950/50" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[20px] bg-white p-6 shadow-xl focus:outline-none">
+        <Dialog.Overlay className="fixed inset-0 z-40 bg-slate-950/45 backdrop-blur-[2px]" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl bg-white p-6 shadow-xl focus:outline-none">
           <div className="flex items-start justify-between gap-4"><div><Dialog.Title className="text-balance text-xl font-extrabold text-[var(--brand-navy)]">Editar entregador</Dialog.Title><Dialog.Description className="mt-2 text-pretty text-sm leading-6 text-slate-600">Corrija os dados de cadastro usados no vínculo com a planilha.</Dialog.Description></div><Dialog.Close asChild><button className="flex size-11 shrink-0 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100" aria-label="Fechar edição"><X className="size-5" aria-hidden="true" /></button></Dialog.Close></div>
           <form onSubmit={save} className="mt-6 space-y-4">
             <div><label htmlFor={`courier-name-${courier.id}`} className="mb-1.5 block text-sm font-bold">Nome completo</label><input id={`courier-name-${courier.id}`} className={fieldClass} value={draft.name} minLength={2} required onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))} /></div>
@@ -146,8 +146,8 @@ function AdjustPointsDialog({ courier, onSaved }: { courier: AdminCourier; onSav
     <AlertDialog.Root open={open} onOpenChange={handleOpen}>
       <AlertDialog.Trigger asChild><Button variant="secondary" size="sm"><CircleDollarSign className="size-4" aria-hidden="true" />Ajustar pontos</Button></AlertDialog.Trigger>
       <AlertDialog.Portal>
-        <AlertDialog.Overlay className="fixed inset-0 z-40 bg-slate-950/50" />
-        <AlertDialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[20px] bg-white p-6 shadow-xl focus:outline-none">
+        <AlertDialog.Overlay className="fixed inset-0 z-40 bg-slate-950/45 backdrop-blur-[2px]" />
+        <AlertDialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl bg-white p-6 shadow-xl focus:outline-none">
           <div className="flex items-start justify-between gap-4"><div><p className="text-sm font-bold text-[var(--brand-blue)]">Lançamento auditável</p><AlertDialog.Title className="mt-1 text-balance text-xl font-extrabold text-[var(--brand-navy)]">Ajustar pontos de {courier.name}</AlertDialog.Title></div><AlertDialog.Cancel asChild><button className="flex size-11 shrink-0 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100" aria-label="Fechar ajuste"><X className="size-5" aria-hidden="true" /></button></AlertDialog.Cancel></div>
           <AlertDialog.Description className="mt-3 text-pretty text-sm leading-6 text-slate-600">Use valor positivo para adicionar ou negativo para remover. O motivo ficará registrado no extrato.</AlertDialog.Description>
           <form onSubmit={adjust} className="mt-5 space-y-4">
@@ -177,7 +177,7 @@ export function CourierManager({ couriers, total, page, query, status }: { couri
         <>
           <div className="grid gap-4 xl:grid-cols-2">
             {couriers.map((courier) => (
-              <article key={courier.id} className="rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm">
+              <article key={courier.id} className="rounded-2xl border  param($m) $m.Value -replace 'border-slate-200', 'border-slate-200/80' -replace 'shadow-sm', 'shadow-[0_1px_2px_rgba(15,23,42,0.04)]' shadow-sm">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
                     <h2 className="line-clamp-2 text-balance text-lg font-extrabold text-[var(--brand-navy)]">{courier.name}</h2>
@@ -231,7 +231,7 @@ export function CourierManager({ couriers, total, page, query, status }: { couri
             ))}
           </div>
           {pageCount > 1 ? (
-            <nav className="flex flex-col items-center justify-between gap-3 rounded-[20px] border border-slate-200 bg-white p-4 sm:flex-row" aria-label="Páginas de entregadores">
+            <nav className="flex flex-col items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 sm:flex-row" aria-label="Páginas de entregadores">
               <p className="text-sm text-slate-600"><span className="font-extrabold tabular-nums text-[var(--brand-navy)]">{formatPoints(total)}</span> entregadores • página <span className="font-bold tabular-nums">{page} de {pageCount}</span></p>
               <div className="flex gap-2">{page > 1 ? <Link href={pageHref(page - 1)} className={buttonStyles({ variant: "secondary", size: "sm" })}>Anterior</Link> : null}{page < pageCount ? <Link href={pageHref(page + 1)} className={buttonStyles({ variant: "secondary", size: "sm" })}>Próxima</Link> : null}</div>
             </nav>

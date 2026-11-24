@@ -1,15 +1,16 @@
 @import "tailwindcss";
 
 :root {
-  --brand-blue: #2c67ea;
-  --brand-blue-dark: #1b3fac;
-  --brand-navy: #0f1849;
-  --brand-mint: #2ceabc;
-  --brand-mint-ink: #0f4938;
-  --surface-soft: #eff2f6;
-  --line: #d9dee7;
-  --background: #f4f7fb;
-  --foreground: #0f1849;
+  --brand-blue: #1d56e8;
+  --brand-blue-dark: #1644bd;
+  --brand-navy: #0b1633;
+  --brand-mint: #10b981;
+  --brand-mint-ink: #065f46;
+  --surface: #ffffff;
+  --surface-soft: #f1f5f9;
+  --line: #e2e8f0;
+  --background: #f6f8fb;
+  --foreground: #0f172a;
 
   /* Escala semântica de Z-Index */
   --z-header: 20;
@@ -33,10 +34,14 @@ body {
   margin: 0;
   background: var(--background);
   color: var(--foreground);
-  font-family: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--font-sans), Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   text-rendering: optimizeLegibility;
   overflow-x: hidden;
   width: 100%;
+}
+
+.font-display {
+  font-family: var(--font-display), var(--font-sans), Inter, sans-serif;
 }
 
 button,
@@ -52,12 +57,12 @@ a {
 }
 
 ::selection {
-  background: var(--brand-mint);
+  background: color-mix(in srgb, var(--brand-blue) 18%, transparent);
   color: var(--brand-navy);
 }
 
 :focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--brand-blue) 42%, transparent);
+  outline: 2px solid color-mix(in srgb, var(--brand-blue) 60%, transparent);
   outline-offset: 2px;
 }
 

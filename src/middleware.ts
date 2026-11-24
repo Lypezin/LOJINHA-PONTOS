@@ -19,7 +19,13 @@ export function middleware(request: NextRequest) {
   const response = NextResponse.next();
 
   // Enforce security headers
-  response.headers.set("X-Frame-Options", "DENY");
+  const allowedOrigins = (process.env.APP_EMBED_ALLOWED_ORIGINS ?? "")
+    .split(/[\s,]+/)
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+  if (allowedOrigins.length === 0) {
+    response.headers.set("X-Frame-Options", "DENY");
+  }
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   response.headers.set(
@@ -37,6 +43,7 @@ export function middleware(request: NextRequest) {
   }
 
   // Content Security Policy
+  const frameAncestors = allowedOrigins.length > 0 ? `'self' ${allowedOrigins.join(" ")}` : "'none'";
   const cspHeader = `
     default-src 'self';
     script-src 'self' 'unsafe-inline' 'unsafe-eval';
@@ -44,7 +51,7 @@ export function middleware(request: NextRequest) {
     img-src 'self' data: blob: http: https:;
     font-src 'self' data:;
     connect-src 'self';
-    frame-ancestors 'none';
+    frame-ancestors ${frameAncestors};
   `.replace(/\s{2,}/g, " ").trim();
 
   response.headers.set("Content-Security-Policy", cspHeader);
