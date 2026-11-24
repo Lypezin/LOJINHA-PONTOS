@@ -323,7 +323,7 @@ export function RankingDashboard({ topEarners, topSpenders, topBalances, stats }
           )}
 
           {/* Listagem completa (Tabela / Grid) */}
-          <div className="overflow-hidden rounded-2xl border  param($m) $m.Value -replace 'border-slate-200', 'border-slate-200/80' -replace 'shadow-sm', 'shadow-[0_1px_2px_rgba(15,23,42,0.04)]' ">
+          <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
             <div className="border-b border-slate-100 bg-slate-50/50 px-5 py-4">
               <h2 className="flex items-center gap-2 text-base font-extrabold text-[var(--brand-navy)]">
                 {tabIcon}

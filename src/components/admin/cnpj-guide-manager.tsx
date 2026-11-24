@@ -78,7 +78,7 @@ function CnpjGuideExcelImporter() {
   }
 
   return (
-    <section className="rounded-[24px] border  param($m) $m.Value -replace 'border-slate-200', 'border-slate-200/80' -replace 'shadow-sm', 'shadow-[0_1px_2px_rgba(15,23,42,0.04)]' shadow-sm sm:p-6">
+    <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] sm:p-6">
       <div className="mb-4 flex items-start gap-3">
         <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 shadow-sm">
           <Upload className="size-5" />
@@ -275,7 +275,7 @@ export function CnpjGuideManager({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border  param($m) $m.Value -replace 'border-slate-200', 'border-slate-200/80' -replace 'shadow-sm', 'shadow-[0_1px_2px_rgba(15,23,42,0.04)]' shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
         <div><h2 className="font-extrabold text-[var(--brand-navy)]">Exportar guia completa</h2><p className="mt-1 text-sm text-slate-600">Baixe todos os registros, incluindo os que não aparecem nesta página.</p></div>
         <Link href="/api/admin/cnpj-guide/export" download className={buttonStyles({ variant: "secondary" })}><Download className="size-4" aria-hidden="true" /> Exportar planilha</Link>
       </div>
@@ -288,7 +288,7 @@ export function CnpjGuideManager({
 
       <form method="get" className="flex max-w-xl gap-2"><input type="hidden" name="tab" value="guia" /><label className="relative flex-1"><span className="sr-only">Buscar na Guia de CNPJ</span><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" /><input name="q" defaultValue={query} className={`${fieldClass} pl-10`} placeholder="Buscar por nome ou CNPJ" /></label><Button type="submit" variant="secondary">Buscar</Button></form>
 
-      <div className="overflow-hidden rounded-2xl border  param($m) $m.Value -replace 'border-slate-200', 'border-slate-200/80' -replace 'shadow-sm', 'shadow-[0_1px_2px_rgba(15,23,42,0.04)]' ">
+      <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[840px] text-left text-sm">
             <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">

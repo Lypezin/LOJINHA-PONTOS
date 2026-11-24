@@ -99,7 +99,7 @@ export function ImportWizard({ defaultPointsColumn }: { defaultPointsColumn: str
   }
 
   return (
-    <section className="rounded-2xl border  param($m) $m.Value -replace 'border-slate-200', 'border-slate-200/80' -replace 'shadow-sm', 'shadow-[0_1px_2px_rgba(15,23,42,0.04)]' shadow-sm sm:p-7" aria-labelledby="wizard-title">
+    <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] sm:p-7" aria-labelledby="wizard-title">
       <div className="grid grid-cols-3 gap-2" aria-label="Etapas da importação">
         {[
           { label: "1. Arquivo", active: true },

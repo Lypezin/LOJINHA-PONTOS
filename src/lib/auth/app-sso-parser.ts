@@ -39,7 +39,7 @@ type ParamMap = URLSearchParams | Record<string, string | string[] | undefined>;
 const SIMPLE_EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function cleanAppParam(raw?: string | null): string | null {
-  if (raw == null) return null;
+  if (typeof raw !== "string") return null;
   const trimmed = raw.trim();
   if (!trimmed) return null;
 
